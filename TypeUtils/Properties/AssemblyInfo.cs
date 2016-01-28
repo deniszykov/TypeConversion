@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("TypeUtils")]
-[assembly: AssemblyDescription("C# utilities for convertion between types and type construction")]
+[assembly: AssemblyDescription("C# utilities for convertion between types and type construction. \r\nDocumentation and examples at GitHub: https://github.com/deniszykov/typeutils")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Denis Zykov")]
 [assembly: AssemblyProduct("TypeUtils")]
-[assembly: AssemblyCopyright("Copyright Denis Zykov © 2016")]
+[assembly: AssemblyCopyright("Copyright © Denis Zykov 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
