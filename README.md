@@ -48,44 +48,44 @@ Install-Package System.TypeConvert
 Examples
 ========
 ## TypeConvert
-**Convert from string to integer**
+Convert from string to integer
 ```csharp
 TypeConvert.Convert<string, int>("1") // 1
 ```	
-**Convert from integer to Enum**
+Convert from integer to Enum
 ```csharp
 TypeConvert.Convert<int, ConsoleColor>(1) // DarkBlue
 ```	
-**Convert from string to IPAddress**
+Convert from string to IPAddress
 ```csharp
 TypeConvert.Convert<string, IPAddress>("127.0.0.1") // 127.0.0.1 via IPAddress.Parse
 ```
-**Convert to string with format(if supported)**
+Convert to string with format(if supported)
 ```csharp
 TypeConvert.ToString(1000000, format: "x") // f4240
 ```	
-**Convert from any to IpAddress**
+Convert from any to IpAddress
 ```csharp
 TypeConvert.Convert(typeof(object), typeof(IPAddress), "127.0.0.1"); 127.0.0.1 via IPAddress.Parse
 ```
-**Try convert**
+Testing conversion
 ```csharp
 TypeConvert.TryConvert<string, int>("xxx", out intValue) // false
 ```
 ## TypeActivator
-**Creating from default constructor**
+Creating from default constructor
 ```csharp
 TypeActivator.CreateInstance(typeof(int)); // 0
 ```
-**Getting class instance without default constructor**
+Getting class instance without default constructor
 ```csharp
 TypeActivator.CreateInstance(typeof(EventArgs)); // via EventArgs.Empty
 ```
-**Getting class instance without default constructor and Empty property**
+Getting class instance without default constructor and Empty property
 ```csharp
 TypeActivator.CreateInstance(typeof(IPEndPoint), force: true); // IPEndPoint bypassing constructor
 ```
-**Creating an array**
+Creating an array
 ```csharp
 TypeActivator.CreateInstance(typeof(int[])); // int[0] (same instance every time)
 ```
