@@ -167,7 +167,7 @@ namespace System
 
 				foreach (var method in typeof(ToType).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
 				{
-					if (method.IsStatic && method.Name == "Parse" && method.ReturnType == typeof(ToType))
+					if (method.IsStatic && (method.Name == "Parse" || method.Name == "Create") && method.ReturnType == typeof(ToType))
 					{
 						var parseParams = method.GetParameters();
 						if (parseParams.Length == 1 && parseParams[0].ParameterType == typeof(string))

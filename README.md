@@ -5,7 +5,7 @@ For historical reasons, .NET has several approaches to value conversion:
 - System.Convert class 
 - IConvertible interface
 - System.ComponentModel.TypeConverter
-- To, From, Parse methods
+- To, From, Parse, Create methods
 As well as a few special cases with meta types(Enums, Nullable Types).
 
 TypeConvert combines all these approaches under one API. 
