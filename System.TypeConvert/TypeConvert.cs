@@ -198,6 +198,27 @@ namespace System
 				BetweenTypes<FromType, ToType>.Transition(value, format, formatProvider) :
 				InternalConvert<FromType, ToType>(value, format, formatProvider);
 		}
+		public static bool TryConvert<FromType, ToType>(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
+		{
+			result = default(ToType);
+			try
+			{
+				result = Convert<FromType, ToType>(value, format, formatProvider);
+				return true;
+			}
+			catch (Exception e)
+			{
+				if (e is InvalidCastException || e is FormatException ||
+					e is ArithmeticException || e is NotSupportedException ||
+					e is ArgumentException || e is InvalidTimeZoneException)
+					return false;
+				throw;
+			}
+		}
+		public static string ToString<FromType>(FromType value, string format = null, IFormatProvider formatProvider = null)
+		{
+			return Convert<FromType, string>(value, format, formatProvider);
+		}
 
 		public static object Convert(Type fromType, Type toType, object value, string format = null, IFormatProvider formatProvider = null)
 		{
@@ -242,28 +263,6 @@ namespace System
 				CachedGenericConvertMethods[cacheKey] = convertFn = convExpression.Compile();
 
 			return convertFn.Invoke(value, format, formatProvider);
-		}
-		public static string ToString<FromType>(FromType value, string format = null, IFormatProvider formatProvider = null)
-		{
-			return Convert<FromType, string>(value, format, formatProvider);
-		}
-
-		public static bool TryConvert<FromType, ToType>(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
-		{
-			result = default(ToType);
-			try
-			{
-				result = Convert<FromType, ToType>(value, format, formatProvider);
-				return true;
-			}
-			catch (Exception e)
-			{
-				if (e is InvalidCastException || e is FormatException ||
-					e is ArithmeticException || e is NotSupportedException ||
-					e is ArgumentException || e is InvalidTimeZoneException)
-					return false;
-				throw;
-			}
 		}
 		public static bool TryConvert(Type fromType, Type toType, ref object value, string format = null, IFormatProvider formatProvider = null)
 		{
