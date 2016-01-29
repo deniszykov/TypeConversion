@@ -6,11 +6,11 @@
     <title>$title$</title>
     <authors>$author$</authors>
     <owners>$author$</owners>
-    <licenseUrl>https://github.com/deniszykov/typeutils/blob/master/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/deniszykov/typeconvert/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/deniszykov/typeconvert</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes></releaseNotes>
+    <releaseNotes>Added Create method detection for TypeConvert</releaseNotes>
     <copyright>Copyright (c) Denis Zykov 2016</copyright>
     <tags>hex, convert, construct</tags>
   </metadata>

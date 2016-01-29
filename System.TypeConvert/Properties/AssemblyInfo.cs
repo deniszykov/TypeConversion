@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("System.TypeConvert")]
-[assembly: AssemblyDescription("C# utilities for convertion between types and type construction. \r\nDocumentation and examples at GitHub: https://github.com/deniszykov/typeutils")]
+[assembly: AssemblyTitle("Type Conversion Utiltites")]
+[assembly: AssemblyDescription("Tools for conversions between types. Also hexadecimal data encoder.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Denis Zykov")]
-[assembly: AssemblyProduct("System.TypeConvert")]
+[assembly: AssemblyProduct("TypeConvert")]
 [assembly: AssemblyCopyright("Copyright © Denis Zykov 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
