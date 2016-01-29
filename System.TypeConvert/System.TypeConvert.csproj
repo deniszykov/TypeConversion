@@ -7,8 +7,8 @@
     <ProjectGuid>{B35388A6-45FB-4B28-AA6A-742BEE2D7FE1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TypeUtils</RootNamespace>
-    <AssemblyName>TypeUtils</AssemblyName>
+    <RootNamespace>System</RootNamespace>
+    <AssemblyName>System.TypeConvert</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

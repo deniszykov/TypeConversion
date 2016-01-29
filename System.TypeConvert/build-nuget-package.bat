@@ -1,0 +1,1 @@
+nuget pack System.TypeConvert.csproj -Prop Configuration=Release
