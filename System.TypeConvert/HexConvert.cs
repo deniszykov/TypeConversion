@@ -17,6 +17,12 @@ namespace System
 	{
 		private static readonly char[] HexChar = "0123456789ABCDEF".ToCharArray();
 
+		public static string BufferToHexString(byte[] buffer)
+		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
+
+			return BufferToHexString(buffer, 0, buffer.Length);
+		}
 		public static string BufferToHexString(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
@@ -41,6 +47,12 @@ namespace System
 
 			return hexString.ToString();
 		}
+		public static char[] BufferToHexBuffer(byte[] buffer)
+		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
+
+			return BufferToHexBuffer(buffer, 0, buffer.Length);
+		}
 		public static char[] BufferToHexBuffer(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
@@ -54,6 +66,12 @@ namespace System
 			CopyBufferToHexBuffer(buffer, offset, count, hexBuffer, 0);
 			return hexBuffer;
 		}
+		public static byte[] HexBufferToBuffer(char[] hexBuffer)
+		{
+			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
+
+			return HexBufferToBuffer(hexBuffer, 0, hexBuffer.Length);
+		}
 		public static byte[] HexBufferToBuffer(char[] hexBuffer, int offset, int count)
 		{
 			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
@@ -64,6 +82,12 @@ namespace System
 			var buffer = new byte[(hexBuffer.Length + 1) / 2];
 			CopyHexBufferToBuffer(hexBuffer, offset, count, buffer, 0);
 			return buffer;
+		}
+		public static byte[] HexStringToBuffer(string hexString)
+		{
+			if (hexString == null) throw new ArgumentNullException("hexString");
+
+			return HexStringToBuffer(hexString, 0, hexString.Length);
 		}
 		public static byte[] HexStringToBuffer(string hexString, int offset, int count)
 		{
