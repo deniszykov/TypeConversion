@@ -42,7 +42,7 @@ Number ToNumber(hexBuffer, offset) // hex -> number
 Installation
 ============
 ```
-Install-Package System.TypeConvert 
+Install-Package TypeConvert 
 ```
 
 Examples

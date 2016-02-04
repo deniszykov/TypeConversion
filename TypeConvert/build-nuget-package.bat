@@ -1,0 +1,1 @@
+nuget pack TypeConvert.csproj -Prop Configuration=Release -Prop Platform=AnyCPU
