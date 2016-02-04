@@ -17,13 +17,13 @@ namespace System
 	{
 		private static readonly char[] HexChar = "0123456789ABCDEF".ToCharArray();
 
-		public static string BufferToHexString(byte[] buffer)
+		public static string ToHex(byte[] buffer)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 
-			return BufferToHexString(buffer, 0, buffer.Length);
+			return ToHex(buffer, 0, buffer.Length);
 		}
-		public static string BufferToHexString(byte[] buffer, int offset, int count)
+		public static string ToHex(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
@@ -47,13 +47,13 @@ namespace System
 
 			return hexString.ToString();
 		}
-		public static char[] BufferToHexBuffer(byte[] buffer)
+		public static char[] ToHexBuffer(byte[] buffer)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 
-			return BufferToHexBuffer(buffer, 0, buffer.Length);
+			return ToHexBuffer(buffer, 0, buffer.Length);
 		}
-		public static char[] BufferToHexBuffer(byte[] buffer, int offset, int count)
+		public static char[] ToHexBuffer(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
@@ -66,13 +66,13 @@ namespace System
 			CopyBufferToHexBuffer(buffer, offset, count, hexBuffer, 0);
 			return hexBuffer;
 		}
-		public static byte[] HexBufferToBuffer(char[] hexBuffer)
+		public static byte[] ToBuffer(char[] hexBuffer)
 		{
 			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
 
-			return HexBufferToBuffer(hexBuffer, 0, hexBuffer.Length);
+			return ToBuffer(hexBuffer, 0, hexBuffer.Length);
 		}
-		public static byte[] HexBufferToBuffer(char[] hexBuffer, int offset, int count)
+		public static byte[] ToBuffer(char[] hexBuffer, int offset, int count)
 		{
 			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
@@ -83,13 +83,13 @@ namespace System
 			CopyHexBufferToBuffer(hexBuffer, offset, count, buffer, 0);
 			return buffer;
 		}
-		public static byte[] HexStringToBuffer(string hexString)
+		public static byte[] ToBuffer(string hexString)
 		{
 			if (hexString == null) throw new ArgumentNullException("hexString");
 
-			return HexStringToBuffer(hexString, 0, hexString.Length);
+			return ToBuffer(hexString, 0, hexString.Length);
 		}
-		public static byte[] HexStringToBuffer(string hexString, int offset, int count)
+		public static byte[] ToBuffer(string hexString, int offset, int count)
 		{
 			if (hexString == null) throw new ArgumentNullException("hexString");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");

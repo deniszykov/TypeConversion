@@ -10,7 +10,9 @@
     <projectUrl>https://github.com/deniszykov/typeconvert</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Added Create method detection for TypeConvert</releaseNotes>
+    <releaseNotes>
+		renamed HexConvert's method for sake of simplicity 
+	</releaseNotes>
     <copyright>Copyright (c) Denis Zykov 2016</copyright>
     <tags>hex, convert, construct</tags>
   </metadata>

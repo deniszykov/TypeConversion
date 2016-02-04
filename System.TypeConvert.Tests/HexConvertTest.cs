@@ -28,10 +28,10 @@ namespace TypeUtils.Tests
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// hex string -> buffer
-			var buffer = HexConvert.HexStringToBuffer(expectedHexString, 0, expectedHexString.Length);
+			var buffer = HexConvert.ToBuffer(expectedHexString, 0, expectedHexString.Length);
 			Assert.Equal(expectedBuffer, buffer);
 			// hex buffer -> buffer
-			buffer = HexConvert.HexBufferToBuffer(expectedHexBuffer, 0, expectedHexBuffer.Length);
+			buffer = HexConvert.ToBuffer(expectedHexBuffer, 0, expectedHexBuffer.Length);
 			Assert.Equal(expectedBuffer, buffer);
 
 			// hex buffer -> buffer (copy)
@@ -53,10 +53,10 @@ namespace TypeUtils.Tests
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// buffer -> hex string
-			var hexString = HexConvert.BufferToHexString(expectedBuffer, 0, expectedBuffer.Length);
+			var hexString = HexConvert.ToHex(expectedBuffer, 0, expectedBuffer.Length);
 			Assert.Equal(expectedHexString, hexString);
 			// buffer -> hex buffer
-			var hexBuffer = HexConvert.BufferToHexBuffer(expectedBuffer, 0, expectedBuffer.Length);
+			var hexBuffer = HexConvert.ToHexBuffer(expectedBuffer, 0, expectedBuffer.Length);
 			Assert.Equal(expectedHexBuffer, hexBuffer);
 
 			// buffer -> hex buffer (copy)
