@@ -15,7 +15,9 @@ namespace System
 {
 	public class HexConvert
 	{
-		private static readonly char[] HexChar = "0123456789ABCDEF".ToCharArray();
+		private static readonly char[] HexChar = "0123456789abcdef".ToCharArray();
+
+		public static bool UseUppercaseHex { set { for (var i = 0; i < HexChar.Length; i++) HexChar[i] = value ? char.ToLower(HexChar[i]) : char.ToUpper(HexChar[i]); } }
 
 		public static string ToHex(byte[] buffer)
 		{
