@@ -6,11 +6,11 @@ For historical reasons, .NET has several approaches to value conversion:
 - IConvertible interface
 - System.ComponentModel.TypeConverter
 - To, From, Parse, Create methods
-As well as a few special cases with meta types(Enums, Nullable Types).
+- Meta types(Enums, Nullable Types).
 
 TypeConvert combines all these approaches under one API. 
-Additionally this library has methods for encoding data into hexadecimal representation and class instantiation.
-Each class can be used separately and you are free to embedd them into your project.
+Additionally this package has hexadecimal conversion API and type instancing API(cached for better perfomance).
+Each utility class in this package can be used separately and you are free to embedd them into your project.
 
 #### TypeConvert
 ```csharp
