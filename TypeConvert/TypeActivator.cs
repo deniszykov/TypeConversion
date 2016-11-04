@@ -58,68 +58,74 @@ namespace System
 
 		private static readonly Dictionary<Type, Func<object>> DefaultConstructorCache = new Dictionary<Type, Func<object>>();
 		private static readonly Dictionary<ConstructorSignature, Delegate> CustomConstructorCache = new Dictionary<ConstructorSignature, Delegate>();
+		private static readonly HashSet<string> ConstructorSubstitutionMembers = new HashSet<string>(new[] { "Empty", "Default", "Instance" }, StringComparer.OrdinalIgnoreCase);
 
 		public static object CreateInstance(Type type, bool forceCreate = false)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			var ctr = default(Func<object>);
+			var constructorFn = default(Func<object>);
 			lock (DefaultConstructorCache)
 			{
-				if (DefaultConstructorCache.TryGetValue(type, out ctr) == false)
+				if (DefaultConstructorCache.TryGetValue(type, out constructorFn) == false)
 				{
 					var ctrs = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-					var emptyCtr = default(ConstructorInfo);
-					var emptyField = default(FieldInfo);
-					var emptyProperty = default(PropertyInfo);
+					var publicEmptyConstructor = ctrs.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic);
+					var privateEmptyConstructor = ctrs.SingleOrDefault(c => c.GetParameters().Length == 0 && !c.IsPublic);
+					var instanceField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => ConstructorSubstitutionMembers.Contains(f.Name) && type.IsAssignableFrom(f.FieldType));
+					var instanceProperty = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(p => ConstructorSubstitutionMembers.Contains(p.Name) && type.IsAssignableFrom(p.PropertyType) && p.CanRead && p.GetIndexParameters().Length == 0);
 
-					// find empty constructor
-					emptyCtr = ctrs.SingleOrDefault(c => c.GetParameters().Length == 0);
-
-					if (emptyCtr != null)
+					if (publicEmptyConstructor != null)
 					{
 						var createNewObjectExpr = Expression.Lambda<Func<object>>
 						(
 							Expression.Convert
 							(
-								Expression.New(emptyCtr),
+								Expression.New(publicEmptyConstructor),
 								typeof(object)
 							)
 						);
 
-						ctr = createNewObjectExpr.Compile();
+						constructorFn = createNewObjectExpr.Compile();
 					}
-					else if ((emptyField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => f.Name == "Empty")) != null &&
-						type.IsAssignableFrom(emptyField.FieldType)
-					)
+					else if (instanceField != null)
 					{
-						var getEmptyFieldExpr = Expression.Lambda<Func<object>>
+						var getInstanceFieldExpr = Expression.Lambda<Func<object>>
 						(
 							Expression.Convert
 							(
-								Expression.Field(null, emptyField),
+								Expression.Field(null, instanceField),
 								typeof(object)
 							)
 						);
-						ctr = getEmptyFieldExpr.Compile();
+						constructorFn = getInstanceFieldExpr.Compile();
 					}
-					else if ((emptyProperty = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => f.Name == "Empty")) != null &&
-							 type.IsAssignableFrom(emptyProperty.PropertyType) &&
-							 emptyProperty.CanRead &&
-							 emptyProperty.GetIndexParameters().Length == 0
-						)
+					else if (instanceProperty != null)
 					{
-						var getEmptyPropertyExpr = Expression.Lambda<Func<object>>
+						var getInstancePropertyExpr = Expression.Lambda<Func<object>>
+						(
+							Expression.Convert
 							(
-								Expression.Convert
-									(
-										Expression.Property(null, emptyProperty),
-										typeof(object)
-									)
-							);
-						ctr = getEmptyPropertyExpr.Compile();
+								Expression.Property(null, instanceProperty),
+								typeof(object)
+							)
+						);
+						constructorFn = getInstancePropertyExpr.Compile();
 					}
-					else if (type.IsArray)
+					else if (privateEmptyConstructor != null)
+					{
+						var createNewObjectExpr = Expression.Lambda<Func<object>>
+						(
+							Expression.Convert
+							(
+								Expression.New(privateEmptyConstructor),
+								typeof(object)
+							)
+						);
+
+						constructorFn = createNewObjectExpr.Compile();
+					}
+					else if (type.IsArray && type.GetArrayRank() == 1)
 					{
 						var elementType = type.GetElementType();
 						Debug.Assert(elementType != null, "elementType != null");
@@ -132,32 +138,32 @@ namespace System
 							)
 						);
 
-						ctr = createNewArrayExpr.Compile();
+						constructorFn = createNewArrayExpr.Compile();
 					}
 					else if (type.IsValueType)
 					{
 						var createNewValueTypeExpr = Expression.Lambda<Func<object>>
 						(
-							Expression.Convert
+							Expression.Constant
 							(
-								Expression.New(type),
+								Activator.CreateInstance(type),
 								typeof(object)
 							)
 						);
 
-						ctr = createNewValueTypeExpr.Compile();
+						constructorFn = createNewValueTypeExpr.Compile();
 					}
 
-					DefaultConstructorCache[type] = ctr;
+					DefaultConstructorCache[type] = constructorFn;
 				}
 			}
 
-			if (ctr == null && forceCreate)
+			if (constructorFn == null && forceCreate)
 				return FormatterServices.GetSafeUninitializedObject(type);
-			else if (ctr == null)
+			else if (constructorFn == null)
 				throw new ArgumentException(string.Format("Type '{0}' does not contains default empty constructor.", type), "type");
 			else
-				return ctr();
+				return constructorFn();
 		}
 		public static object CreateInstance<Arg1T>(Type type, Arg1T arg1)
 		{
