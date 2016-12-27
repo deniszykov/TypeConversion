@@ -4,8 +4,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Type Conversion Utiltites")]
-[assembly: AssemblyDescription("Tools for conversions between types. Also hexadecimal data encoder.")]
+[assembly: AssemblyTitle("Heuristic Type Converter")]
+[assembly: AssemblyDescription("Utility class for conversions between .NET types.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Denis Zykov")]
 [assembly: AssemblyProduct("TypeConvert")]
