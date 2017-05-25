@@ -9,8 +9,8 @@
     <ProjectGuid>{50256EB8-4039-4C45-963F-3849A7B59122}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>System.TypeConvert.Tests</RootNamespace>
-    <AssemblyName>System.TypeConvert.Tests</AssemblyName>
+    <RootNamespace>TypeConvert.Tests</RootNamespace>
+    <AssemblyName>TypeConvert.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
@@ -70,6 +70,7 @@
     <Compile Include="HexConvertTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypeActivatorTest.cs" />
+    <Compile Include="TypeConvertTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TypeConvert\sign.snk">
