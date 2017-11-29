@@ -12,7 +12,7 @@ using System;
 using System.Collections.Generic;
 using Xunit;
 
-namespace TypeUtils.Tests
+namespace TypeConvert.Tests
 {
 	public class TypeActivatorTest
 	{
@@ -40,7 +40,7 @@ namespace TypeUtils.Tests
 		[InlineData(typeof(ConsoleColor))] // enum
 		[InlineData(typeof(EventArgs))] // class with Empty property
 		[InlineData(typeof(string))] // class with Empty property
-		[InlineData(typeof(SystemException))] // class
+		[InlineData(typeof(Exception))] // class
 		[InlineData(typeof(int[]))] // array
 		[InlineData(typeof(List<int>))] // class
 		public void CreateType(Type expectedInstanceType)

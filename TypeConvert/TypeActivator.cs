@@ -13,7 +13,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.Serialization;
 
 // ReSharper disable once CheckNamespace
 namespace System
@@ -22,25 +21,25 @@ namespace System
 	{
 		private struct ConstructorSignature : IEquatable<ConstructorSignature>
 		{
-			private readonly Type Type;
-			private readonly Type Arg1Type;
-			private readonly Type Arg2Type;
-			private readonly Type Arg3Type;
+			private readonly Type type;
+			private readonly Type arg1Type;
+			private readonly Type arg2Type;
+			private readonly Type arg3Type;
 
 			public ConstructorSignature(Type type, Type arg1Type, Type arg2Type = null, Type arg3Type = null)
 			{
 				if (type == null) throw new ArgumentNullException("type");
 				if (arg1Type == null) throw new ArgumentNullException("arg1Type");
 
-				this.Type = type;
-				this.Arg1Type = arg1Type;
-				this.Arg2Type = arg2Type ?? typeof(void);
-				this.Arg3Type = arg3Type ?? typeof(void);
+				this.type = type;
+				this.arg1Type = arg1Type;
+				this.arg2Type = arg2Type ?? typeof(void);
+				this.arg3Type = arg3Type ?? typeof(void);
 			}
 
 			public override int GetHashCode()
 			{
-				return unchecked(Type.GetHashCode() + Arg1Type.GetHashCode() + Arg2Type.GetHashCode() + Arg3Type.GetHashCode());
+				return unchecked(this.type.GetHashCode() + this.arg1Type.GetHashCode() + this.arg2Type.GetHashCode() + this.arg3Type.GetHashCode());
 			}
 			public override bool Equals(object obj)
 			{
@@ -50,17 +49,21 @@ namespace System
 			}
 			public bool Equals(ConstructorSignature other)
 			{
-				return this.Type == other.Type && this.Arg1Type == other.Arg1Type && this.Arg2Type == other.Arg2Type && this.Arg3Type == other.Arg3Type;
+				return this.type == other.type && this.arg1Type == other.arg1Type && this.arg2Type == other.arg2Type && this.arg3Type == other.arg3Type;
 			}
 
-			public override string ToString() { return string.Format("{0}({1}, {2}, {3})", this.Type.Name, this.Arg1Type.Name, this.Arg2Type.Name, this.Arg3Type.Name); }
+			public override string ToString() { return string.Format("{0}({1}, {2}, {3})", this.type.Name, this.arg1Type.Name, this.arg2Type.Name, this.arg3Type.Name); }
 		}
 
 		private static readonly Dictionary<Type, Func<object>> DefaultConstructorCache = new Dictionary<Type, Func<object>>();
 		private static readonly Dictionary<ConstructorSignature, Delegate> CustomConstructorCache = new Dictionary<ConstructorSignature, Delegate>();
 		private static readonly HashSet<string> ConstructorSubstitutionMembers = new HashSet<string>(new[] { "Empty", "Default", "Instance" }, StringComparer.OrdinalIgnoreCase);
 
-		public static object CreateInstance(Type type, bool forceCreate = false)
+		public static object CreateInstance(Type type
+#if NET35
+			, bool forceCreate = false
+#endif
+		)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
@@ -69,11 +72,38 @@ namespace System
 			{
 				if (DefaultConstructorCache.TryGetValue(type, out constructorFn) == false)
 				{
-					var ctrs = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-					var publicEmptyConstructor = ctrs.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic);
-					var privateEmptyConstructor = ctrs.SingleOrDefault(c => c.GetParameters().Length == 0 && !c.IsPublic);
-					var instanceField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => ConstructorSubstitutionMembers.Contains(f.Name) && type.IsAssignableFrom(f.FieldType));
-					var instanceProperty = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(p => ConstructorSubstitutionMembers.Contains(p.Name) && type.IsAssignableFrom(p.PropertyType) && p.CanRead && p.GetIndexParameters().Length == 0);
+#if NET35
+					var typeInfo = type;
+					var constructors = typeInfo.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic);
+					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && !c.IsPublic);
+					var instanceField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => 
+						ConstructorSubstitutionMembers.Contains(f.Name) && 
+						type.IsAssignableFrom(f.FieldType)
+					);
+					var instanceProperty = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(p => 
+						ConstructorSubstitutionMembers.Contains(p.Name) && 
+						type.IsAssignableFrom(p.PropertyType) && 
+						p.CanRead && p.GetIndexParameters().Length == 0
+					);
+#else
+					var typeInfo = type.GetTypeInfo();
+					var constructors = typeInfo.DeclaredConstructors.ToList();
+					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic);
+					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic == false);
+					var instanceField = type.GetRuntimeFields().FirstOrDefault(f =>
+						f.IsStatic &&
+						ConstructorSubstitutionMembers.Contains(f.Name) &&
+						IsAssignableFrom(type, f.FieldType)
+					);
+					var instanceProperty = type.GetRuntimeProperties().FirstOrDefault(p =>
+						p.GetMethod != null &&
+						p.GetMethod.IsStatic &&
+						ConstructorSubstitutionMembers.Contains(p.Name) &&
+						IsAssignableFrom(type, p.PropertyType) &&
+						p.GetIndexParameters().Length == 0
+					);
+#endif
 
 					if (publicEmptyConstructor != null)
 					{
@@ -140,7 +170,7 @@ namespace System
 
 						constructorFn = createNewArrayExpr.Compile();
 					}
-					else if (type.IsValueType)
+					else if (typeInfo.IsValueType)
 					{
 						var createNewValueTypeExpr = Expression.Lambda<Func<object>>
 						(
@@ -158,9 +188,11 @@ namespace System
 				}
 			}
 
+#if NET35
 			if (constructorFn == null && forceCreate)
-				return FormatterServices.GetSafeUninitializedObject(type);
-			else if (constructorFn == null)
+				return Runtime.Serialization.FormatterServices.GetSafeUninitializedObject(type);
+#endif
+			if (constructorFn == null)
 				throw new ArgumentException(string.Format("Type '{0}' does not contains default empty constructor.", type), "type");
 			else
 				return constructorFn();
@@ -189,24 +221,30 @@ namespace System
 			if (argCount < 1 || argCount > 3) throw new ArgumentOutOfRangeException("argCount");
 
 			var signature = new ConstructorSignature(type, typeof(Arg1T), argCount > 1 ? typeof(Arg2T) : null, argCount > 2 ? typeof(Arg3T) : null);
-
-			var ctr = default(Delegate);
+#if NET35
+			var typeInfo = type;
+			var constructors = typeInfo.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+#else
+			var typeInfo = type.GetTypeInfo();
+			var constructors = typeInfo.DeclaredConstructors.ToList();
+#endif
+			var constructor = default(Delegate);
 			lock (CustomConstructorCache)
 			{
-				if (CustomConstructorCache.TryGetValue(signature, out ctr) == false)
+				if (CustomConstructorCache.TryGetValue(signature, out constructor) == false)
 				{
 					var foundCtr = default(ConstructorInfo);
 
-					foreach (var constructorInfo in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+					foreach (var constructorInfo in constructors)
 					{
 						var ctrParams = constructorInfo.GetParameters();
 						if (ctrParams.Length != argCount)
 							continue;
-						if (argCount > 0 && typeof(Arg1T).IsAssignableFrom(ctrParams[0].ParameterType) == false)
+						if (argCount > 0 && IsAssignableFrom(typeof(Arg1T), ctrParams[0].ParameterType) == false)
 							continue;
-						if (argCount > 1 && typeof(Arg2T).IsAssignableFrom(ctrParams[1].ParameterType) == false)
+						if (argCount > 1 && IsAssignableFrom(typeof(Arg2T), ctrParams[1].ParameterType) == false)
 							continue;
-						if (argCount > 2 && typeof(Arg3T).IsAssignableFrom(ctrParams[2].ParameterType) == false)
+						if (argCount > 2 && IsAssignableFrom(typeof(Arg3T), ctrParams[2].ParameterType) == false)
 							continue;
 
 						foundCtr = constructorInfo;
@@ -221,7 +259,7 @@ namespace System
 						switch (argCount)
 						{
 							case 1:
-								ctr = Expression.Lambda<Func<Arg1T, object>>
+								constructor = Expression.Lambda<Func<Arg1T, object>>
 									(
 										Expression.Convert(
 											Expression.New(foundCtr, arg1Param),
@@ -231,7 +269,7 @@ namespace System
 									).Compile();
 								break;
 							case 2:
-								ctr = Expression.Lambda<Func<Arg1T, Arg2T, object>>
+								constructor = Expression.Lambda<Func<Arg1T, Arg2T, object>>
 									(
 										Expression.Convert(
 											Expression.New(foundCtr, arg1Param, arg2Param),
@@ -242,7 +280,7 @@ namespace System
 									).Compile();
 								break;
 							case 3:
-								ctr = Expression.Lambda<Func<Arg1T, Arg2T, Arg3T, object>>
+								constructor = Expression.Lambda<Func<Arg1T, Arg2T, Arg3T, object>>
 									(
 										Expression.Convert(
 											Expression.New(foundCtr, arg1Param, arg2Param, arg3Param),
@@ -256,7 +294,7 @@ namespace System
 						}
 					}
 
-					CustomConstructorCache[signature] = ctr;
+					CustomConstructorCache[signature] = constructor;
 				}
 			}
 
@@ -265,23 +303,37 @@ namespace System
 			switch (argCount)
 			{
 				case 1:
-					if (ctr == null)
+					if (constructor == null)
 						throw new ArgumentException(string.Format("Type '{0}' does not contains constructor with signature 'ctr({1})'.", type, typeof(Arg1T).Name), "type");
-					instance = ((Func<Arg1T, object>)ctr)(arg1);
+					instance = ((Func<Arg1T, object>)constructor)(arg1);
 					break;
 				case 2:
-					if (ctr == null)
+					if (constructor == null)
 						throw new ArgumentException(string.Format("Type '{0}' does not contains constructor with signature 'ctr({1}, {2})'.", type, typeof(Arg1T).Name, typeof(Arg2T).Name), "type");
-					instance = ((Func<Arg1T, Arg2T, object>)ctr)(arg1, arg2);
+					instance = ((Func<Arg1T, Arg2T, object>)constructor)(arg1, arg2);
 					break;
 				case 3:
-					if (ctr == null)
+					if (constructor == null)
 						throw new ArgumentException(string.Format("Type '{0}' does not contains constructor with signature 'ctr({1}, {2}, {3})'.", type, typeof(Arg1T).Name, typeof(Arg2T).Name, typeof(Arg3T).Name), "type");
-					instance = ((Func<Arg1T, Arg2T, Arg3T, object>)ctr)(arg1, arg2, arg3);
+					instance = ((Func<Arg1T, Arg2T, Arg3T, object>)constructor)(arg1, arg2, arg3);
 					break;
 			}
 
 			return instance;
+		}
+
+		private static bool IsAssignableFrom(Type type, Type fromType)
+		{
+			if (type == null) throw new ArgumentNullException("type");
+			if (fromType == null) throw new ArgumentNullException("fromType");
+
+			if (type == fromType)
+				return true;
+#if NET35
+			return type.IsAssignableFrom(fromType);
+#else
+			return type.GetTypeInfo().IsAssignableFrom(fromType.GetTypeInfo());
+#endif
 		}
 	}
 }

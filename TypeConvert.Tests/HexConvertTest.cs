@@ -11,7 +11,7 @@
 using System;
 using Xunit;
 
-namespace TypeUtils.Tests
+namespace TypeConvert.Tests
 {
 	public class HexConvertTest
 	{
@@ -24,7 +24,7 @@ namespace TypeUtils.Tests
 		{
 			var expectedBuffer = new byte[count];
 			new Random(count).NextBytes(expectedBuffer);
-			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "");
+			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "").ToLowerInvariant();
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// hex string -> buffer
@@ -49,7 +49,7 @@ namespace TypeUtils.Tests
 		{
 			var expectedBuffer = new byte[count];
 			new Random(count).NextBytes(expectedBuffer);
-			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "");
+			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "").ToLowerInvariant();
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// buffer -> hex string
@@ -77,10 +77,10 @@ namespace TypeUtils.Tests
 			var uint16 = unchecked((ushort)(random.Next() % ushort.MaxValue));
 			var uint32 = unchecked((uint)random.Next());
 			var uint64 = unchecked((ulong)random.NextDouble() * long.MaxValue);
-			var uint8Hex = BitConverter.ToString(new byte[] { uint8 }).Replace("-", "");
-			var uint16Hex = BitConverter.ToString(BitConverter.GetBytes(uint16)).Replace("-", "");
-			var uint32Hex = BitConverter.ToString(BitConverter.GetBytes(uint32)).Replace("-", "");
-			var uint64Hex = BitConverter.ToString(BitConverter.GetBytes(uint64)).Replace("-", "");
+			var uint8Hex = BitConverter.ToString(new byte[] { uint8 }).Replace("-", "").ToLowerInvariant();
+			var uint16Hex = BitConverter.ToString(BitConverter.GetBytes(uint16)).Replace("-", "").ToLowerInvariant();
+			var uint32Hex = BitConverter.ToString(BitConverter.GetBytes(uint32)).Replace("-", "").ToLowerInvariant();
+			var uint64Hex = BitConverter.ToString(BitConverter.GetBytes(uint64)).Replace("-", "").ToLowerInvariant();
 
 			var hexBuffer = new char[256];
 			// uint8 -> hex
@@ -120,10 +120,10 @@ namespace TypeUtils.Tests
 			var uint16 = unchecked((ushort)(random.Next() % ushort.MaxValue));
 			var uint32 = unchecked((uint)random.Next());
 			var uint64 = unchecked((ulong)random.NextDouble() * long.MaxValue);
-			var uint8Hex = BitConverter.ToString(new byte[] { uint8 }).Replace("-", "");
-			var uint16Hex = BitConverter.ToString(BitConverter.GetBytes(uint16)).Replace("-", "");
-			var uint32Hex = BitConverter.ToString(BitConverter.GetBytes(uint32)).Replace("-", "");
-			var uint64Hex = BitConverter.ToString(BitConverter.GetBytes(uint64)).Replace("-", "");
+			var uint8Hex = BitConverter.ToString(new byte[] { uint8 }).Replace("-", "").ToLowerInvariant();
+			var uint16Hex = BitConverter.ToString(BitConverter.GetBytes(uint16)).Replace("-", "").ToLowerInvariant();
+			var uint32Hex = BitConverter.ToString(BitConverter.GetBytes(uint32)).Replace("-", "").ToLowerInvariant();
+			var uint64Hex = BitConverter.ToString(BitConverter.GetBytes(uint64)).Replace("-", "").ToLowerInvariant();
 
 			var hexBuffer = new char[256];
 			// hex -> uint8

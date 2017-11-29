@@ -1,63 +1,39 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{B35388A6-45FB-4B28-AA6A-742BEE2D7FE1}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>System</RootNamespace>
-    <AssemblyName>TypeConvert</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>sign.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="HexConvert.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TypeActivator.cs" />
-    <Compile Include="TypeConvert.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="sign.snk" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <OutputType>Library</OutputType>
+    </PropertyGroup>
+    <PropertyGroup>
+		<TargetFrameworks>net35;netstandard1.3</TargetFrameworks>
+        <Authors>Denis Zykov</Authors>
+        <Version>1.1.0</Version>
+        <PackageId>TypeConvert</PackageId>
+        <Product>TypeConvert</Product>
+        <Description>Utility class for conversions between .NET types.</Description>
+        <Company />
+        <SignAssembly>True</SignAssembly>
+        <AssemblyOriginatorKeyFile>sign.snk</AssemblyOriginatorKeyFile>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <ApplicationIcon />
+        <OutputTypeEx>library</OutputTypeEx>
+        <StartupObject />
+        <AssemblyVersion>1.1.0.0</AssemblyVersion>
+        <FileVersion>1.1.0.0</FileVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <Optimize>False</Optimize>
+        <DefineConstants>ENUMHELPER;RELEASE</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <DefineConstants>ENUMHELPER;DEBUG;TRACE</DefineConstants>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="sign.snk" />
+    </ItemGroup>
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+        <DefineConstants>$(DefineConstants);NETSTANDARD;NO_TYPE_REFS;</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'net35' ">
+        <DefineConstants>$(DefineConstants);NET35</DefineConstants>
+    </PropertyGroup>
 </Project>

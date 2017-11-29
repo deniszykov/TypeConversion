@@ -15,21 +15,19 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using ConvertUntypedDelegate = System.Func<object, string, System.IFormatProvider, object>;
 
-// ReSharper disable InconsistentNaming
+using ConvertUntypedDelegate = System.Func<object, string, System.IFormatProvider, object>;
+// ReSharper disable StaticMemberInGenericType, UnusedVariable, InconsistentNaming
 // ReSharper disable once CheckNamespace
 namespace System
 {
-	[SuppressMessage("ReSharper", "UnusedMember.Local")]
-	[SuppressMessage("ReSharper", "UnusedParameter.Local")]
 	public static class TypeConvert
 	{
-		[SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-		private static class BetweenTypes<FromType, ToType>
+		private static class TypeConversion<FromType, ToType>
 		{
+#if NET35
 			public static readonly TypeConverter Converter;
+#endif
 			public static readonly Func<FromType, ToType> ExplicitFrom;
 			public static readonly Func<FromType, ToType> ImplicitFrom;
 			public static readonly Func<ToType, FromType> ExplicitTo;
@@ -38,92 +36,109 @@ namespace System
 			public static readonly Func<FromType, ToType> ConvertibleFrom;
 			public static readonly Func<FromType, string, IFormatProvider, ToType> Transition;
 
-			static BetweenTypes()
+			static TypeConversion()
 			{
+
+#if NET35
 				const BindingFlags methodVisibility = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
 				var sourceType = typeof(FromType);
+				var sourceTypeInfo = sourceType;
 				var resultType = typeof(ToType);
+				var resultTypeInfo = resultType;
+#else
+				var sourceType = typeof(FromType);
+				var sourceTypeInfo = sourceType.GetTypeInfo();
+				var resultType = typeof(ToType);
+				var resultTypeInfo = resultType.GetTypeInfo();
+#endif
+				var sourceToResultKey = GetTypePairKey(sourceType, resultType);
+				var resultToSourceKey = GetTypePairKey(resultType, sourceType);
 
-				var isResultNullableValueType = (resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(Nullable<>));
-				var isSourceNullableValueType = (sourceType.IsGenericType && sourceType.GetGenericTypeDefinition() == typeof(Nullable<>));
-				var isSourceIsObject = sourceType == typeof(Object);
-				var isResultIsObject = resultType == typeof(Object);
-				var isSourceIsEnum = sourceType.IsEnum;
-				var isResultIsEnum = resultType.IsEnum;
-				var isSourceIsString = sourceType == typeof(String);
-				var isResultIsString = resultType == typeof(String);
+				var isSourceNullableValueType = Nullable.GetUnderlyingType(sourceType) != null;
+				var isResultNullableValueType = Nullable.GetUnderlyingType(resultType) != null;
+				var isSourceIsObject = sourceType == typeof(object);
+				var isResultIsObject = resultType == typeof(object);
+				var isSourceIsEnum = sourceTypeInfo.IsEnum;
+				var isResultIsEnum = resultTypeInfo.IsEnum;
+				var isSourceIsString = sourceType == typeof(string);
+				var isResultIsString = resultType == typeof(string);
 
 				var transitionMethod = default(MethodInfo);
 
 				if (isResultIsObject)
-					transitionMethod = typeof(TypeConvert).GetMethod("ConvertToObject", methodVisibility).MakeGenericMethod(sourceType);
+				{
+					transitionMethod = ConvertToObjectMethodDefinition.MakeGenericMethod(sourceType);
+				}
 				else if (isSourceIsObject)
-					transitionMethod = typeof(TypeConvert).GetMethod("ConvertFromObject", methodVisibility).MakeGenericMethod(resultType);
+				{
+					transitionMethod = ConvertFromObjectMethodDefinition.MakeGenericMethod(resultType);
+				}
 				else if (isResultNullableValueType && isSourceNullableValueType)
-					transitionMethod = typeof(TypeConvert).GetMethod("ConvertFromNullableToNullable", methodVisibility).MakeGenericMethod(Nullable.GetUnderlyingType(resultType), Nullable.GetUnderlyingType(sourceType));
+				{
+					transitionMethod = ConvertFromNullableToNullableMethodDefinition.MakeGenericMethod(Nullable.GetUnderlyingType(resultType), Nullable.GetUnderlyingType(sourceType));
+				}
 				else if (isResultNullableValueType)
-					transitionMethod = typeof(TypeConvert).GetMethod("ConvertToNullable", methodVisibility).MakeGenericMethod(Nullable.GetUnderlyingType(resultType), sourceType);
+				{
+					transitionMethod = ConvertToNullableMethodDefinition.MakeGenericMethod(Nullable.GetUnderlyingType(resultType), sourceType);
+				}
 				else if (isSourceNullableValueType)
-					transitionMethod = typeof(TypeConvert).GetMethod("ConvertFromNullable", methodVisibility).MakeGenericMethod(resultType, Nullable.GetUnderlyingType(sourceType));
+				{
+					transitionMethod = ConvertFromNullableMethodDefinition.MakeGenericMethod(resultType, Nullable.GetUnderlyingType(sourceType));
+				}
 				else if (isSourceIsEnum && isResultIsEnum)
 				{
-					transitionMethod = EnumInterchange ?
-						ConvertMethodInfo.MakeGenericMethod(Enum.GetUnderlyingType(sourceType), Enum.GetUnderlyingType(resultType)) :
-						typeof(TypeConvert).GetMethod("BetweenEnums", methodVisibility).MakeGenericMethod(resultType, Enum.GetUnderlyingType(resultType), sourceType, Enum.GetUnderlyingType(sourceType));
+					transitionMethod = ConvertFromEnumToEnumMethodDefinition.MakeGenericMethod(resultType, Enum.GetUnderlyingType(resultType), sourceType, Enum.GetUnderlyingType(sourceType));
 				}
 				else if (isSourceIsEnum && !isResultIsString)
 				{
-					transitionMethod = EnumInterchange ?
-						ConvertMethodInfo.MakeGenericMethod(Enum.GetUnderlyingType(sourceType), resultType) :
-						typeof(TypeConvert).GetMethod("FromEnum", methodVisibility).MakeGenericMethod(resultType, sourceType, Enum.GetUnderlyingType(sourceType));
+					transitionMethod = ConvertFromEnumMethodDefinition.MakeGenericMethod(resultType, sourceType, Enum.GetUnderlyingType(sourceType));
 				}
 				else if (isResultIsEnum && !isSourceIsString)
 				{
-					transitionMethod = EnumInterchange ?
-						ConvertMethodInfo.MakeGenericMethod(sourceType, Enum.GetUnderlyingType(resultType)) :
-						typeof(TypeConvert).GetMethod("ToEnum", methodVisibility).MakeGenericMethod(resultType, Enum.GetUnderlyingType(resultType), sourceType);
+					transitionMethod = ConvertToEnumMethodDefinition.MakeGenericMethod(resultType, Enum.GetUnderlyingType(resultType), sourceType);
 				}
 
 				if (transitionMethod != null)
 				{
-					Transition = (Func<FromType, string, IFormatProvider, ToType>)Delegate.CreateDelegate(typeof(Func<FromType, string, IFormatProvider, ToType>), transitionMethod);
+					Transition = (Func<FromType, string, IFormatProvider, ToType>)CreateDelegate(typeof(Func<FromType, string, IFormatProvider, ToType>), transitionMethod);
 					return;
 				}
 
-				foreach (var method in resultType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+				foreach (var method in GetPublicMethods(resultTypeInfo, declaredOnly: false))
 				{
-					if (method.IsSpecialName && method.Name == "op_Explicit" && method.ReturnType == sourceType && HasSingleParameterOfType(method, resultType))
-						ExplicitTo = (Func<ToType, FromType>)Delegate.CreateDelegate(typeof(Func<ToType, FromType>), method, true);
-					else if (method.IsStatic && method.IsSpecialName && method.Name == "op_Implicit" && method.ReturnType == sourceType && HasSingleParameterOfType(method, resultType))
-						ImplicitTo = (Func<ToType, FromType>)Delegate.CreateDelegate(typeof(Func<ToType, FromType>), method, true);
-					else if (method.IsSpecialName && method.Name == "op_Explicit" && method.ReturnType == resultType && HasSingleParameterOfType(method, sourceType))
-						ExplicitFrom = (Func<FromType, ToType>)Delegate.CreateDelegate(typeof(Func<FromType, ToType>), method, true);
-					else if (method.IsSpecialName && method.Name == "op_Implicit" && method.ReturnType == resultType && HasSingleParameterOfType(method, sourceType))
-						ImplicitFrom = (Func<FromType, ToType>)Delegate.CreateDelegate(typeof(Func<FromType, ToType>), method, true);
-				}
-				foreach (var method in typeof(Convert).GetMethods(BindingFlags.Public | BindingFlags.Static))
-				{
-					if (method.Name.StartsWith("To", StringComparison.Ordinal) && method.ReturnType == sourceType && HasSingleParameterOfType(method, resultType))
-						ConvertibleTo = (Func<ToType, FromType>)Delegate.CreateDelegate(typeof(Func<ToType, FromType>), method, true);
-					else if (method.Name.StartsWith("To", StringComparison.Ordinal) && method.ReturnType == resultType && HasSingleParameterOfType(method, sourceType))
-						ConvertibleFrom = (Func<FromType, ToType>)Delegate.CreateDelegate(typeof(Func<FromType, ToType>), method, true);
+					if (method.IsStatic == false || method.Name.StartsWith("op_", StringComparison.Ordinal) == false || method.IsSpecialName == false)
+						continue;
+
+					var parameters = method.GetParameters();
+					if (parameters.Length != 1)
+						continue;
+
+					var firstParameterType = parameters[0].ParameterType;
+					if (method.Name == "op_Explicit" && method.ReturnType == sourceType && firstParameterType == resultType)
+						ExplicitTo = (Func<ToType, FromType>)CreateDelegate(typeof(Func<ToType, FromType>), method, true);
+					else if (method.Name == "op_Implicit" && method.ReturnType == sourceType && firstParameterType == resultType)
+						ImplicitTo = (Func<ToType, FromType>)CreateDelegate(typeof(Func<ToType, FromType>), method, true);
+					else if (method.Name == "op_Explicit" && method.ReturnType == resultType && firstParameterType == sourceType)
+						ExplicitFrom = (Func<FromType, ToType>)CreateDelegate(typeof(Func<FromType, ToType>), method, true);
+					else if (method.Name == "op_Implicit" && method.ReturnType == resultType && firstParameterType == sourceType)
+						ImplicitFrom = (Func<FromType, ToType>)CreateDelegate(typeof(Func<FromType, ToType>), method, true);
 				}
 
+				var knownConversion = default(Delegate);
+				if (KnownConversions.TryGetValue(resultToSourceKey, out knownConversion))
+					ConvertibleTo = (Func<ToType, FromType>)knownConversion;
+				if (KnownConversions.TryGetValue(sourceToResultKey, out knownConversion))
+					ConvertibleFrom = (Func<FromType, ToType>)knownConversion;
+#if NET35
 				Converter = TypeDescriptor.GetConverter(sourceType);
 				if (Converter != null && Converter.GetType() == typeof(TypeConverter))
 					Converter = null;
-			}
-
-			private static bool HasSingleParameterOfType(MethodInfo method, Type type)
-			{
-				var @params = method.GetParameters();
-				return @params.Length == 1 && @params[0].ParameterType == type;
+#endif
 			}
 		}
 
-		[SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-		private static class TypeInfo<ToType>
+		private static class TypeConversion<T>
 		{
 			// nullable
 			public static readonly bool CanBeNull;
@@ -131,74 +146,139 @@ namespace System
 			public static readonly bool IsString;
 			public static readonly bool IsValueType;
 			public static readonly bool IsSupportFormatting;
-
+#if NET35
 			public static readonly TypeConverter Converter;
-			public static readonly Func<string, ToType> ParseFn;
-			public static readonly Func<string, IFormatProvider, ToType> ParseFormattedFn;
-			public static readonly Func<ToType, string> ToStringFn;
-			public static readonly Func<ToType, string, IFormatProvider, string> ToStringFormattedFn;
+#endif
+			public static readonly Func<string, T> ParseFn;
+			public static readonly Func<string, IFormatProvider, T> ParseFormattedFn;
+			public static readonly Func<T, string> ToStringFn;
+			public static readonly Func<T, string, IFormatProvider, string> ToStringFormattedFn;
 			public static readonly string DefaultFormat;
 
-			static TypeInfo()
+			static TypeConversion()
 			{
-				var resultT = typeof(ToType);
-
-				IsValueType = resultT.IsValueType;
+				var type = typeof(T);
+#if NET35
+				var typeInfo = type;
+#else
+				var typeInfo = type.GetTypeInfo();
+#endif
+				IsValueType = typeInfo.IsValueType;
 				CanBeNull = IsValueType == false;
 
-				if (resultT.IsGenericType && resultT.GetGenericTypeDefinition() == typeof(Nullable<>))
+				if (typeInfo.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
 				{
 					IsNullableValueType = true;
 					CanBeNull = true;
 					return;
 				}
 
-				if (resultT.IsEnum)
+				if (typeInfo.IsEnum)
 				{
-					Converter = new EnumConverter(resultT);
+#if NET35
+					Converter = new EnumConverter(type);
+#endif
 					return;
 				}
 
-				IsString = typeof(string) == resultT;
-				IsSupportFormatting = typeof(IFormattable).IsAssignableFrom(resultT);
+				IsString = typeof(string) == type;
+#if NET35
+				IsSupportFormatting = Array.IndexOf(type.GetInterfaces(), typeof(IFormattable)) != -1;
+#else
+				IsSupportFormatting = typeInfo.ImplementedInterfaces.Contains(typeof(IFormattable));
+#endif
 
-				Converter = TypeDescriptor.GetConverter(typeof(ToType));
+#if NET35
+				Converter = TypeDescriptor.GetConverter(type);
 				if (Converter != null && Converter.GetType() == typeof(TypeConverter))
 					Converter = null;
+#endif
 
-				if (typeof(ToType) == typeof(Single) || typeof(ToType) == typeof(Double))
+				if (type == typeof(float) || type == typeof(double))
 					DefaultFormat = "R";
 
-				foreach (var method in typeof(ToType).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+				foreach (var method in GetPublicMethods(typeInfo, declaredOnly: true))
 				{
-					if (method.IsStatic && (method.Name == "Parse" || method.Name == "Create") && method.ReturnType == typeof(ToType))
+					if (method.IsStatic && (method.Name == "Parse" || method.Name == "Create") && method.ReturnType == type)
 					{
 						var parseParams = method.GetParameters();
 						if (parseParams.Length == 1 && parseParams[0].ParameterType == typeof(string))
-							ParseFn = (Func<string, ToType>)Delegate.CreateDelegate(typeof(Func<string, ToType>), method, true);
+							ParseFn = (Func<string, T>)CreateDelegate(typeof(Func<string, T>), method, true);
 						else if (parseParams.Length == 2 && parseParams[0].ParameterType == typeof(string) && parseParams[1].ParameterType == typeof(IFormatProvider))
-							ParseFormattedFn = (Func<string, IFormatProvider, ToType>)Delegate.CreateDelegate(typeof(Func<string, IFormatProvider, ToType>), method, true);
+							ParseFormattedFn = (Func<string, IFormatProvider, T>)CreateDelegate(typeof(Func<string, IFormatProvider, T>), method, true);
 					}
-					else if (!method.IsStatic && method.Name == "ToString" && method.ReturnType == typeof(String))
+					else if (method.IsStatic == false && method.Name == "ToString" && method.ReturnType == typeof(string))
 					{
 						var toStringParams = method.GetParameters();
 						if (toStringParams.Length == 0)
-							ToStringFn = (Func<ToType, string>)Delegate.CreateDelegate(typeof(Func<ToType, string>), null, method, false);
+							ToStringFn = (Func<T, string>)CreateDelegate(typeof(Func<T, string>), null, method, false);
 						else if (toStringParams.Length == 2 && toStringParams[0].ParameterType == typeof(string) && toStringParams[1].ParameterType == typeof(IFormatProvider))
-							ToStringFormattedFn = (Func<ToType, string, IFormatProvider, string>)Delegate.CreateDelegate(typeof(Func<ToType, string, IFormatProvider, string>), null, method, false);
+							ToStringFormattedFn = (Func<T, string, IFormatProvider, string>)CreateDelegate(typeof(Func<T, string, IFormatProvider, string>), null, method, false);
 					}
 				}
 			}
 		}
 
-		private static readonly Dictionary<long, ConvertUntypedDelegate> CachedGenericConvertMethods = new Dictionary<long, ConvertUntypedDelegate>();
-		private static readonly MethodInfo ConvertMethodInfo = typeof(TypeConvert).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(m => m.Name == "Convert" && m.IsGenericMethod);
-		private static readonly bool EnumInterchange = TestEnumInterchange();
+		private static readonly Dictionary<long, ConvertUntypedDelegate> CachedGenericConvertMethods;
+		private static readonly Dictionary<long, Delegate> KnownConversions;
+		private static readonly MethodInfo ConvertMethodDefinition;
+		private static readonly MethodInfo ConvertFromNullableToNullableMethodDefinition;
+		private static readonly MethodInfo ConvertFromNullableMethodDefinition;
+		private static readonly MethodInfo ConvertToNullableMethodDefinition;
+		private static readonly MethodInfo ConvertFromObjectMethodDefinition;
+		private static readonly MethodInfo ConvertToObjectMethodDefinition;
+		private static readonly MethodInfo ConvertFromEnumToEnumMethodDefinition;
+		private static readonly MethodInfo ConvertToEnumMethodDefinition;
+		private static readonly MethodInfo ConvertFromEnumMethodDefinition;
 		public static readonly IFormatProvider DefaultFormatProvider = CultureInfo.InvariantCulture;
+
+		static TypeConvert()
+		{
+			// ReSharper disable HeapView.DelegateAllocation
+			ConvertMethodDefinition = GetMethodInfo(new Func<object, string, IFormatProvider, object>(Convert<object, object>), getMethodDefinition: true);
+			ConvertFromNullableToNullableMethodDefinition = GetMethodInfo(new Func<int?, string, IFormatProvider, int?>(ConvertFromNullableToNullable<int, int>), getMethodDefinition: true);
+			ConvertFromNullableMethodDefinition = GetMethodInfo(new Func<int?, string, IFormatProvider, int>(ConvertFromNullable<int, int>), getMethodDefinition: true);
+			ConvertToNullableMethodDefinition = GetMethodInfo(new Func<int, string, IFormatProvider, int?>(ConvertToNullable<int, int>), getMethodDefinition: true);
+			ConvertFromObjectMethodDefinition = GetMethodInfo(new Func<object, string, IFormatProvider, int>(ConvertFromObject<int>), getMethodDefinition: true);
+			ConvertToObjectMethodDefinition = GetMethodInfo(new Func<int, string, IFormatProvider, object>(ConvertToObject), getMethodDefinition: true);
+			ConvertFromEnumToEnumMethodDefinition = GetMethodInfo(new Func<ConsoleColor, string, IFormatProvider, ConsoleColor>(ConvertFromEnumToEnum<ConsoleColor, int, ConsoleColor, int>), getMethodDefinition: true);
+			ConvertToEnumMethodDefinition = GetMethodInfo(new Func<int, string, IFormatProvider, ConsoleColor>(ConvertToEnum<ConsoleColor, int, int>), getMethodDefinition: true);
+			ConvertFromEnumMethodDefinition = GetMethodInfo(new Func<ConsoleColor, string, IFormatProvider, int>(ConvertFromEnum<int, ConsoleColor, int>), getMethodDefinition: true);
+			// ReSharper restore HeapView.DelegateAllocation
+
+			CachedGenericConvertMethods = new Dictionary<long, ConvertUntypedDelegate>();
+			KnownConversions = new Dictionary<long, Delegate>();
+
+			var convertMethods = default(IEnumerable<MethodInfo>);
+#if NET35
+			convertMethods = GetPublicMethods(typeof(Convert), declaredOnly: true);
+#else
+			convertMethods = GetPublicMethods(typeof(Convert).GetTypeInfo(), declaredOnly: true);
+#endif
+			foreach (var method in convertMethods)
+			{
+				if (method.IsStatic == false)
+					continue;
+
+				var parameters = method.GetParameters();
+				if (method.Name.StartsWith("To", StringComparison.Ordinal) == false ||
+					method.GetParameters().Length != 1 ||
+					method.ReturnType == typeof(void))
+				{
+					continue;
+				}
+
+				var fromType = method.GetParameters()[0].ParameterType;
+				var toType = method.ReturnType;
+				var conversionFunc = CreateDelegate(typeof(Func<,>).MakeGenericType(fromType, toType), method, throwOnBindingFailure: false);
+				var conversionKey = GetTypePairKey(fromType, toType);
+				KnownConversions[conversionKey] = conversionFunc;
+			}
+		}
 
 		public static ToType Convert<FromType, ToType>(FromType value, string format = null, IFormatProvider formatProvider = null)
 		{
-			var transition = BetweenTypes<FromType, ToType>.Transition;
+			var transition = TypeConversion<FromType, ToType>.Transition;
 			return transition != null ? transition(value, format, formatProvider) : InternalConvert<FromType, ToType>(value, format, formatProvider);
 		}
 		public static bool TryConvert<FromType, ToType>(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
@@ -229,9 +309,7 @@ namespace System
 			if (fromType == null) throw new ArgumentNullException("fromType");
 
 			var convertFn = default(ConvertUntypedDelegate);
-			var fromHash = fromType.GetHashCode(); // it's not hashcode, it's an unique sync-lock of type-object
-			var toHash = toType.GetHashCode();
-			var cacheKey = unchecked(((long)fromHash << 32) | (uint)toHash);
+			var cacheKey = GetTypePairKey(fromType, toType);
 
 			var gotFromCache = false;
 			lock (CachedGenericConvertMethods)
@@ -240,7 +318,7 @@ namespace System
 			if (gotFromCache)
 				return convertFn.Invoke(value, format, formatProvider);
 
-			var conversionMethod = ConvertMethodInfo.MakeGenericMethod(fromType, toType);
+			var conversionMethod = ConvertMethodDefinition.MakeGenericMethod(fromType, toType);
 			var valueParam = Expression.Parameter(typeof(object), "value");
 			var formatParam = Expression.Parameter(typeof(string), "format");
 			var formatProviderParam = Expression.Parameter(typeof(IFormatProvider), "formatProvider");
@@ -249,12 +327,12 @@ namespace System
 				Expression.Convert
 					(
 						Expression.Call
-							(
-								conversionMethod,
-								Expression.Convert(valueParam, fromType),
-								formatParam,
-								formatProviderParam
-							),
+						(
+							conversionMethod,
+							Expression.Convert(valueParam, fromType),
+							formatParam,
+							formatProviderParam
+						),
 						typeof(object)
 					),
 				valueParam,
@@ -297,7 +375,7 @@ namespace System
 
 			var sourceObj = default(object);
 			var sourceIsNullRef = default(bool);
-			var sourceIsValueType = TypeInfo<FromType>.IsValueType;
+			var sourceIsValueType = TypeConversion<FromType>.IsValueType;
 
 			if (sourceIsValueType)
 			{
@@ -305,7 +383,7 @@ namespace System
 				if (typeof(FromType) == typeof(ToType))
 				{
 #if NO_TYPE_REFS
-					return (ToType)sourceObj;
+					return (ToType)(object)value;
 #else
 					return __refvalue(__makeref(value), ToType);
 #endif
@@ -313,7 +391,7 @@ namespace System
 			}
 			else
 			{
-				sourceObj = value; // (1) box ref-type
+				sourceObj = value;
 				sourceIsNullRef = sourceObj == null;
 
 				if (sourceObj is ToType)
@@ -321,41 +399,44 @@ namespace System
 			}
 
 			// find explicit/implicit conversions between types
-			if (BetweenTypes<FromType, ToType>.ImplicitFrom != null)
-				return BetweenTypes<FromType, ToType>.ImplicitFrom(value);
-			if (BetweenTypes<ToType, FromType>.ImplicitTo != null)
-				return BetweenTypes<ToType, FromType>.ImplicitTo(value);
-			if (BetweenTypes<FromType, ToType>.ExplicitFrom != null)
-				return BetweenTypes<FromType, ToType>.ExplicitFrom(value);
-			if (BetweenTypes<ToType, FromType>.ExplicitTo != null)
-				return BetweenTypes<ToType, FromType>.ExplicitTo(value);
+			if (TypeConversion<FromType, ToType>.ImplicitFrom != null)
+				return TypeConversion<FromType, ToType>.ImplicitFrom(value);
+			if (TypeConversion<ToType, FromType>.ImplicitTo != null)
+				return TypeConversion<ToType, FromType>.ImplicitTo(value);
+			if (TypeConversion<FromType, ToType>.ExplicitFrom != null)
+				return TypeConversion<FromType, ToType>.ExplicitFrom(value);
+			if (TypeConversion<ToType, FromType>.ExplicitTo != null)
+				return TypeConversion<ToType, FromType>.ExplicitTo(value);
 			// try parse
-			if (TypeInfo<FromType>.IsString && TypeInfo<ToType>.ParseFormattedFn != null)
-				return TypeInfo<ToType>.ParseFormattedFn((string)sourceObj, formatProvider);
-			if (TypeInfo<FromType>.IsString && TypeInfo<ToType>.ParseFn != null)
-				return TypeInfo<ToType>.ParseFn((string)sourceObj);
+			if (TypeConversion<FromType>.IsString && TypeConversion<ToType>.ParseFormattedFn != null)
+				return TypeConversion<ToType>.ParseFormattedFn((string)sourceObj, formatProvider);
+			if (TypeConversion<FromType>.IsString && TypeConversion<ToType>.ParseFn != null)
+				return TypeConversion<ToType>.ParseFn((string)sourceObj);
 			// try toString(formatted)
-			if (!sourceIsNullRef && TypeInfo<ToType>.IsString && TypeInfo<FromType>.ToStringFormattedFn != null)
-				return (ToType)(object)TypeInfo<FromType>.ToStringFormattedFn(value, format ?? TypeInfo<FromType>.DefaultFormat, formatProvider);
-			if (!sourceIsNullRef && TypeInfo<ToType>.IsString && TypeInfo<FromType>.IsSupportFormatting)
+			if (!sourceIsNullRef && TypeConversion<ToType>.IsString && TypeConversion<FromType>.ToStringFormattedFn != null)
+				return (ToType)(object)TypeConversion<FromType>.ToStringFormattedFn(value, format ?? TypeConversion<FromType>.DefaultFormat, formatProvider);
+			if (!sourceIsNullRef && TypeConversion<ToType>.IsString && TypeConversion<FromType>.IsSupportFormatting)
 				// ReSharper disable once PossibleNullReferenceException
-				return (ToType)(object)((sourceIsValueType ? (object)value : sourceObj) as IFormattable).ToString(format ?? TypeInfo<FromType>.DefaultFormat, formatProvider); // (2) box value-type
-																																											   // try convertible
-			if (BetweenTypes<ToType, FromType>.ConvertibleTo != null)
-				return BetweenTypes<ToType, FromType>.ConvertibleTo(value);
-			if (BetweenTypes<FromType, ToType>.ConvertibleFrom != null)
-				return BetweenTypes<FromType, ToType>.ConvertibleFrom(value);
+				return (ToType)(object)((sourceIsValueType ? (object)value : sourceObj) as IFormattable).ToString(format ?? TypeConversion<FromType>.DefaultFormat, formatProvider);
+			// try method conversions (To*\From* methods, Convert.To*)
+			if (TypeConversion<ToType, FromType>.ConvertibleTo != null)
+				return TypeConversion<ToType, FromType>.ConvertibleTo(value);
+			if (TypeConversion<FromType, ToType>.ConvertibleFrom != null)
+				return TypeConversion<FromType, ToType>.ConvertibleFrom(value);
+#if NET35
 			// try converter			
-			if (TypeInfo<ToType>.Converter != null && TypeInfo<ToType>.Converter.CanConvertFrom(typeof(FromType)))
-				return (ToType)TypeInfo<ToType>.Converter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, (sourceIsValueType ? value : sourceObj)); // (3) box value-type
-			if (BetweenTypes<FromType, ToType>.Converter != null && BetweenTypes<FromType, ToType>.Converter.CanConvertTo(typeof(ToType)))
-				return (ToType)BetweenTypes<FromType, ToType>.Converter.ConvertTo(null, formatProvider as CultureInfo, (sourceIsValueType ? value : sourceObj), typeof(ToType)); // (4) box value-type
-																																												 // try ToString
-			if (!sourceIsNullRef && TypeInfo<ToType>.IsString && TypeInfo<FromType>.ToStringFn != null)
-				return (ToType)(object)TypeInfo<FromType>.ToStringFn(value);
-			if (!sourceIsNullRef && TypeInfo<ToType>.IsString)
+			if (TypeConversion<ToType>.Converter != null && TypeConversion<ToType>.Converter.CanConvertFrom(typeof(FromType)))
+				return (ToType)TypeConversion<ToType>.Converter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, (sourceIsValueType ? value : sourceObj));
+			if (TypeConversion<FromType, ToType>.Converter != null && TypeConversion<FromType, ToType>.Converter.CanConvertTo(typeof(ToType)))
+				return (ToType)TypeConversion<FromType, ToType>.Converter.ConvertTo(null, formatProvider as CultureInfo, (sourceIsValueType ? value : sourceObj), typeof(ToType));
+#endif
+			// try ToString
+			if (!sourceIsNullRef && TypeConversion<ToType>.IsString && TypeConversion<FromType>.ToStringFn != null)
+				return (ToType)(object)TypeConversion<FromType>.ToStringFn(value);
+			if (!sourceIsNullRef && TypeConversion<ToType>.IsString)
 				return (ToType)(object)(sourceIsValueType ? (object)value : sourceObj).ToString(); // (5) box value-type
-			throw new InvalidCastException(string.Format("Unable to convert value '{2}' of type '{1}' to requested type '{0}'", typeof(ToType), typeof(FromType), ((object)value) ?? "<null>")); // (6) box value-type/ref-type		
+
+			throw new InvalidCastException(string.Format("Unable to convert value '{2}' of type '{1}' to requested type '{0}'", typeof(ToType), typeof(FromType), ((object)value) ?? "<null>"));
 		}
 
 		// transitions
@@ -374,7 +455,7 @@ namespace System
 		{
 			if (value.HasValue == false)
 			{
-				if (TypeInfo<ToType>.CanBeNull)
+				if (TypeConversion<ToType>.CanBeNull)
 					return default(ToType);
 				throw new InvalidCastException(string.Format("Unable to convert <null> to '{0}'.", typeof(ToType)));
 			}
@@ -385,7 +466,7 @@ namespace System
 		private static ToType? ConvertToNullable<ToType, FromType>(FromType value, string format, IFormatProvider formatProvider)
 			where ToType : struct
 		{
-			if (TypeInfo<FromType>.CanBeNull && ReferenceEquals(value, null))
+			if (TypeConversion<FromType>.CanBeNull && ReferenceEquals(value, null))
 				return default(ToType?);
 
 			var result = Convert<FromType, ToType>(value, format, formatProvider);
@@ -398,7 +479,7 @@ namespace System
 
 			if (value == null)
 			{
-				if (!TypeInfo<ToType>.IsValueType || TypeInfo<ToType>.IsNullableValueType)
+				if (!TypeConversion<ToType>.IsValueType || TypeConversion<ToType>.IsNullableValueType)
 					return default(ToType);
 				throw new InvalidCastException(string.Format("Unable to convert <null> to '{0}'.", typeof(ToType)));
 			}
@@ -409,41 +490,138 @@ namespace System
 			return value;
 		}
 
-		private static ToEnumT BetweenEnums<ToEnumT, ToBaseT, FromEnumT, FromBaseT>(FromEnumT value, string format, IFormatProvider formatProvider)
-			where ToEnumT : IConvertible
-			where FromEnumT : IConvertible
+		private static ToEnumT ConvertFromEnumToEnum<ToEnumT, ToBaseT, FromEnumT, FromBaseT>(FromEnumT value, string format, IFormatProvider formatProvider)
 		{
-			var result = InternalConvert<FromBaseT, ToBaseT>((FromBaseT)value.ToType(typeof(FromBaseT), formatProvider), format, formatProvider);
-			return (ToEnumT)Enum.ToObject(typeof(ToEnumT), result);
+#if ENUMHELPER
+			var valueNumber = ((Func<FromEnumT, FromBaseT>)EnumHelper<FromEnumT>.ToNumber).Invoke(value);
+			var resultNumber = InternalConvert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
+			return ((Func<ToBaseT, ToEnumT>)EnumHelper<ToEnumT>.FromNumber).Invoke(resultNumber);
+#else
+			var valueNumber = (FromBaseT)System.Convert.ChangeType(value, typeof(FromBaseT));
+			var resultNumber = InternalConvert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
+			return (ToEnumT)Enum.ToObject(typeof(ToEnumT), resultNumber);
+#endif
 		}
-		private static ToEnumT ToEnum<ToEnumT, ToBaseT, FromType>(FromType value, string format, IFormatProvider formatProvider)
-			where ToEnumT : IConvertible
+		private static ToEnumT ConvertToEnum<ToEnumT, ToBaseT, FromType>(FromType value, string format, IFormatProvider formatProvider)
 		{
-			var result = InternalConvert<FromType, ToBaseT>(value, format, formatProvider);
-			return (ToEnumT)Enum.ToObject(typeof(ToEnumT), result);
+#if ENUMHELPER
+			var resultNumber = InternalConvert<FromType, ToBaseT>(value, format, formatProvider);
+			return ((Func<ToBaseT, ToEnumT>)EnumHelper<ToEnumT>.FromNumber).Invoke(resultNumber);
+#else
+			var resultNumber = InternalConvert<FromType, ToBaseT>(value, format, formatProvider);
+			return (ToEnumT)Enum.ToObject(typeof(ToEnumT), resultNumber);
+#endif
 		}
-		private static ToType FromEnum<ToType, FromEnumT, FromBaseT>(FromEnumT value, string format, IFormatProvider formatProvider)
-			where FromEnumT : IConvertible
+		private static ToType ConvertFromEnum<ToType, FromEnumT, FromBaseT>(FromEnumT value, string format, IFormatProvider formatProvider)
 		{
-			var result = InternalConvert<FromBaseT, ToType>((FromBaseT)value.ToType(typeof(FromBaseT), formatProvider), format, formatProvider);
+#if ENUMHELPER
+			var valueNumber = ((Func<FromEnumT, FromBaseT>)EnumHelper<FromEnumT>.ToNumber).Invoke(value);
+			var resultNumber = InternalConvert<FromBaseT, ToType>(valueNumber, format, formatProvider);
+			return resultNumber;
+#else
+			var valueNumber = (FromBaseT)System.Convert.ChangeType(value, typeof(FromBaseT));
+			var result = InternalConvert<FromBaseT, ToType>(valueNumber, format, formatProvider);
 			return result;
+#endif
 		}
 
-		private static bool TestEnumInterchange()
+		// reflection helpers
+		private static Delegate CreateDelegate(Type delegateType, MethodInfo method, bool throwOnBindingFailure = true)
 		{
-			// test if platform support of enum interchange in delegates
+			if (delegateType == null) throw new ArgumentNullException("delegateType");
+			if (method == null) throw new ArgumentNullException("method");
+
+#if NET35
+			return Delegate.CreateDelegate(delegateType, method, throwOnBindingFailure);
+#else
 			try
 			{
-				// ReSharper disable ReturnValueOfPureMethodIsNotUsed
-				Delegate.CreateDelegate(typeof(Action<int>), typeof(Console), "set_BackgroundColor");
-				Delegate.CreateDelegate(typeof(Func<ConsoleColor>), typeof(Console), "get_CursorLeft");
-				// ReSharper restore ReturnValueOfPureMethodIsNotUsed
-				return true;
+				return method.CreateDelegate(delegateType);
 			}
 			catch
 			{
-				return false;
+				if (throwOnBindingFailure)
+					throw;
+				else
+					return null;
 			}
+
+#endif
+		}
+		private static Delegate CreateDelegate(Type delegateType, object target, MethodInfo method,bool throwOnBindingFailure = true)
+		{
+			if (delegateType == null) throw new ArgumentNullException("delegateType");
+			if (method == null) throw new ArgumentNullException("method");
+
+#if NET35
+			return Delegate.CreateDelegate(delegateType, target, method, throwOnBindingFailure);
+#else
+			try
+			{
+				return method.CreateDelegate(delegateType, target);
+			}
+			catch
+			{
+				if (throwOnBindingFailure)
+					throw;
+				else
+					return null;
+			}
+
+#endif
+		}
+		private static MethodInfo GetMethodInfo(Delegate delegateInstance, bool getMethodDefinition = false)
+		{
+			if (delegateInstance == null) throw new ArgumentNullException("delegateInstance");
+
+			var methodInfo = default(MethodInfo);
+#if NET35
+			methodInfo = delegateInstance.Method;
+#else
+			methodInfo = delegateInstance.GetMethodInfo();
+#endif
+			if (getMethodDefinition && methodInfo.IsGenericMethod && methodInfo.IsGenericMethodDefinition == false)
+				return methodInfo.GetGenericMethodDefinition();
+
+			return methodInfo;
+		}
+#if NET35
+		private static IEnumerable<MethodInfo> GetPublicMethods(Type type, bool declaredOnly)
+		{
+			if (type == null) throw new ArgumentNullException(nameof(type));
+
+			if (declaredOnly)
+				return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+			else
+				return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+		}
+#else
+		private static IEnumerable<MethodInfo> GetPublicMethods(TypeInfo typeInfo, bool declaredOnly)
+		{
+			do
+			{
+				foreach (var method in typeInfo.DeclaredMethods)
+				{
+					if (method.IsPublic == false)
+						continue;
+					yield return method;
+				}
+
+				if (declaredOnly)
+					break;
+
+				typeInfo = typeInfo.BaseType == null || typeInfo.BaseType == typeof(object) ? null : typeInfo.BaseType.GetTypeInfo();
+			} while (typeInfo != null);
+		}
+#endif
+		private static long GetTypePairKey(Type fromType, Type toType)
+		{
+			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
+			if (toType == null) throw new ArgumentNullException(nameof(toType));
+
+			var fromHash = fromType.GetHashCode(); // it's not hashcode, it's an unique sync-lock of type-object
+			var toHash = toType.GetHashCode();
+			return unchecked(((long)fromHash << 32) | (uint)toHash);
 		}
 	}
 }
