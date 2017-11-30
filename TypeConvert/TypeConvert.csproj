@@ -13,6 +13,7 @@
         <Company />
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>sign.snk</AssemblyOriginatorKeyFile>
+		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <ApplicationIcon />
         <OutputTypeEx>library</OutputTypeEx>
