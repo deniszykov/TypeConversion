@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/deniszykov/typeconvert.svg?branch=master)](https://travis-ci.org/deniszykov/typeconvert)
+
 Introduction
 ============
 For historical reasons, .NET has several approaches to value conversion:
