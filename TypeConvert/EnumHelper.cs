@@ -37,10 +37,10 @@ namespace System
         static EnumHelper()
         {
             var enumType = typeof(EnumT);
-#if NET35
-            var enumTypeInfo = enumType;
-#else
+#if NETSTANDARD
             var enumTypeInfo = enumType.GetTypeInfo();
+#else
+            var enumTypeInfo = enumType;
 #endif
             if (enumTypeInfo.IsEnum == false)
                 throw new InvalidOperationException("EnumT should be enum type.");

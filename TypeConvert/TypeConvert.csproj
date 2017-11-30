@@ -4,7 +4,7 @@
         <OutputType>Library</OutputType>
     </PropertyGroup>
     <PropertyGroup>
-		<TargetFrameworks>net35;netstandard1.3</TargetFrameworks>
+        <TargetFrameworks>net35;net45;netstandard1.3;netcoreapp2.0</TargetFrameworks>
         <Authors>Denis Zykov</Authors>
         <Version>1.1.0</Version>
         <PackageId>TypeConvert</PackageId>
@@ -25,13 +25,19 @@
         <DefineConstants>ENUMHELPER;RELEASE</DefineConstants>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-      <DefineConstants>ENUMHELPER;DEBUG;TRACE</DefineConstants>
+        <DefineConstants>ENUMHELPER;DEBUG;TRACE</DefineConstants>
     </PropertyGroup>
     <ItemGroup>
         <None Include="sign.snk" />
     </ItemGroup>
     <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
         <DefineConstants>$(DefineConstants);NETSTANDARD;NO_TYPE_REFS;</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+        <DefineConstants>$(DefineConstants);NETSTANDARD;NO_TYPE_REFS;</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
+        <DefineConstants>$(DefineConstants);NET45</DefineConstants>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(TargetFramework)' == 'net35' ">
         <DefineConstants>$(DefineConstants);NET35</DefineConstants>

@@ -60,7 +60,7 @@ namespace System
 		private static readonly HashSet<string> ConstructorSubstitutionMembers = new HashSet<string>(new[] { "Empty", "Default", "Instance" }, StringComparer.OrdinalIgnoreCase);
 
 		public static object CreateInstance(Type type
-#if NET35
+#if !NETSTANDARD
 			, bool forceCreate = false
 #endif
 		)
@@ -72,11 +72,11 @@ namespace System
 			{
 				if (DefaultConstructorCache.TryGetValue(type, out constructorFn) == false)
 				{
-#if NET35
+#if !NETSTANDARD
 					var typeInfo = type;
 					var constructors = typeInfo.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic);
-					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && !c.IsPublic);
+					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic && c.IsStatic == false);
+					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && !c.IsPublic && c.IsStatic == false);
 					var instanceField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => 
 						ConstructorSubstitutionMembers.Contains(f.Name) && 
 						type.IsAssignableFrom(f.FieldType)
@@ -89,8 +89,8 @@ namespace System
 #else
 					var typeInfo = type.GetTypeInfo();
 					var constructors = typeInfo.DeclaredConstructors.ToList();
-					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic);
-					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic == false);
+					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic && c.IsStatic == false);
+					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic == false && c.IsStatic == false);
 					var instanceField = type.GetRuntimeFields().FirstOrDefault(f =>
 						f.IsStatic &&
 						ConstructorSubstitutionMembers.Contains(f.Name) &&
@@ -188,7 +188,7 @@ namespace System
 				}
 			}
 
-#if NET35
+#if !NETSTANDARD
 			if (constructorFn == null && forceCreate)
 				return Runtime.Serialization.FormatterServices.GetSafeUninitializedObject(type);
 #endif
@@ -221,7 +221,7 @@ namespace System
 			if (argCount < 1 || argCount > 3) throw new ArgumentOutOfRangeException("argCount");
 
 			var signature = new ConstructorSignature(type, typeof(Arg1T), argCount > 1 ? typeof(Arg2T) : null, argCount > 2 ? typeof(Arg3T) : null);
-#if NET35
+#if !NETSTANDARD
 			var typeInfo = type;
 			var constructors = typeInfo.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 #else
@@ -329,7 +329,7 @@ namespace System
 
 			if (type == fromType)
 				return true;
-#if NET35
+#if !NETSTANDARD
 			return type.IsAssignableFrom(fromType);
 #else
 			return type.GetTypeInfo().IsAssignableFrom(fromType.GetTypeInfo());

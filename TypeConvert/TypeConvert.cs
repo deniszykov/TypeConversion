@@ -23,33 +23,33 @@ namespace System
 {
 	public static class TypeConvert
 	{
-		private static class TypeConversion<FromType, ToType>
+		private static class TypeConversion<SourceT, ResultT>
 		{
-#if NET35
+#if !NETSTANDARD
 			public static readonly TypeConverter Converter;
 #endif
-			public static readonly Func<FromType, ToType> ExplicitFrom;
-			public static readonly Func<FromType, ToType> ImplicitFrom;
-			public static readonly Func<ToType, FromType> ExplicitTo;
-			public static readonly Func<ToType, FromType> ImplicitTo;
-			public static readonly Func<ToType, FromType> ConvertibleTo;
-			public static readonly Func<FromType, ToType> ConvertibleFrom;
-			public static readonly Func<FromType, string, IFormatProvider, ToType> Transition;
+			public static readonly Func<SourceT, ResultT> ExplicitFrom;
+			public static readonly Func<SourceT, ResultT> ImplicitFrom;
+			public static readonly Func<ResultT, SourceT> ExplicitTo;
+			public static readonly Func<ResultT, SourceT> ImplicitTo;
+			public static readonly Func<ResultT, SourceT> ConvertibleTo;
+			public static readonly Func<SourceT, ResultT> ConvertibleFrom;
+			public static readonly Func<SourceT, string, IFormatProvider, ResultT> Transition;
 
 			static TypeConversion()
 			{
 
-#if NET35
+#if !NETSTANDARD
 				const BindingFlags methodVisibility = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
-				var sourceType = typeof(FromType);
+				var sourceType = typeof(SourceT);
 				var sourceTypeInfo = sourceType;
-				var resultType = typeof(ToType);
+				var resultType = typeof(ResultT);
 				var resultTypeInfo = resultType;
 #else
-				var sourceType = typeof(FromType);
+				var sourceType = typeof(SourceT);
 				var sourceTypeInfo = sourceType.GetTypeInfo();
-				var resultType = typeof(ToType);
+				var resultType = typeof(ResultT);
 				var resultTypeInfo = resultType.GetTypeInfo();
 #endif
 				var sourceToResultKey = GetTypePairKey(sourceType, resultType);
@@ -101,7 +101,7 @@ namespace System
 
 				if (transitionMethod != null)
 				{
-					Transition = (Func<FromType, string, IFormatProvider, ToType>)CreateDelegate(typeof(Func<FromType, string, IFormatProvider, ToType>), transitionMethod);
+					Transition = (Func<SourceT, string, IFormatProvider, ResultT>)CreateDelegate(typeof(Func<SourceT, string, IFormatProvider, ResultT>), transitionMethod);
 					return;
 				}
 
@@ -116,21 +116,39 @@ namespace System
 
 					var firstParameterType = parameters[0].ParameterType;
 					if (method.Name == "op_Explicit" && method.ReturnType == sourceType && firstParameterType == resultType)
-						ExplicitTo = (Func<ToType, FromType>)CreateDelegate(typeof(Func<ToType, FromType>), method, true);
+						ExplicitTo = (Func<ResultT, SourceT>)CreateDelegate(typeof(Func<ResultT, SourceT>), method, true);
 					else if (method.Name == "op_Implicit" && method.ReturnType == sourceType && firstParameterType == resultType)
-						ImplicitTo = (Func<ToType, FromType>)CreateDelegate(typeof(Func<ToType, FromType>), method, true);
+						ImplicitTo = (Func<ResultT, SourceT>)CreateDelegate(typeof(Func<ResultT, SourceT>), method, true);
 					else if (method.Name == "op_Explicit" && method.ReturnType == resultType && firstParameterType == sourceType)
-						ExplicitFrom = (Func<FromType, ToType>)CreateDelegate(typeof(Func<FromType, ToType>), method, true);
+						ExplicitFrom = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), method, true);
 					else if (method.Name == "op_Implicit" && method.ReturnType == resultType && firstParameterType == sourceType)
-						ImplicitFrom = (Func<FromType, ToType>)CreateDelegate(typeof(Func<FromType, ToType>), method, true);
+						ImplicitFrom = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), method, true);
 				}
 
 				var knownConversion = default(Delegate);
 				if (KnownConversions.TryGetValue(resultToSourceKey, out knownConversion))
-					ConvertibleTo = (Func<ToType, FromType>)knownConversion;
+				{
+					ConvertibleTo = (Func<ResultT, SourceT>)knownConversion;
+				}
 				if (KnownConversions.TryGetValue(sourceToResultKey, out knownConversion))
-					ConvertibleFrom = (Func<FromType, ToType>)knownConversion;
-#if NET35
+				{
+					ConvertibleFrom = (Func<SourceT, ResultT>)knownConversion;
+				}
+
+#if ENUMHELPER
+				if (sourceType == typeof(string) && resultTypeInfo.IsEnum)
+				{
+					ConvertibleFrom = (Func<SourceT, ResultT>)(object)new Func<string, ResultT>(EnumHelper<ResultT>.Parse);
+					ConvertibleTo = (Func<ResultT, SourceT>)(object)new Func<ResultT, string>(EnumHelper<ResultT>.ToName);
+				}
+				if (sourceTypeInfo.IsEnum  && resultType == typeof(string))
+				{
+					ConvertibleTo = (Func<ResultT, SourceT>)(object)new Func<string, SourceT>(EnumHelper<SourceT>.Parse);
+					ConvertibleFrom = (Func<SourceT, ResultT>)(object)new Func<SourceT, string>(EnumHelper<SourceT>.ToName);
+				}
+#endif
+
+#if !NETSTANDARD
 				Converter = TypeDescriptor.GetConverter(sourceType);
 				if (Converter != null && Converter.GetType() == typeof(TypeConverter))
 					Converter = null;
@@ -146,7 +164,7 @@ namespace System
 			public static readonly bool IsString;
 			public static readonly bool IsValueType;
 			public static readonly bool IsSupportFormatting;
-#if NET35
+#if !NETSTANDARD
 			public static readonly TypeConverter Converter;
 #endif
 			public static readonly Func<string, T> ParseFn;
@@ -158,7 +176,7 @@ namespace System
 			static TypeConversion()
 			{
 				var type = typeof(T);
-#if NET35
+#if !NETSTANDARD
 				var typeInfo = type;
 #else
 				var typeInfo = type.GetTypeInfo();
@@ -175,20 +193,20 @@ namespace System
 
 				if (typeInfo.IsEnum)
 				{
-#if NET35
+#if !NETSTANDARD
 					Converter = new EnumConverter(type);
 #endif
 					return;
 				}
 
 				IsString = typeof(string) == type;
-#if NET35
+#if !NETSTANDARD
 				IsSupportFormatting = Array.IndexOf(type.GetInterfaces(), typeof(IFormattable)) != -1;
 #else
 				IsSupportFormatting = typeInfo.ImplementedInterfaces.Contains(typeof(IFormattable));
 #endif
 
-#if NET35
+#if !NETSTANDARD
 				Converter = TypeDescriptor.GetConverter(type);
 				if (Converter != null && Converter.GetType() == typeof(TypeConverter))
 					Converter = null;
@@ -250,7 +268,7 @@ namespace System
 			KnownConversions = new Dictionary<long, Delegate>();
 
 			var convertMethods = default(IEnumerable<MethodInfo>);
-#if NET35
+#if !NETSTANDARD
 			convertMethods = GetPublicMethods(typeof(Convert), declaredOnly: true);
 #else
 			convertMethods = GetPublicMethods(typeof(Convert).GetTypeInfo(), declaredOnly: true);
@@ -423,7 +441,7 @@ namespace System
 				return TypeConversion<ToType, FromType>.ConvertibleTo(value);
 			if (TypeConversion<FromType, ToType>.ConvertibleFrom != null)
 				return TypeConversion<FromType, ToType>.ConvertibleFrom(value);
-#if NET35
+#if !NETSTANDARD
 			// try converter			
 			if (TypeConversion<ToType>.Converter != null && TypeConversion<ToType>.Converter.CanConvertFrom(typeof(FromType)))
 				return (ToType)TypeConversion<ToType>.Converter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, (sourceIsValueType ? value : sourceObj));
@@ -531,7 +549,7 @@ namespace System
 			if (delegateType == null) throw new ArgumentNullException("delegateType");
 			if (method == null) throw new ArgumentNullException("method");
 
-#if NET35
+#if !NETSTANDARD
 			return Delegate.CreateDelegate(delegateType, method, throwOnBindingFailure);
 #else
 			try
@@ -553,7 +571,7 @@ namespace System
 			if (delegateType == null) throw new ArgumentNullException("delegateType");
 			if (method == null) throw new ArgumentNullException("method");
 
-#if NET35
+#if !NETSTANDARD
 			return Delegate.CreateDelegate(delegateType, target, method, throwOnBindingFailure);
 #else
 			try
@@ -575,7 +593,7 @@ namespace System
 			if (delegateInstance == null) throw new ArgumentNullException("delegateInstance");
 
 			var methodInfo = default(MethodInfo);
-#if NET35
+#if !NETSTANDARD
 			methodInfo = delegateInstance.Method;
 #else
 			methodInfo = delegateInstance.GetMethodInfo();
@@ -585,7 +603,7 @@ namespace System
 
 			return methodInfo;
 		}
-#if NET35
+#if !NETSTANDARD
 		private static IEnumerable<MethodInfo> GetPublicMethods(Type type, bool declaredOnly)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
