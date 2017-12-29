@@ -59,11 +59,15 @@ namespace System
 		private static readonly Dictionary<ConstructorSignature, Delegate> CustomConstructorCache = new Dictionary<ConstructorSignature, Delegate>();
 		private static readonly HashSet<string> ConstructorSubstitutionMembers = new HashSet<string>(new[] { "Empty", "Default", "Instance" }, StringComparer.OrdinalIgnoreCase);
 
-		public static object CreateInstance(Type type
 #if !NETSTANDARD
-			, bool forceCreate = false
+		public static object CreateInstance(Type type)
+		{
+			return CreateInstance(type, forceCreate: false);
+		}
+		public static object CreateInstance(Type type, bool forceCreate)
+#else
+		public static object CreateInstance(Type type)
 #endif
-		)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
