@@ -25,8 +25,9 @@ namespace System
 			private readonly Type arg1Type;
 			private readonly Type arg2Type;
 			private readonly Type arg3Type;
+			private readonly Type arg4Type;
 
-			public ConstructorSignature(Type type, Type arg1Type, Type arg2Type = null, Type arg3Type = null)
+			public ConstructorSignature(Type type, Type arg1Type, Type arg2Type = null, Type arg3Type = null, Type arg4Type = null)
 			{
 				if (type == null) throw new ArgumentNullException("type");
 				if (arg1Type == null) throw new ArgumentNullException("arg1Type");
@@ -35,11 +36,12 @@ namespace System
 				this.arg1Type = arg1Type;
 				this.arg2Type = arg2Type ?? typeof(void);
 				this.arg3Type = arg3Type ?? typeof(void);
+				this.arg4Type = arg4Type ?? typeof(void);
 			}
 
 			public override int GetHashCode()
 			{
-				return unchecked(this.type.GetHashCode() + this.arg1Type.GetHashCode() + this.arg2Type.GetHashCode() + this.arg3Type.GetHashCode());
+				return unchecked(this.type.GetHashCode() + this.arg1Type.GetHashCode() + this.arg2Type.GetHashCode() + this.arg3Type.GetHashCode() + this.arg4Type.GetHashCode());
 			}
 			public override bool Equals(object obj)
 			{
@@ -49,10 +51,10 @@ namespace System
 			}
 			public bool Equals(ConstructorSignature other)
 			{
-				return this.type == other.type && this.arg1Type == other.arg1Type && this.arg2Type == other.arg2Type && this.arg3Type == other.arg3Type;
+				return this.type == other.type && this.arg1Type == other.arg1Type && this.arg2Type == other.arg2Type && this.arg3Type == other.arg3Type && this.arg4Type == other.arg4Type;
 			}
 
-			public override string ToString() { return string.Format("{0}({1}, {2}, {3})", this.type.Name, this.arg1Type.Name, this.arg2Type.Name, this.arg3Type.Name); }
+			public override string ToString() { return string.Format("{0}({1}, {2}, {3}, {4})", this.type.Name, this.arg1Type.Name, this.arg2Type.Name, this.arg3Type.Name, this.arg4Type.Name); }
 		}
 
 		private static readonly Dictionary<Type, Func<object>> DefaultConstructorCache = new Dictionary<Type, Func<object>>();
@@ -81,13 +83,13 @@ namespace System
 					var constructors = typeInfo.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 					var publicEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && c.IsPublic && c.IsStatic == false);
 					var privateEmptyConstructor = constructors.SingleOrDefault(c => c.GetParameters().Length == 0 && !c.IsPublic && c.IsStatic == false);
-					var instanceField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f => 
-						ConstructorSubstitutionMembers.Contains(f.Name) && 
+					var instanceField = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(f =>
+						ConstructorSubstitutionMembers.Contains(f.Name) &&
 						type.IsAssignableFrom(f.FieldType)
 					);
-					var instanceProperty = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(p => 
-						ConstructorSubstitutionMembers.Contains(p.Name) && 
-						type.IsAssignableFrom(p.PropertyType) && 
+					var instanceProperty = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).FirstOrDefault(p =>
+						ConstructorSubstitutionMembers.Contains(p.Name) &&
+						type.IsAssignableFrom(p.PropertyType) &&
 						p.CanRead && p.GetIndexParameters().Length == 0
 					);
 #else
@@ -205,26 +207,36 @@ namespace System
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			return CreateInstance<Arg1T, object, object>(type, arg1, null, null, 1);
+			return CreateInstance<Arg1T, object, object, object>(type, arg1, null, null, null, 1);
 		}
 		public static object CreateInstance<Arg1T, Arg2T>(Type type, Arg1T arg1, Arg2T arg2)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			return CreateInstance<Arg1T, Arg2T, object>(type, arg1, arg2, null, 2);
+			return CreateInstance<Arg1T, Arg2T, object, object>(type, arg1, arg2, null, null, 2);
 		}
 		public static object CreateInstance<Arg1T, Arg2T, Arg3T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			return CreateInstance(type, arg1, arg2, arg3, 3);
+			return CreateInstance<Arg1T, Arg2T, Arg3T, object>(type, arg1, arg2, arg3, null, 3);
 		}
-		private static object CreateInstance<Arg1T, Arg2T, Arg3T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3, int argCount)
+		public static object CreateInstance<Arg1T, Arg2T, Arg3T, Arg4T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3, Arg4T arg4)
+		{
+			if (type == null) throw new ArgumentNullException("type");
+
+			return CreateInstance(type, arg1, arg2, arg3, arg4, 4);
+		}
+		private static object CreateInstance<Arg1T, Arg2T, Arg3T, Arg4T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3, Arg4T arg4, int argCount)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 			if (argCount < 1 || argCount > 3) throw new ArgumentOutOfRangeException("argCount");
 
-			var signature = new ConstructorSignature(type, typeof(Arg1T), argCount > 1 ? typeof(Arg2T) : null, argCount > 2 ? typeof(Arg3T) : null);
+			var signature = new ConstructorSignature(type, 
+				typeof(Arg1T), argCount > 1 ? 
+				typeof(Arg2T) : null, argCount > 2 ? 
+				typeof(Arg3T) : argCount > 3 ? 
+				typeof(Arg4T) : null);
 #if !NETSTANDARD
 			var typeInfo = type;
 			var constructors = typeInfo.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -250,6 +262,8 @@ namespace System
 							continue;
 						if (argCount > 2 && IsAssignableFrom(typeof(Arg3T), ctrParams[2].ParameterType) == false)
 							continue;
+						if (argCount > 3 && IsAssignableFrom(typeof(Arg4T), ctrParams[3].ParameterType) == false)
+							continue;
 
 						foundCtr = constructorInfo;
 						break;
@@ -257,16 +271,20 @@ namespace System
 
 					if (foundCtr != null)
 					{
+						var ctrParameters = foundCtr.GetParameters();
 						var arg1Param = Expression.Parameter(typeof(Arg1T), "arg1");
 						var arg2Param = Expression.Parameter(typeof(Arg2T), "arg2");
 						var arg3Param = Expression.Parameter(typeof(Arg3T), "arg3");
+						var arg4Param = Expression.Parameter(typeof(Arg4T), "arg4");
 						switch (argCount)
 						{
 							case 1:
 								constructor = Expression.Lambda<Func<Arg1T, object>>
 									(
 										Expression.Convert(
-											Expression.New(foundCtr, arg1Param),
+											Expression.New(
+												foundCtr,
+												Expression.Convert(arg1Param, ctrParameters[0].ParameterType)),
 											typeof(object)
 											),
 										arg1Param
@@ -276,7 +294,10 @@ namespace System
 								constructor = Expression.Lambda<Func<Arg1T, Arg2T, object>>
 									(
 										Expression.Convert(
-											Expression.New(foundCtr, arg1Param, arg2Param),
+											Expression.New(
+												foundCtr,
+												Expression.Convert(arg1Param, ctrParameters[0].ParameterType),
+												Expression.Convert(arg2Param, ctrParameters[1].ParameterType)),
 											typeof(object)
 											),
 										arg1Param,
@@ -287,13 +308,35 @@ namespace System
 								constructor = Expression.Lambda<Func<Arg1T, Arg2T, Arg3T, object>>
 									(
 										Expression.Convert(
-											Expression.New(foundCtr, arg1Param, arg2Param, arg3Param),
+											Expression.New(
+												foundCtr,
+												Expression.Convert(arg1Param, ctrParameters[0].ParameterType),
+												Expression.Convert(arg2Param, ctrParameters[1].ParameterType),
+												Expression.Convert(arg3Param, ctrParameters[2].ParameterType)),
 											typeof(object)
 											),
 										arg1Param,
 										arg2Param,
 										arg3Param
 									).Compile();
+								break;
+							case 4:
+								constructor = Expression.Lambda<Func<Arg1T, Arg2T, Arg3T, Arg4T, object>>
+								(
+									Expression.Convert(
+										Expression.New(
+											foundCtr,
+											Expression.Convert(arg1Param, ctrParameters[0].ParameterType),
+											Expression.Convert(arg2Param, ctrParameters[1].ParameterType),
+											Expression.Convert(arg3Param, ctrParameters[2].ParameterType),
+											Expression.Convert(arg4Param, ctrParameters[3].ParameterType)),
+										typeof(object)
+									),
+									arg1Param,
+									arg2Param,
+									arg3Param,
+									arg4Param
+								).Compile();
 								break;
 						}
 					}
@@ -320,6 +363,11 @@ namespace System
 					if (constructor == null)
 						throw new ArgumentException(string.Format("Type '{0}' does not contains constructor with signature 'ctr({1}, {2}, {3})'.", type, typeof(Arg1T).Name, typeof(Arg2T).Name, typeof(Arg3T).Name), "type");
 					instance = ((Func<Arg1T, Arg2T, Arg3T, object>)constructor)(arg1, arg2, arg3);
+					break;
+				case 4:
+					if (constructor == null)
+						throw new ArgumentException(string.Format("Type '{0}' does not contains constructor with signature 'ctr({1}, {2}, {3}, {4})'.", type, typeof(Arg1T).Name, typeof(Arg2T).Name, typeof(Arg3T).Name, typeof(Arg4T).Name), "type");
+					instance = ((Func<Arg1T, Arg2T, Arg3T, Arg4T, object>)constructor)(arg1, arg2, arg3, arg4);
 					break;
 			}
 
