@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -29,9 +30,33 @@ namespace System
         /// </summary>
         public static readonly TypeCode TypeCode;
         /// <summary>
+        /// Type of enum underlying type.
+        /// </summary>
+        public static readonly Type UnderlyingType;
+        /// <summary>
         /// Flag indicating what enum has <see cref="FlagsAttribute"/>.
         /// </summary>
         public static readonly bool IsFlags;
+        /// <summary>
+        /// Flag indicating what enum's <see cref="UnderlyingType"/> is signed number.
+        /// </summary>
+        public static readonly bool IsSigned;
+        /// <summary>
+        /// Maximum value for enumeration (declared values only).
+        /// </summary>
+        public static readonly EnumT MaxValue;
+        /// <summary>
+        /// Minimum value for enumeration (declared values only).
+        /// </summary>
+        public static readonly EnumT MinValue;
+        /// <summary>
+        /// Names of all enumeration values. Order is corresponding to <see cref="Values"/>.
+        /// </summary>
+        public static readonly ReadOnlyCollection<string> Names;
+        /// <summary>
+        /// All declared enumeration values. Order is corresponding to <see cref="Names"/>. 
+        /// </summary>
+        public static readonly ReadOnlyCollection<EnumT> Values;
         // ReSharper restore StaticMemberInGenericType
 
         static EnumHelper()
@@ -52,8 +77,10 @@ namespace System
             var yParameter = Expression.Parameter(enumType, "value");
             var instance = Activator.CreateInstance(enumType);
 
+            UnderlyingType = underlyingType;
             TypeCode = Convert.GetTypeCode(instance);
             IsFlags = enumTypeInfo.GetCustomAttributes(typeof(FlagsAttribute), false).Any();
+            IsSigned = TypeCode == TypeCode.SByte || TypeCode == TypeCode.Int16 || TypeCode == TypeCode.Int32 || TypeCode == TypeCode.Int64;
             FromNumber = Expression.Lambda(Expression.ConvertChecked(valueParameter, enumType), valueParameter).Compile();
             ToNumber = Expression.Lambda(Expression.ConvertChecked(enumParameter, underlyingType), enumParameter).Compile();
             Comparer = new ComparisonComparer<EnumT>(Expression.Lambda<Comparison<EnumT>>(
@@ -71,7 +98,10 @@ namespace System
             NamesByValue = new SortedDictionary<EnumT, string>(Comparer);
             ValueByName = new SortedDictionary<string, EnumT>(StringComparer.Ordinal);
 
-            foreach (EnumT value in Enum.GetValues(enumType))
+            var valuesArray = Enum.GetValues(enumType);
+            var names = new List<string>(valuesArray.Length);
+            var values = new List<EnumT>(valuesArray.Length);
+            foreach (EnumT value in valuesArray)
             {
                 var name = Enum.GetName(enumType, value);
                 if (string.IsNullOrEmpty(name))
@@ -79,7 +109,15 @@ namespace System
 
                 NamesByValue[value] = name;
                 ValueByName[name] = value;
+                names.Add(name);
+                values.Add(value);
+
+                MinValue = Comparer.Compare(value, MinValue) < 0 ? value : MinValue;
+                MaxValue = Comparer.Compare(value, MaxValue) > 0 ? value : MaxValue;
             }
+
+            Values = values.AsReadOnly();
+            Names = names.AsReadOnly();
         }
 
         public static string ToName(EnumT value)
