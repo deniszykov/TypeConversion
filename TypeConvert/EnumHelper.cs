@@ -7,7 +7,7 @@ using System.Reflection;
 // ReSharper disable once CheckNamespace
 namespace System
 {
-    internal static class EnumHelper<EnumT>
+    public static class EnumHelper<EnumT>
     {
         private static readonly SortedDictionary<EnumT, string> NamesByValue;
         private static readonly SortedDictionary<string, EnumT> ValueByName;
@@ -45,6 +45,10 @@ namespace System
         /// Maximum value for enumeration (declared values only).
         /// </summary>
         public static readonly EnumT MaxValue;
+        /// <summary>
+        /// Default value for enumeration (zero).
+        /// </summary>
+        public static readonly EnumT DefaultValue;
         /// <summary>
         /// Minimum value for enumeration (declared values only).
         /// </summary>
@@ -97,6 +101,7 @@ namespace System
 
             NamesByValue = new SortedDictionary<EnumT, string>(Comparer);
             ValueByName = new SortedDictionary<string, EnumT>(StringComparer.Ordinal);
+            DefaultValue = default(EnumT);
 
             var valuesArray = Enum.GetValues(enumType);
             var names = new List<string>(valuesArray.Length);
@@ -114,6 +119,21 @@ namespace System
 
                 MinValue = Comparer.Compare(value, MinValue) < 0 ? value : MinValue;
                 MaxValue = Comparer.Compare(value, MaxValue) > 0 ? value : MaxValue;
+            }
+
+            if (values.Contains(DefaultValue) == false)
+            {
+                // if default value is not part of Values then
+                // swap MinValue and MaxValue and re-calculate them
+                var tempMaxValue = MaxValue;
+                MaxValue = MinValue;
+                MinValue = tempMaxValue;
+
+                foreach (var value in values)
+                {
+                    MinValue = Comparer.Compare(value, MinValue) < 0 ? value : MinValue;
+                    MaxValue = Comparer.Compare(value, MaxValue) > 0 ? value : MaxValue;
+                }
             }
 
             Values = values.AsReadOnly();
