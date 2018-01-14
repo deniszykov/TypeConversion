@@ -230,7 +230,7 @@ namespace System
 		private static object CreateInstance<Arg1T, Arg2T, Arg3T, Arg4T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3, Arg4T arg4, int argCount)
 		{
 			if (type == null) throw new ArgumentNullException("type");
-			if (argCount < 1 || argCount > 3) throw new ArgumentOutOfRangeException("argCount");
+			if (argCount < 1 || argCount > 4) throw new ArgumentOutOfRangeException("argCount");
 
 			var signature = new ConstructorSignature(type, 
 				typeof(Arg1T), argCount > 1 ? 
@@ -256,13 +256,13 @@ namespace System
 						var ctrParams = constructorInfo.GetParameters();
 						if (ctrParams.Length != argCount)
 							continue;
-						if (argCount > 0 && IsAssignableFrom(typeof(Arg1T), ctrParams[0].ParameterType) == false)
+						if (argCount > 0 && IsAssignableFrom(ctrParams[0].ParameterType, typeof(Arg1T)) == false)
 							continue;
-						if (argCount > 1 && IsAssignableFrom(typeof(Arg2T), ctrParams[1].ParameterType) == false)
+						if (argCount > 1 && IsAssignableFrom(ctrParams[1].ParameterType, typeof(Arg2T)) == false)
 							continue;
-						if (argCount > 2 && IsAssignableFrom(typeof(Arg3T), ctrParams[2].ParameterType) == false)
+						if (argCount > 2 && IsAssignableFrom(ctrParams[2].ParameterType, typeof(Arg3T)) == false)
 							continue;
-						if (argCount > 3 && IsAssignableFrom(typeof(Arg4T), ctrParams[3].ParameterType) == false)
+						if (argCount > 3 && IsAssignableFrom(ctrParams[3].ParameterType, typeof(Arg4T)) == false)
 							continue;
 
 						foundCtr = constructorInfo;
