@@ -10,6 +10,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Xunit;
 
 namespace TypeConvert.Tests
@@ -61,6 +62,7 @@ namespace TypeConvert.Tests
 			Assert.Equal(expected.Offset, actual.Offset);
 			Assert.Equal(expected.Count, actual.Count);
 		}
+
 		[Fact]
 		public void CreateInstanceWithArgs2()
 		{
@@ -69,6 +71,7 @@ namespace TypeConvert.Tests
 
 			Assert.Equal(expected, actual);
 		}
+
 		[Fact]
 		public void CreateInstanceWithArgs3()
 		{
@@ -79,6 +82,24 @@ namespace TypeConvert.Tests
 			Assert.Equal(expected.Array, actual.Array);
 			Assert.Equal(expected.Offset, actual.Offset);
 			Assert.Equal(expected.Count, actual.Count);
+		}
+
+		[Fact]
+		public void CreateInstanceWithArgs4()
+		{
+			var expected = Guid.Empty;
+			var actual = (Guid)TypeActivator.CreateInstance(typeof(Guid), 0, (short)0, (short)0, new byte[8]);
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void CreateInstanceWithTypeCast()
+		{
+			var expectedStream = new MemoryStream();
+			var writer = (StreamWriter)TypeActivator.CreateInstance(typeof(StreamWriter), expectedStream);
+
+			Assert.Equal(expectedStream, writer.BaseStream);
 		}
 	}
 }
