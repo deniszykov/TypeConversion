@@ -6,7 +6,7 @@
     <PropertyGroup>
         <TargetFrameworks>net35;net45;netstandard1.3;netcoreapp2.0</TargetFrameworks>
         <Authors>Denis Zykov</Authors>
-        <Version>1.1.0</Version>
+        <Version>1.2.0</Version>
         <PackageId>TypeConvert</PackageId>
         <Product>TypeConvert</Product>
         <Description>Utility class for conversions between .NET types.</Description>
