@@ -21,27 +21,18 @@ using ConvertUntypedDelegate = System.Func<object, string, System.IFormatProvide
 // ReSharper disable once CheckNamespace
 namespace System
 {
-	public static class TypeConvert
+	public static partial class TypeConvert
 	{
 		private static class TypeConversion<SourceT, ResultT>
 		{
-#if !NETSTANDARD
-			public static readonly TypeConverter Converter;
-#endif
-			public static readonly Func<SourceT, ResultT> ExplicitFrom;
-			public static readonly Func<SourceT, ResultT> ImplicitFrom;
-			public static readonly Func<ResultT, SourceT> ExplicitTo;
-			public static readonly Func<ResultT, SourceT> ImplicitTo;
-			public static readonly Func<ResultT, SourceT> ConvertibleTo;
-			public static readonly Func<SourceT, ResultT> ConvertibleFrom;
-			public static readonly Func<SourceT, string, IFormatProvider, ResultT> Transition;
+			public static readonly Func<SourceT, ResultT> ConversionFn;
+
+			public static Func<SourceT, string, IFormatProvider, ResultT> NativeConversionFn;
 
 			static TypeConversion()
 			{
 
 #if !NETSTANDARD
-				const BindingFlags methodVisibility = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-
 				var sourceType = typeof(SourceT);
 				var sourceTypeInfo = sourceType;
 				var resultType = typeof(ResultT);
@@ -52,8 +43,61 @@ namespace System
 				var resultType = typeof(ResultT);
 				var resultTypeInfo = resultType.GetTypeInfo();
 #endif
+
+				if (sourceType == resultType)
+				{
+					NativeConversionFn = (Func<SourceT, string, IFormatProvider, ResultT>)(object)ConvertibleType<SourceT>.IdentityFn;
+					return;
+				}
+
+				var transitionMethod = GetTransitionMethod(sourceType, resultType);
+				if (transitionMethod != null)
+				{
+					NativeConversionFn = (Func<SourceT, string, IFormatProvider, ResultT>)CreateDelegate(typeof(Func<SourceT, string, IFormatProvider, ResultT>), transitionMethod);
+					return;
+				}
+
 				var sourceToResultKey = GetTypePairKey(sourceType, resultType);
-				var resultToSourceKey = GetTypePairKey(resultType, sourceType);
+				var knownConversion = default(Delegate);
+#if ENUMHELPER
+				if (sourceType == typeof(string) && resultTypeInfo.IsEnum)
+				{
+					ConversionFn = (Func<SourceT, ResultT>)(object)new Func<string, ResultT>(EnumHelper<ResultT>.Parse);
+				}
+				else if (sourceTypeInfo.IsEnum && resultType == typeof(string))
+				{
+					ConversionFn = (Func<SourceT, ResultT>)(object)new Func<ResultT, string>(EnumHelper<ResultT>.ToName);
+				}
+				else
+#endif
+				{
+					var convertMethodInfoX = default(ConvertMethodInfo);
+					var convertMethodInfoY = default(ConvertMethodInfo);
+					if (ConvertibleType<SourceT>.TryFindToConversion(resultType, out convertMethodInfoX) ||
+						ConvertibleType<ResultT>.TryFindFromConversion(sourceType, out convertMethodInfoY))
+					{
+						var bestConversionMethod = ConvertMethodInfo.ChooseByQuality(convertMethodInfoY, convertMethodInfoX).Method;
+						ConversionFn = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), null, bestConversionMethod);
+					}
+					else if (KnownConversions.TryGetValue(sourceToResultKey, out knownConversion))
+					{
+						ConversionFn = (Func<SourceT, ResultT>)knownConversion;
+					}
+				}
+			}
+
+			private static MethodInfo GetTransitionMethod(Type sourceType, Type resultType)
+			{
+				if (sourceType == null) throw new ArgumentNullException(nameof(sourceType));
+				if (resultType == null) throw new ArgumentNullException(nameof(resultType));
+
+#if !NETSTANDARD
+				var sourceTypeInfo = sourceType;
+				var resultTypeInfo = resultType;
+#else
+				var sourceTypeInfo = sourceType.GetTypeInfo();
+				var resultTypeInfo = resultType.GetTypeInfo();
+#endif
 
 				var isSourceNullableValueType = Nullable.GetUnderlyingType(sourceType) != null;
 				var isResultNullableValueType = Nullable.GetUnderlyingType(resultType) != null;
@@ -99,64 +143,11 @@ namespace System
 					transitionMethod = ConvertToEnumMethodDefinition.MakeGenericMethod(resultType, Enum.GetUnderlyingType(resultType), sourceType);
 				}
 
-				if (transitionMethod != null)
-				{
-					Transition = (Func<SourceT, string, IFormatProvider, ResultT>)CreateDelegate(typeof(Func<SourceT, string, IFormatProvider, ResultT>), transitionMethod);
-					return;
-				}
-
-				foreach (var method in GetPublicMethods(resultTypeInfo, declaredOnly: false))
-				{
-					if (method.IsStatic == false || method.Name.StartsWith("op_", StringComparison.Ordinal) == false || method.IsSpecialName == false)
-						continue;
-
-					var parameters = method.GetParameters();
-					if (parameters.Length != 1)
-						continue;
-
-					var firstParameterType = parameters[0].ParameterType;
-					if (method.Name == "op_Explicit" && method.ReturnType == sourceType && firstParameterType == resultType)
-						ExplicitTo = (Func<ResultT, SourceT>)CreateDelegate(typeof(Func<ResultT, SourceT>), method, true);
-					else if (method.Name == "op_Implicit" && method.ReturnType == sourceType && firstParameterType == resultType)
-						ImplicitTo = (Func<ResultT, SourceT>)CreateDelegate(typeof(Func<ResultT, SourceT>), method, true);
-					else if (method.Name == "op_Explicit" && method.ReturnType == resultType && firstParameterType == sourceType)
-						ExplicitFrom = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), method, true);
-					else if (method.Name == "op_Implicit" && method.ReturnType == resultType && firstParameterType == sourceType)
-						ImplicitFrom = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), method, true);
-				}
-
-				var knownConversion = default(Delegate);
-				if (KnownConversions.TryGetValue(resultToSourceKey, out knownConversion))
-				{
-					ConvertibleTo = (Func<ResultT, SourceT>)knownConversion;
-				}
-				if (KnownConversions.TryGetValue(sourceToResultKey, out knownConversion))
-				{
-					ConvertibleFrom = (Func<SourceT, ResultT>)knownConversion;
-				}
-
-#if ENUMHELPER
-				if (sourceType == typeof(string) && resultTypeInfo.IsEnum)
-				{
-					ConvertibleFrom = (Func<SourceT, ResultT>)(object)new Func<string, ResultT>(EnumHelper<ResultT>.Parse);
-					ConvertibleTo = (Func<ResultT, SourceT>)(object)new Func<ResultT, string>(EnumHelper<ResultT>.ToName);
-				}
-				if (sourceTypeInfo.IsEnum  && resultType == typeof(string))
-				{
-					ConvertibleTo = (Func<ResultT, SourceT>)(object)new Func<string, SourceT>(EnumHelper<SourceT>.Parse);
-					ConvertibleFrom = (Func<SourceT, ResultT>)(object)new Func<SourceT, string>(EnumHelper<SourceT>.ToName);
-				}
-#endif
-
-#if !NETSTANDARD
-				Converter = TypeDescriptor.GetConverter(sourceType);
-				if (Converter != null && Converter.GetType() == typeof(TypeConverter))
-					Converter = null;
-#endif
+				return transitionMethod;
 			}
 		}
 
-		private static class TypeConversion<T>
+		private static class ConvertibleType<T>
 		{
 			// nullable
 			public static readonly bool CanBeNull;
@@ -170,10 +161,13 @@ namespace System
 			public static readonly Func<string, T> ParseFn;
 			public static readonly Func<string, IFormatProvider, T> ParseFormattedFn;
 			public static readonly Func<T, string> ToStringFn;
+			public static readonly Func<T, string, IFormatProvider, T> IdentityFn;
 			public static readonly Func<T, string, IFormatProvider, string> ToStringFormattedFn;
+			public static readonly ConvertMethodInfo[] ConvertFrom; // from ANY type to T type
+			public static readonly ConvertMethodInfo[] ConvertTo; // from T type to ANY type
 			public static readonly string DefaultFormat;
 
-			static TypeConversion()
+			static ConvertibleType()
 			{
 				var type = typeof(T);
 #if !NETSTANDARD
@@ -183,6 +177,9 @@ namespace System
 #endif
 				IsValueType = typeInfo.IsValueType;
 				CanBeNull = IsValueType == false;
+				ConvertFrom = (ConvertMethodInfo[])Enumerable.Empty<ConvertMethodInfo>();
+				ConvertTo = (ConvertMethodInfo[])Enumerable.Empty<ConvertMethodInfo>();
+				IdentityFn = Identity;
 
 				if (typeInfo.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
 				{
@@ -215,26 +212,219 @@ namespace System
 				if (type == typeof(float) || type == typeof(double))
 					DefaultFormat = "R";
 
+				var convertFrom = default(List<ConvertMethodInfo>);
+				var convertTo = default(List<ConvertMethodInfo>);
+
 				foreach (var method in GetPublicMethods(typeInfo, declaredOnly: true))
 				{
-					if (method.IsStatic && (method.Name == "Parse" || method.Name == "Create") && method.ReturnType == type)
+					var parameters = default(ParameterInfo[]);
+					// Parse
+					if (IsParseMethod(method, type))
 					{
-						var parseParams = method.GetParameters();
-						if (parseParams.Length == 1 && parseParams[0].ParameterType == typeof(string))
+						parameters = parameters ?? method.GetParameters();
+						if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string))
+						{
 							ParseFn = (Func<string, T>)CreateDelegate(typeof(Func<string, T>), method, true);
-						else if (parseParams.Length == 2 && parseParams[0].ParameterType == typeof(string) && parseParams[1].ParameterType == typeof(IFormatProvider))
+						}
+						else if (parameters.Length == 2 && parameters[0].ParameterType == typeof(string) && parameters[1].ParameterType == typeof(IFormatProvider))
+						{
 							ParseFormattedFn = (Func<string, IFormatProvider, T>)CreateDelegate(typeof(Func<string, IFormatProvider, T>), method, true);
+						}
 					}
-					else if (method.IsStatic == false && method.Name == "ToString" && method.ReturnType == typeof(string))
+					// ToString
+					else if (IsToStringMethod(method))
 					{
-						var toStringParams = method.GetParameters();
-						if (toStringParams.Length == 0)
+						parameters = parameters ?? method.GetParameters();
+						if (parameters.Length == 0)
+						{
 							ToStringFn = (Func<T, string>)CreateDelegate(typeof(Func<T, string>), null, method, false);
-						else if (toStringParams.Length == 2 && toStringParams[0].ParameterType == typeof(string) && toStringParams[1].ParameterType == typeof(IFormatProvider))
+						}
+						else if (parameters.Length == 2 &&
+							parameters[0].ParameterType == typeof(string) &&
+							parameters[1].ParameterType == typeof(IFormatProvider))
+						{
 							ToStringFormattedFn = (Func<T, string, IFormatProvider, string>)CreateDelegate(typeof(Func<T, string, IFormatProvider, string>), null, method, false);
+						}
+					}
+
+					// Explicit/Implicit operators
+					if (method.IsStatic && method.IsSpecialName && (method.Name == "op_Explicit" || method.Name == "op_Implicit"))
+					{
+						parameters = parameters ?? method.GetParameters();
+						if (parameters.Length == 1 && parameters[0].ParameterType == type)
+						{
+							(convertTo ?? (convertTo = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+						}
+						else if (parameters.Length == 1 && method.ReturnType == type)
+						{
+							(convertFrom ?? (convertFrom = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+						}
+					}
+
+					// custom FromX method
+					if (IsConvertFromMethod(method, type, ref parameters))
+					{
+						(convertFrom ?? (convertFrom = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+					}
+
+					// custom ToX method
+					if (IsConvertToMethod(method, type, ref parameters))
+					{
+						(convertTo ?? (convertTo = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
 					}
 				}
+
+				if (convertTo != null)
+				{
+					ConvertTo = convertTo.ToArray();
+					// sort by Quality descending
+					Array.Sort(ConvertTo, (x, y) => ((int)y.Quality).CompareTo((int)x.Quality));
+				}
+
+				if (convertFrom != null)
+				{
+					ConvertFrom = convertFrom.ToArray();
+					// sort by Quality descending
+					Array.Sort(ConvertFrom, (x, y) => ((int)y.Quality).CompareTo((int)x.Quality));
+				}
 			}
+
+			private static T Identity(T value, string format, IFormatProvider formatProvider)
+			{
+				return value;
+			}
+
+			private static bool IsToStringMethod(MethodInfo method)
+			{
+				return method.IsStatic == false &&
+					method.Name == "ToString" &&
+					method.ReturnType == typeof(string);
+			}
+			private static bool IsParseMethod(MethodInfo method, Type type)
+			{
+				return method.IsStatic &&
+					(method.Name == "Parse" ||
+						method.Name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
+						method.Name.StartsWith("From", StringComparison.OrdinalIgnoreCase)) &&
+					method.ReturnType == type;
+			}
+			private static bool IsConvertFromMethod(MethodInfo method, Type type, ref ParameterInfo[] parameters)
+			{
+				return method.IsStatic &&
+					(method.Name == "Parse" ||
+						method.Name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
+						method.Name.StartsWith("From", StringComparison.OrdinalIgnoreCase)) &&
+					method.ReturnType == type &&
+					method.DeclaringType == type &&
+					(parameters ?? (parameters = method.GetParameters())).Length == 1 &&
+					IsPlainParameter(parameters[0]);
+			}
+			private static bool IsConvertToMethod(MethodInfo method, Type type, ref ParameterInfo[] parameters)
+			{
+
+				if (method.Name.StartsWith("To", StringComparison.OrdinalIgnoreCase) == false ||
+					method.Name == "ToString" ||
+					method.DeclaringType != type)
+				{
+					return false;
+				}
+
+				parameters = parameters ?? method.GetParameters();
+
+				return (method.IsStatic ?
+					parameters.Length == 1 && parameters[0].ParameterType == type && IsPlainParameter(parameters[0]) :
+					parameters.Length == 0);
+			}
+			private static bool IsPlainParameter(ParameterInfo parameterInfo)
+			{
+				return parameterInfo.IsIn == false && parameterInfo.IsOut == false && parameterInfo.ParameterType.IsByRef == false;
+			}
+
+			public static bool TryFindToConversion(Type toType, out ConvertMethodInfo convertMethod)
+			{
+				convertMethod = default(ConvertMethodInfo);
+				if (ConvertTo.Length == 0)
+					return false;
+
+				foreach (var method in ConvertTo)
+				{
+					if (method.ToType == toType)
+					{
+
+						convertMethod = method;
+						return true;
+					}
+				}
+
+				return false;
+			}
+			public static bool TryFindFromConversion(Type fromType, out ConvertMethodInfo convertMethod)
+			{
+				convertMethod = default(ConvertMethodInfo);
+				if (ConvertFrom.Length == 0)
+					return false;
+
+				foreach (var method in ConvertFrom)
+				{
+					if (method.FromType == fromType)
+					{
+
+						convertMethod = method;
+						return true;
+					}
+				}
+
+				return false;
+			}
+		}
+
+		private class ConvertMethodInfo
+		{
+			public readonly MethodInfo Method;
+			public readonly Type FromType;
+			public readonly Type ToType;
+			public readonly ConversionQuality Quality;
+
+			public ConvertMethodInfo(MethodInfo method, ref ParameterInfo[] methodParameters)
+			{
+				if (method == null) throw new ArgumentNullException(nameof(method));
+
+				methodParameters = methodParameters ?? method.GetParameters();
+				this.Method = method;
+				this.FromType = (method.IsStatic ? methodParameters[0].ParameterType : method.DeclaringType) ?? typeof(object);
+				this.ToType = method.ReturnType;
+				this.Quality = method.Name == "op_Explicit" ? ConversionQuality.Explicit :
+					method.Name == "op_Implicit" ? ConversionQuality.Implicit : ConversionQuality.CustomMethod;
+			}
+
+			public static ConvertMethodInfo ChooseByQuality(ConvertMethodInfo x, ConvertMethodInfo y)
+			{
+				if (x == null && y == null)
+					return null;
+				else if (x != null && y == null)
+					return x;
+				else if (x == null && y != null)
+					return y;
+
+				if (x.Quality >= y.Quality)
+					return x;
+				else
+					return y;
+			}
+
+			/// <inheritdoc />
+			public override string ToString()
+			{
+				return string.Format("From: " + this.FromType.Name + ", To: " + this.ToType.Name + ", Method: " + this.Method.Name + ", Quality:" + this.Quality);
+			}
+		}
+
+		private enum ConversionQuality : byte
+		{
+			None = 0,
+			CustomMethod,
+			Explicit,
+			Implicit,
 		}
 
 		private static readonly Dictionary<long, ConvertUntypedDelegate> CachedGenericConvertMethods;
@@ -248,6 +438,9 @@ namespace System
 		private static readonly MethodInfo ConvertFromEnumToEnumMethodDefinition;
 		private static readonly MethodInfo ConvertToEnumMethodDefinition;
 		private static readonly MethodInfo ConvertFromEnumMethodDefinition;
+		/// <summary>
+		/// Default format provider used when null formatProvider parameter is passed to <see cref="Convert"/> methods.
+		/// </summary>
 		public static readonly IFormatProvider DefaultFormatProvider = CultureInfo.InvariantCulture;
 
 		static TypeConvert()
@@ -292,13 +485,101 @@ namespace System
 				var conversionKey = GetTypePairKey(fromType, toType);
 				KnownConversions[conversionKey] = conversionFunc;
 			}
+
+#if NATIVE_CONVERSIONS
+			InitializeNativeConversions();
+#endif
 		}
 
+		/// <summary>
+		/// Convert passed <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
+		/// </summary>
+		/// <typeparam name="FromType">Type of <paramref name="value"/> object.</typeparam>
+		/// <typeparam name="ToType">A result type for <paramref name="value"/> object.</typeparam>
+		/// <param name="value">A value to convert to <typeparamref name="ToType"/>.</param>
+		/// <param name="format">Format of string representation. Used with <see cref="IFormattable"/> types. For numbers conversion format accept "checked" <see cref="CheckedConversionFormat"/> or "unchecked" <see cref="UncheckedConversionFormat"/> values.</param>
+		/// <param name="formatProvider">Format provider for string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <returns>A value converted to <typeparamref name="ToType"/> type.</returns>
 		public static ToType Convert<FromType, ToType>(FromType value, string format = null, IFormatProvider formatProvider = null)
 		{
-			var transition = TypeConversion<FromType, ToType>.Transition;
-			return transition != null ? transition(value, format, formatProvider) : InternalConvert<FromType, ToType>(value, format, formatProvider);
+			if (formatProvider == null) formatProvider = DefaultFormatProvider;
+
+			// native
+			if (TypeConversion<FromType, ToType>.NativeConversionFn != null)
+			{
+				return TypeConversion<FromType, ToType>.NativeConversionFn(value, format, formatProvider);
+			}
+
+			var sourceObj = default(object);
+			var sourceIsNullRef = default(bool);
+			var sourceIsValueType = ConvertibleType<FromType>.IsValueType;
+
+			if (sourceIsValueType)
+			{
+				sourceIsNullRef = false;
+				if (typeof(FromType) == typeof(ToType))
+				{
+#if NO_TYPE_REFS
+					return (ToType)(object)value;
+#else
+					return __refvalue(__makeref(value), ToType);
+#endif
+				}
+			}
+			else
+			{
+				sourceObj = value;
+				sourceIsNullRef = sourceObj == null;
+
+				if (sourceObj is ToType)
+					return (ToType)sourceObj;
+			}
+
+			// parse
+			if (ConvertibleType<FromType>.IsString && ConvertibleType<ToType>.ParseFormattedFn != null)
+				return ConvertibleType<ToType>.ParseFormattedFn((string)sourceObj, formatProvider);
+			if (ConvertibleType<FromType>.IsString && ConvertibleType<ToType>.ParseFn != null)
+				return ConvertibleType<ToType>.ParseFn((string)sourceObj);
+
+			// toString(formatted)
+			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString && ConvertibleType<FromType>.ToStringFormattedFn != null)
+				return (ToType)(object)ConvertibleType<FromType>.ToStringFormattedFn(value, format ?? ConvertibleType<FromType>.DefaultFormat, formatProvider);
+			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString && ConvertibleType<FromType>.IsSupportFormatting)
+				// ReSharper disable once PossibleNullReferenceException
+				return (ToType)(object)((sourceIsValueType ? (object)value : sourceObj) as IFormattable).ToString(format ?? ConvertibleType<FromType>.DefaultFormat, formatProvider);
+
+			// find explicit/implicit, To*\From* methods, Convert.To*, Parse/ToString conversions between types
+			if (TypeConversion<FromType, ToType>.ConversionFn != null)
+				return TypeConversion<FromType, ToType>.ConversionFn(value);
+
+#if !NETSTANDARD
+			// try converter
+			if (ConvertibleType<ToType>.Converter != null && ConvertibleType<ToType>.Converter.CanConvertFrom(typeof(FromType)))
+				return (ToType)ConvertibleType<ToType>.Converter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, (sourceIsValueType ? value : sourceObj));
+			if (ConvertibleType<FromType>.Converter != null && ConvertibleType<FromType>.Converter.CanConvertTo(typeof(ToType)))
+				return (ToType)ConvertibleType<FromType>.Converter.ConvertTo(null, formatProvider as CultureInfo, (sourceIsValueType ? value : sourceObj), typeof(ToType));
+#endif
+
+			// try ToString
+			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString && ConvertibleType<FromType>.ToStringFn != null)
+				return (ToType)(object)ConvertibleType<FromType>.ToStringFn(value);
+			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString)
+				return (ToType)(object)(sourceIsValueType ? (object)value : sourceObj).ToString();
+
+			throw new InvalidCastException(string.Format("Unable to convert value '{2}' of type '{1}' to requested type '{0}'", typeof(ToType), typeof(FromType), ((object)value) ?? "<null>"));
 		}
+		/// <summary>
+		/// Try to convert passed <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
+		/// </summary>
+		/// <typeparam name="FromType">Type of <paramref name="value"/> object.</typeparam>
+		/// <typeparam name="ToType">A result type for <paramref name="value"/> object.</typeparam>
+		/// <param name="result">A value converted to <typeparamref name="ToType"/> type.</param>
+		/// <param name="value">A value to convert to <typeparamref name="ToType"/>.</param>
+		/// <param name="format">Format of string representation. Used with <see cref="IFormattable"/> types. For numbers conversion format accept "checked" <see cref="CheckedConversionFormat"/> or "unchecked" <see cref="UncheckedConversionFormat"/> values.</param>
+		/// <param name="formatProvider">Format provider for string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <returns>True if conversion succeed. False if not.</returns>
 		public static bool TryConvert<FromType, ToType>(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
 			result = default(ToType);
@@ -316,16 +597,33 @@ namespace System
 				throw;
 			}
 		}
+		/// <summary>
+		/// Convert passed <paramref name="value"/> to it's string representation applying <paramref name="format"/> and using <paramref name="formatProvider"/>(defaults to <see cref="CultureInfo.InvariantCulture"/>).
+		/// </summary>
+		/// <typeparam name="FromType">Type of <paramref name="value"/>.</typeparam>
+		/// <param name="value">Value to convert. If null object is passed a null object will returns.</param>
+		/// <param name="format">Format of string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <param name="formatProvider">Format provider for string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <returns>A string representation of passed <paramref name="value"/>. A null object if <paramref name="value"/> is null.</returns>
+		/// <returns></returns>
 		public static string ToString<FromType>(FromType value, string format = null, IFormatProvider formatProvider = null)
 		{
 			return Convert<FromType, string>(value, format, formatProvider);
 		}
-
-		public static object Convert(Type fromType, Type toType, object value, string format = null, IFormatProvider formatProvider = null)
+		/// <summary>
+		/// Convert passed <paramref name="value"/> to <paramref name="toType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
+		/// </summary>
+		/// <param name="toType">A result type for <paramref name="value"/> object.</param>
+		/// <param name="value">A value to convert to <paramref name="toType"/>.</param>
+		/// <param name="format">Format of string representation. Used with <see cref="IFormattable"/> types. For numbers conversion format accept "checked" <see cref="CheckedConversionFormat"/> or "unchecked" <see cref="UncheckedConversionFormat"/> values.</param>
+		/// <param name="formatProvider">Format provider for string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <returns>A value converted to <paramref name="toType"/> type.</returns>
+		public static object Convert(object value, Type toType, string format = null, IFormatProvider formatProvider = null)
 		{
 			if (toType == null) throw new ArgumentNullException("toType");
-			if (fromType == null) throw new ArgumentNullException("fromType");
 
+			var fromType = value != null ? value.GetType() : typeof(object);
 			var convertFn = default(ConvertUntypedDelegate);
 			var cacheKey = GetTypePairKey(fromType, toType);
 
@@ -363,11 +661,20 @@ namespace System
 
 			return convertFn.Invoke(value, format, formatProvider);
 		}
-		public static bool TryConvert(Type fromType, Type toType, ref object value, string format = null, IFormatProvider formatProvider = null)
+		/// <summary>
+		/// Try to convert passed <paramref name="value"/> to <paramref name="toType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
+		/// </summary>
+		/// <param name="toType">A result type for <paramref name="value"/> object.</param>
+		/// <param name="value">A value to convert to <paramref name="toType"/>.</param>
+		/// <param name="format">Format of string representation. Used with <see cref="IFormattable"/> types. For numbers conversion format accept "checked" <see cref="CheckedConversionFormat"/> or "unchecked" <see cref="UncheckedConversionFormat"/> values.</param>
+		/// <param name="formatProvider">Format provider for string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <returns>True if conversion succeed. False if not.</returns>
+		public static bool TryConvert(ref object value, Type toType, string format = null, IFormatProvider formatProvider = null)
 		{
 			try
 			{
-				value = Convert(fromType, toType, value, format, formatProvider);
+				value = Convert(value, toType, format, formatProvider);
 				return true;
 			}
 			catch (Exception e)
@@ -379,82 +686,19 @@ namespace System
 				throw;
 			}
 		}
+		/// <summary>
+		/// Convert passed <paramref name="value"/> to it's string representation applying <paramref name="format"/> and using <paramref name="formatProvider"/>(defaults to <see cref="CultureInfo.InvariantCulture"/>).
+		/// </summary>
+		/// <param name="value">Value to convert. If null object is passed a <see cref="String.Empty"/> is returned.</param>
+		/// <param name="format">Format of string representation. Used with <see cref="IFormattable"/> types. For numbers conversion format accept "checked" <see cref="CheckedConversionFormat"/> or "unchecked" <see cref="UncheckedConversionFormat"/> values.</param>
+		/// <param name="formatProvider">Format provider for string representation. Used with <see cref="IFormattable"/> types.</param>
+		/// <returns>A string representation of passed <paramref name="value"/>. When <paramref name="value"/> is null then <see cref="String.Empty"/> is returned.</returns>
 		public static string ToString(object value, string format = null, IFormatProvider formatProvider = null)
 		{
 			if (value == null || value is string)
-				return (string)value;
+				return (string)value ?? string.Empty;
 
-			return (string)Convert(typeof(object), typeof(string), value, format, formatProvider);
-		}
-
-		private static ToType InternalConvert<FromType, ToType>(FromType value, string format, IFormatProvider formatProvider)
-		{
-			if (formatProvider == null) formatProvider = DefaultFormatProvider;
-
-			var sourceObj = default(object);
-			var sourceIsNullRef = default(bool);
-			var sourceIsValueType = TypeConversion<FromType>.IsValueType;
-
-			if (sourceIsValueType)
-			{
-				sourceIsNullRef = false;
-				if (typeof(FromType) == typeof(ToType))
-				{
-#if NO_TYPE_REFS
-					return (ToType)(object)value;
-#else
-					return __refvalue(__makeref(value), ToType);
-#endif
-				}
-			}
-			else
-			{
-				sourceObj = value;
-				sourceIsNullRef = sourceObj == null;
-
-				if (sourceObj is ToType)
-					return (ToType)sourceObj;
-			}
-
-			// find explicit/implicit conversions between types
-			if (TypeConversion<FromType, ToType>.ImplicitFrom != null)
-				return TypeConversion<FromType, ToType>.ImplicitFrom(value);
-			if (TypeConversion<ToType, FromType>.ImplicitTo != null)
-				return TypeConversion<ToType, FromType>.ImplicitTo(value);
-			if (TypeConversion<FromType, ToType>.ExplicitFrom != null)
-				return TypeConversion<FromType, ToType>.ExplicitFrom(value);
-			if (TypeConversion<ToType, FromType>.ExplicitTo != null)
-				return TypeConversion<ToType, FromType>.ExplicitTo(value);
-			// try parse
-			if (TypeConversion<FromType>.IsString && TypeConversion<ToType>.ParseFormattedFn != null)
-				return TypeConversion<ToType>.ParseFormattedFn((string)sourceObj, formatProvider);
-			if (TypeConversion<FromType>.IsString && TypeConversion<ToType>.ParseFn != null)
-				return TypeConversion<ToType>.ParseFn((string)sourceObj);
-			// try toString(formatted)
-			if (!sourceIsNullRef && TypeConversion<ToType>.IsString && TypeConversion<FromType>.ToStringFormattedFn != null)
-				return (ToType)(object)TypeConversion<FromType>.ToStringFormattedFn(value, format ?? TypeConversion<FromType>.DefaultFormat, formatProvider);
-			if (!sourceIsNullRef && TypeConversion<ToType>.IsString && TypeConversion<FromType>.IsSupportFormatting)
-				// ReSharper disable once PossibleNullReferenceException
-				return (ToType)(object)((sourceIsValueType ? (object)value : sourceObj) as IFormattable).ToString(format ?? TypeConversion<FromType>.DefaultFormat, formatProvider);
-			// try method conversions (To*\From* methods, Convert.To*)
-			if (TypeConversion<ToType, FromType>.ConvertibleTo != null)
-				return TypeConversion<ToType, FromType>.ConvertibleTo(value);
-			if (TypeConversion<FromType, ToType>.ConvertibleFrom != null)
-				return TypeConversion<FromType, ToType>.ConvertibleFrom(value);
-#if !NETSTANDARD
-			// try converter			
-			if (TypeConversion<ToType>.Converter != null && TypeConversion<ToType>.Converter.CanConvertFrom(typeof(FromType)))
-				return (ToType)TypeConversion<ToType>.Converter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, (sourceIsValueType ? value : sourceObj));
-			if (TypeConversion<FromType, ToType>.Converter != null && TypeConversion<FromType, ToType>.Converter.CanConvertTo(typeof(ToType)))
-				return (ToType)TypeConversion<FromType, ToType>.Converter.ConvertTo(null, formatProvider as CultureInfo, (sourceIsValueType ? value : sourceObj), typeof(ToType));
-#endif
-			// try ToString
-			if (!sourceIsNullRef && TypeConversion<ToType>.IsString && TypeConversion<FromType>.ToStringFn != null)
-				return (ToType)(object)TypeConversion<FromType>.ToStringFn(value);
-			if (!sourceIsNullRef && TypeConversion<ToType>.IsString)
-				return (ToType)(object)(sourceIsValueType ? (object)value : sourceObj).ToString(); // (5) box value-type
-
-			throw new InvalidCastException(string.Format("Unable to convert value '{2}' of type '{1}' to requested type '{0}'", typeof(ToType), typeof(FromType), ((object)value) ?? "<null>"));
+			return (string)Convert(value, typeof(string), format, formatProvider) ?? string.Empty;
 		}
 
 		// transitions
@@ -473,7 +717,7 @@ namespace System
 		{
 			if (value.HasValue == false)
 			{
-				if (TypeConversion<ToType>.CanBeNull)
+				if (ConvertibleType<ToType>.CanBeNull)
 					return default(ToType);
 				throw new InvalidCastException(string.Format("Unable to convert <null> to '{0}'.", typeof(ToType)));
 			}
@@ -484,7 +728,7 @@ namespace System
 		private static ToType? ConvertToNullable<ToType, FromType>(FromType value, string format, IFormatProvider formatProvider)
 			where ToType : struct
 		{
-			if (TypeConversion<FromType>.CanBeNull && ReferenceEquals(value, null))
+			if (ConvertibleType<FromType>.CanBeNull && ReferenceEquals(value, null))
 				return default(ToType?);
 
 			var result = Convert<FromType, ToType>(value, format, formatProvider);
@@ -497,11 +741,11 @@ namespace System
 
 			if (value == null)
 			{
-				if (!TypeConversion<ToType>.IsValueType || TypeConversion<ToType>.IsNullableValueType)
+				if (!ConvertibleType<ToType>.IsValueType || ConvertibleType<ToType>.IsNullableValueType)
 					return default(ToType);
 				throw new InvalidCastException(string.Format("Unable to convert <null> to '{0}'.", typeof(ToType)));
 			}
-			return (ToType)Convert(value.GetType(), typeof(ToType), value, format, formatProvider);
+			return (ToType)Convert(value, typeof(ToType), format, formatProvider);
 		}
 		private static object ConvertToObject<FromType>(FromType value, string format, IFormatProvider formatProvider)
 		{
@@ -512,21 +756,21 @@ namespace System
 		{
 #if ENUMHELPER
 			var valueNumber = ((Func<FromEnumT, FromBaseT>)EnumHelper<FromEnumT>.ToNumber).Invoke(value);
-			var resultNumber = InternalConvert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
+			var resultNumber = Convert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
 			return ((Func<ToBaseT, ToEnumT>)EnumHelper<ToEnumT>.FromNumber).Invoke(resultNumber);
 #else
 			var valueNumber = (FromBaseT)System.Convert.ChangeType(value, typeof(FromBaseT));
-			var resultNumber = InternalConvert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
+			var resultNumber = Convert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
 			return (ToEnumT)Enum.ToObject(typeof(ToEnumT), resultNumber);
 #endif
 		}
 		private static ToEnumT ConvertToEnum<ToEnumT, ToBaseT, FromType>(FromType value, string format, IFormatProvider formatProvider)
 		{
 #if ENUMHELPER
-			var resultNumber = InternalConvert<FromType, ToBaseT>(value, format, formatProvider);
+			var resultNumber = Convert<FromType, ToBaseT>(value, format, formatProvider);
 			return ((Func<ToBaseT, ToEnumT>)EnumHelper<ToEnumT>.FromNumber).Invoke(resultNumber);
 #else
-			var resultNumber = InternalConvert<FromType, ToBaseT>(value, format, formatProvider);
+			var resultNumber = Convert<FromType, ToBaseT>(value, format, formatProvider);
 			return (ToEnumT)Enum.ToObject(typeof(ToEnumT), resultNumber);
 #endif
 		}
@@ -534,7 +778,7 @@ namespace System
 		{
 #if ENUMHELPER
 			var valueNumber = ((Func<FromEnumT, FromBaseT>)EnumHelper<FromEnumT>.ToNumber).Invoke(value);
-			var resultNumber = InternalConvert<FromBaseT, ToType>(valueNumber, format, formatProvider);
+			var resultNumber = Convert<FromBaseT, ToType>(valueNumber, format, formatProvider);
 			return resultNumber;
 #else
 			var valueNumber = (FromBaseT)System.Convert.ChangeType(value, typeof(FromBaseT));
@@ -566,7 +810,7 @@ namespace System
 
 #endif
 		}
-		private static Delegate CreateDelegate(Type delegateType, object target, MethodInfo method,bool throwOnBindingFailure = true)
+		private static Delegate CreateDelegate(Type delegateType, object target, MethodInfo method, bool throwOnBindingFailure = true)
 		{
 			if (delegateType == null) throw new ArgumentNullException("delegateType");
 			if (method == null) throw new ArgumentNullException("method");

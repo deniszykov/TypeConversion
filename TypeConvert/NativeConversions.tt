@@ -1,0 +1,45 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+
+<#
+	var types = new Type[] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(double), typeof(float), typeof(char) };
+#>
+
+// ReSharper disable All
+namespace System
+{
+	partial class TypeConvert
+	{
+		public const string CheckedConversionFormat = "checked";
+		public const string UncheckedConversionFormat = "unchecked";
+
+		private static void InitializeNativeConversions()
+		{
+<#
+	foreach (var fromType in types)
+	{
+		foreach (var toType in types)
+		{
+			if (fromType == toType)
+				continue; 
+
+			try
+			{
+				var fromValue = Activator.CreateInstance(fromType);
+				var toValue = ((IConvertible)fromValue).ToType(toType, null);
+
+#>
+			TypeConversion<<#= fromType.FullName #>, <#= toType.FullName #>>.Transition = (v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v);
+<#
+			} 
+			catch
+			{
+				// ignore
+			}
+
+		}
+	}
+#>
+		}
+	}
+}
