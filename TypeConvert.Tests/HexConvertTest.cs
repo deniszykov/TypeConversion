@@ -28,15 +28,15 @@ namespace TypeConvert.Tests
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// hex string -> buffer
-			var buffer = HexConvert.ToBuffer(expectedHexString, 0, expectedHexString.Length);
+			var buffer = HexConvert.ToBytes(expectedHexString, 0, expectedHexString.Length);
 			Assert.Equal(expectedBuffer, buffer);
 			// hex buffer -> buffer
-			buffer = HexConvert.ToBuffer(expectedHexBuffer, 0, expectedHexBuffer.Length);
+			buffer = HexConvert.ToBytes(expectedHexBuffer, 0, expectedHexBuffer.Length);
 			Assert.Equal(expectedBuffer, buffer);
 
 			// hex buffer -> buffer (copy)
 			buffer = new byte[expectedBuffer.Length];
-			HexConvert.CopyHexBufferToBuffer(expectedHexBuffer, 0, expectedHexBuffer.Length, buffer, 0);
+			HexConvert.Decode(expectedHexBuffer, 0, expectedHexBuffer.Length, buffer, 0);
 			Assert.Equal(expectedBuffer, buffer);
 		}
 
@@ -53,15 +53,15 @@ namespace TypeConvert.Tests
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// buffer -> hex string
-			var hexString = HexConvert.ToHex(expectedBuffer, 0, expectedBuffer.Length);
+			var hexString = HexConvert.WriteTo(expectedBuffer, 0, expectedBuffer.Length);
 			Assert.Equal(expectedHexString, hexString);
 			// buffer -> hex buffer
-			var hexBuffer = HexConvert.ToHexBuffer(expectedBuffer, 0, expectedBuffer.Length);
+			var hexBuffer = HexConvert.ToCharArray(expectedBuffer, 0, expectedBuffer.Length);
 			Assert.Equal(expectedHexBuffer, hexBuffer);
 
 			// buffer -> hex buffer (copy)
 			hexBuffer = new char[expectedHexBuffer.Length];
-			HexConvert.CopyBufferToHexBuffer(expectedBuffer, 0, expectedBuffer.Length, hexBuffer, 0);
+			HexConvert.Encode(expectedBuffer, 0, expectedBuffer.Length, hexBuffer, 0);
 			Assert.Equal(expectedHexBuffer, hexBuffer);
 		}
 
@@ -84,25 +84,25 @@ namespace TypeConvert.Tests
 
 			var hexBuffer = new char[256];
 			// uint8 -> hex
-			var count = HexConvert.ToHex(uint8, hexBuffer, 0);
+			var count = HexConvert.WriteTo(uint8, hexBuffer, 0);
 			var actualHex = new string(hexBuffer, 0, count);
 			Assert.Equal(uint8Hex, actualHex);
 			Array.Clear(hexBuffer, 0, hexBuffer.Length);
 
 			// uint16 -> hex
-			count = HexConvert.ToHex(uint16, hexBuffer, 0);
+			count = HexConvert.WriteTo(uint16, hexBuffer, 0);
 			actualHex = new string(hexBuffer, 0, count);
 			Assert.Equal(uint16Hex, actualHex);
 			Array.Clear(hexBuffer, 0, hexBuffer.Length);
 
 			// uint32 -> hex
-			count = HexConvert.ToHex(uint32, hexBuffer, 0);
+			count = HexConvert.WriteTo(uint32, hexBuffer, 0);
 			actualHex = new string(hexBuffer, 0, count);
 			Assert.Equal(uint32Hex, actualHex);
 			Array.Clear(hexBuffer, 0, hexBuffer.Length);
 
 			// uint64 -> hex
-			count = HexConvert.ToHex(uint64, hexBuffer, 0);
+			count = HexConvert.WriteTo(uint64, hexBuffer, 0);
 			actualHex = new string(hexBuffer, 0, count);
 			Assert.Equal(uint64Hex, actualHex);
 			Array.Clear(hexBuffer, 0, hexBuffer.Length);
