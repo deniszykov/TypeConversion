@@ -8,6 +8,7 @@ For historical reasons, .NET has several approaches to value conversion:
 - IConvertible interface
 - System.ComponentModel.TypeConverter
 - To, From, Parse, Create methods
+- Constructors (Uri, Guid)
 - Meta types(Enums, Nullable Types).
 
 TypeConvert combines all these approaches under one API. 
@@ -21,8 +22,8 @@ ToType Convert<FromType, ToType>(value, [format], [formatProvider]);
 bool TryConvert<FromType, ToType>(value, out result, [format], [formatProvider])
 string ToString<FromType>(value, [format], [formatProvider]);
 // non-generic
-object Convert(fromType, toType, value, [format], [formatProvider]);
-bool TryConvert(fromType, toType, ref value, [format], [formatProvider]);
+object Convert(value, toType, [format], [formatProvider]);
+bool TryConvert(ref value, toType, [format], [formatProvider]);
 string ToString(value, [format], [formatProvider]);
 ```
 
@@ -34,10 +35,13 @@ object CreateInstance<Arg1T, ...>(type, arg1 ...);
 
 #### HexConvert
 ```csharp
-string BufferToHexString(buffer, offset, count); // bytes -> hex
-byte[] HexStringToBuffer(hexString, offset, count); // hex -> bytes
+string ToString(buffer, offset, count); // bytes -> hex
+byte[] ToBytes(hexString, offset, count); // hex -> bytes
 
-int ToHex(value, hexBuffer, offset); // number -> hex
+void Encode(buffer, offset, count, hexBuffer, hexBufferOffset); // bytes chunk -> hex chunk
+void Decode(hexBuffer, offset, count, buffer, bufferOffset); // hex chunk -> bytes chunk
+
+int WriteTo(number, hexBuffer, offset); // number -> hex
 Number ToNumber(hexBuffer, offset) // hex -> number
 ```
 
@@ -68,7 +72,7 @@ TypeConvert.ToString(1000000, format: "x") // f4240
 ```	
 Convert from any to IpAddress
 ```csharp
-TypeConvert.Convert(typeof(object), typeof(IPAddress), "127.0.0.1"); 127.0.0.1 via IPAddress.Parse
+TypeConvert.Convert("127.0.0.1", typeof(IPAddress)); 127.0.0.1 via IPAddress.Parse
 ```
 Testing conversion
 ```csharp
