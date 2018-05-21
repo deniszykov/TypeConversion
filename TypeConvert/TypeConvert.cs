@@ -21,6 +21,10 @@ using ConvertUntypedDelegate = System.Func<object, string, System.IFormatProvide
 // ReSharper disable once CheckNamespace
 namespace System
 {
+	/// <summary>
+	/// Utility class for conversion between types. Class uses reflection and heuristics to find a way to convert one type to another.
+	/// Explicit/implicit conversion operators, Parse/To/Create methods are located and used for conversion.
+	/// </summary>
 	public static partial class TypeConvert
 	{
 		private static class TypeConversion<SourceT, ResultT>

@@ -53,7 +53,7 @@ namespace TypeConvert.Tests
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// buffer -> hex string
-			var hexString = HexConvert.WriteTo(expectedBuffer, 0, expectedBuffer.Length);
+			var hexString = HexConvert.ToString(expectedBuffer, 0, expectedBuffer.Length);
 			Assert.Equal(expectedHexString, hexString);
 			// buffer -> hex buffer
 			var hexBuffer = HexConvert.ToCharArray(expectedBuffer, 0, expectedBuffer.Length);

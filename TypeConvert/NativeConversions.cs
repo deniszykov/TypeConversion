@@ -5,7 +5,13 @@ namespace System
 {
 	partial class TypeConvert
 	{
+		/// <summary>
+		/// Format string enabling "checked" numeric conversion.
+		/// </summary>
 		public const string CheckedConversionFormat = "checked";
+		/// <summary>
+		/// Format string enabling "unchecked" numeric conversion.
+		/// </summary>
 		public const string UncheckedConversionFormat = "unchecked";
 
 		private static void InitializeNativeConversions()

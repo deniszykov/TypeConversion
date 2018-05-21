@@ -10,7 +10,13 @@ namespace System
 {
 	partial class TypeConvert
 	{
+		/// <summary>
+		/// Format string enabling "checked" numeric conversion.
+		/// </summary>
 		public const string CheckedConversionFormat = "checked";
+		/// <summary>
+		/// Format string enabling "unchecked" numeric conversion.
+		/// </summary>
 		public const string UncheckedConversionFormat = "unchecked";
 
 		private static void InitializeNativeConversions()
@@ -29,7 +35,7 @@ namespace System
 				var toValue = ((IConvertible)fromValue).ToType(toType, null);
 
 #>
-			TypeConversion<<#= fromType.FullName #>, <#= toType.FullName #>>.Transition = (v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v);
+			TypeConversion<<#= fromType.FullName #>, <#= toType.FullName #>>.NativeConversionFn = (v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v);
 <#
 			} 
 			catch

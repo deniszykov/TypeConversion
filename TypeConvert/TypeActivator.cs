@@ -17,6 +17,11 @@ using System.Reflection;
 // ReSharper disable once CheckNamespace
 namespace System
 {
+	/// <summary>
+	/// Utility class for object construction. A fast and less versatile alternative to <see cref="Activator"/> class.
+	/// This class build upon <see cref="Expression"/>'s dynamic code compilation feature and could construct any type without much overhead.
+	/// Value type constructor is optimized so no extra boxing occurs on construction. Array types are optimized too and same instance (empty array) returned on each call.
+	/// </summary>
 	public static class TypeActivator
 	{
 		private struct ConstructorSignature : IEquatable<ConstructorSignature>
@@ -62,12 +67,28 @@ namespace System
 		private static readonly HashSet<string> ConstructorSubstitutionMembers = new HashSet<string>(new[] { "Empty", "Default", "Instance" }, StringComparer.OrdinalIgnoreCase);
 
 #if !NETSTANDARD
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using empty constructor.
+		/// </summary>
+		/// <param name="type">Type of object to create.</param>
+		/// <returns>An instance of <paramref name="type"/>. If <paramref name="type"/> is value type or array type then same instance is returned every call.</returns>
 		public static object CreateInstance(Type type)
 		{
 			return CreateInstance(type, forceCreate: false);
 		}
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using empty constructor.
+		/// </summary>
+		/// <param name="type">Type of object to create.</param>
+		/// <param name="forceCreate">True to create instance of <paramref name="type"/> even if no empty constructor is available (using <see cref="Runtime.Serialization.FormatterServices.GetSafeUninitializedObject"/> API).</param>
+		/// <returns>An instance of <paramref name="type"/>. If <paramref name="type"/> is value type or array type then same instance is returned every call.</returns>
 		public static object CreateInstance(Type type, bool forceCreate)
 #else
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using empty constructor.
+		/// </summary>
+		/// <param name="type">Type of object to create.</param>
+		/// <returns>An instance of <paramref name="type"/>. If <paramref name="type"/> is value type or array type then same instance is returned every call.</returns>
 		public static object CreateInstance(Type type)
 #endif
 		{
@@ -203,30 +224,84 @@ namespace System
 			else
 				return constructorFn();
 		}
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using constructor with one argument. First matching constructor is used.
+		/// </summary>
+		/// <typeparam name="Arg1T">First argument type.</typeparam>
+		/// <param name="type">Type of object to create.</param>
+		/// <param name="arg1">Value of first argument.</param>
+		/// <returns>An instance of <paramref name="type"/>.</returns>
 		public static object CreateInstance<Arg1T>(Type type, Arg1T arg1)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
 			return CreateInstance<Arg1T, object, object, object>(type, arg1, null, null, null, 1);
 		}
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using constructor with two argument. First matching constructor is used.
+		/// </summary>
+		/// <typeparam name="Arg1T">First argument type.</typeparam>
+		/// <typeparam name="Arg2T">Second argument type.</typeparam>
+		/// <param name="type">Type of object to create.</param>
+		/// <param name="arg1">Value of first argument.</param>
+		/// <param name="arg2">Value for second argument.</param>
+		/// <returns>An instance of <paramref name="type"/>.</returns>
 		public static object CreateInstance<Arg1T, Arg2T>(Type type, Arg1T arg1, Arg2T arg2)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
 			return CreateInstance<Arg1T, Arg2T, object, object>(type, arg1, arg2, null, null, 2);
 		}
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using constructor with three argument. First matching constructor is used.
+		/// </summary>
+		/// <typeparam name="Arg1T">First argument type.</typeparam>
+		/// <typeparam name="Arg2T">Second argument type.</typeparam>
+		/// <typeparam name="Arg3T">Third argument type.</typeparam>
+		/// <param name="type">Type of object to create.</param>
+		/// <param name="arg1">Value of first argument.</param>
+		/// <param name="arg2">Value for second argument.</param>
+		/// <param name="arg3">Value for third argument.</param>
+		/// <returns>An instance of <paramref name="type"/>.</returns>
 		public static object CreateInstance<Arg1T, Arg2T, Arg3T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
 			return CreateInstance<Arg1T, Arg2T, Arg3T, object>(type, arg1, arg2, arg3, null, 3);
 		}
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using constructor with four argument. First matching constructor is used.
+		/// </summary>
+		/// <typeparam name="Arg1T">First argument type.</typeparam>
+		/// <typeparam name="Arg2T">Second argument type.</typeparam>
+		/// <typeparam name="Arg3T">Third argument type.</typeparam>
+		/// <typeparam name="Arg4T">Forth argument type.</typeparam>
+		/// <param name="type">Type of object to create.</param>
+		/// <param name="arg1">Value of first argument.</param>
+		/// <param name="arg2">Value for second argument.</param>
+		/// <param name="arg3">Value for third argument.</param>
+		/// <param name="arg4">Value for forth argument.</param>
+		/// <returns>An instance of <paramref name="type"/>.</returns>
 		public static object CreateInstance<Arg1T, Arg2T, Arg3T, Arg4T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3, Arg4T arg4)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
 			return CreateInstance(type, arg1, arg2, arg3, arg4, 4);
 		}
+		/// <summary>
+		/// Create an instance of <paramref name="type"/> using constructor with four argument. First matching constructor is used.
+		/// </summary>
+		/// <typeparam name="Arg1T">First argument type.</typeparam>
+		/// <typeparam name="Arg2T">Second argument type.</typeparam>
+		/// <typeparam name="Arg3T">Third argument type.</typeparam>
+		/// <typeparam name="Arg4T">Forth argument type.</typeparam>
+		/// <param name="type">Type of object to create.</param>
+		/// <param name="arg1">Value of first argument.</param>
+		/// <param name="arg2">Value for second argument.</param>
+		/// <param name="arg3">Value for third argument.</param>
+		/// <param name="arg4">Value for forth argument.</param>
+		/// <param name="argCount">Number of arguments.</param>
+		/// <returns>An instance of <paramref name="type"/>.</returns>
 		private static object CreateInstance<Arg1T, Arg2T, Arg3T, Arg4T>(Type type, Arg1T arg1, Arg2T arg2, Arg3T arg3, Arg4T arg4, int argCount)
 		{
 			if (type == null) throw new ArgumentNullException("type");
