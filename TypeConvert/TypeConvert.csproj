@@ -86,13 +86,13 @@
 	  </Compile>
 	</ItemGroup>
 	<PropertyGroup>
-		<DefineConstants>$(DefineConstants);ENUMHELPER;NATIVE_CONVERSIONS</DefineConstants>
+		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
-		<DefineConstants>$(DefineConstants);NETSTANDARD;NO_TYPE_REFS;</DefineConstants>
+		<DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD13;NO_TYPE_REFS;</DefineConstants>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
-		<DefineConstants>$(DefineConstants);NETSTANDARD;NO_TYPE_REFS;</DefineConstants>
+		<DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD20;NO_TYPE_REFS;</DefineConstants>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
 		<DefineConstants>$(DefineConstants);NET45</DefineConstants>

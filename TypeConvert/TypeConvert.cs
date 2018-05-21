@@ -23,7 +23,7 @@ namespace System
 {
 	/// <summary>
 	/// Utility class for conversion between types. Class uses reflection and heuristics to find a way to convert one type to another.
-	/// Explicit/implicit conversion operators, Parse/To/Create methods are located and used for conversion.
+	/// Explicit/implicit conversion operators, constructors, Parse/To/Create methods are located and used for conversion.
 	/// </summary>
 	public static partial class TypeConvert
 	{
@@ -63,7 +63,7 @@ namespace System
 
 				var sourceToResultKey = GetTypePairKey(sourceType, resultType);
 				var knownConversion = default(Delegate);
-#if ENUMHELPER
+#if ENUM_HELPER
 				if (sourceType == typeof(string) && resultTypeInfo.IsEnum)
 				{
 					ConversionFn = (Func<SourceT, ResultT>)(object)new Func<string, ResultT>(EnumHelper<ResultT>.Parse);
@@ -159,7 +159,7 @@ namespace System
 			public static readonly bool IsString;
 			public static readonly bool IsValueType;
 			public static readonly bool IsSupportFormatting;
-#if !NETSTANDARD
+#if !NETSTANDARD13
 			public static readonly TypeConverter Converter;
 #endif
 			public static readonly Func<string, T> ParseFn;
@@ -278,13 +278,24 @@ namespace System
 					}
 				}
 
+				foreach (var constructor in GetPublicConstructors(typeInfo))
+				{
+					var parameters = constructor.GetParameters();
+
+					if (parameters.Length != 1 || IsPlainParameter(parameters[0]) == false || parameters[0].ParameterType == type)
+						continue;
+
+					var methodInfo = ConstructMethodDefinition.MakeGenericMethod(type, parameters[0].ParameterType);
+					parameters = null; //
+					(convertFrom ?? (convertFrom = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(methodInfo, ref parameters));
+				}
+
 				if (convertTo != null)
 				{
 					ConvertTo = convertTo.ToArray();
 					// sort by Quality descending
 					Array.Sort(ConvertTo, (x, y) => ((int)y.Quality).CompareTo((int)x.Quality));
 				}
-
 				if (convertFrom != null)
 				{
 					ConvertFrom = convertFrom.ToArray();
@@ -341,7 +352,7 @@ namespace System
 			}
 			private static bool IsPlainParameter(ParameterInfo parameterInfo)
 			{
-				return parameterInfo.IsIn == false && parameterInfo.IsOut == false && parameterInfo.ParameterType.IsByRef == false;
+				return parameterInfo.IsIn == false && parameterInfo.IsOut == false && parameterInfo.ParameterType.IsByRef == false && parameterInfo.ParameterType.IsPointer == false;
 			}
 
 			public static bool TryFindToConversion(Type toType, out ConvertMethodInfo convertMethod)
@@ -398,7 +409,8 @@ namespace System
 				this.FromType = (method.IsStatic ? methodParameters[0].ParameterType : method.DeclaringType) ?? typeof(object);
 				this.ToType = method.ReturnType;
 				this.Quality = method.Name == "op_Explicit" ? ConversionQuality.Explicit :
-					method.Name == "op_Implicit" ? ConversionQuality.Implicit : ConversionQuality.CustomMethod;
+					method.Name == "op_Implicit" ? ConversionQuality.Implicit :
+					method.DeclaringType == typeof(TypeConvert) ? ConversionQuality.Constructor : ConversionQuality.CustomMethod;
 			}
 
 			public static ConvertMethodInfo ChooseByQuality(ConvertMethodInfo x, ConvertMethodInfo y)
@@ -426,6 +438,7 @@ namespace System
 		private enum ConversionQuality : byte
 		{
 			None = 0,
+			Constructor,
 			CustomMethod,
 			Explicit,
 			Implicit,
@@ -442,6 +455,7 @@ namespace System
 		private static readonly MethodInfo ConvertFromEnumToEnumMethodDefinition;
 		private static readonly MethodInfo ConvertToEnumMethodDefinition;
 		private static readonly MethodInfo ConvertFromEnumMethodDefinition;
+		private static readonly MethodInfo ConstructMethodDefinition;
 		/// <summary>
 		/// Default format provider used when null formatProvider parameter is passed to <see cref="Convert"/> methods.
 		/// </summary>
@@ -459,6 +473,7 @@ namespace System
 			ConvertFromEnumToEnumMethodDefinition = GetMethodInfo(new Func<ConsoleColor, string, IFormatProvider, ConsoleColor>(ConvertFromEnumToEnum<ConsoleColor, int, ConsoleColor, int>), getMethodDefinition: true);
 			ConvertToEnumMethodDefinition = GetMethodInfo(new Func<int, string, IFormatProvider, ConsoleColor>(ConvertToEnum<ConsoleColor, int, int>), getMethodDefinition: true);
 			ConvertFromEnumMethodDefinition = GetMethodInfo(new Func<ConsoleColor, string, IFormatProvider, int>(ConvertFromEnum<int, ConsoleColor, int>), getMethodDefinition: true);
+			ConstructMethodDefinition = GetMethodInfo(new Func<object, object>(Construct<object, object>), getMethodDefinition: true);
 			// ReSharper restore HeapView.DelegateAllocation
 
 			CachedGenericConvertMethods = new Dictionary<long, ConvertUntypedDelegate>();
@@ -496,7 +511,7 @@ namespace System
 		}
 
 		/// <summary>
-		/// Convert passed <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// Convert passed <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using explicit/implicit conversion, Parse/ToString methods, constructors,
 		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
 		/// </summary>
 		/// <typeparam name="FromType">Type of <paramref name="value"/> object.</typeparam>
@@ -557,7 +572,7 @@ namespace System
 			if (TypeConversion<FromType, ToType>.ConversionFn != null)
 				return TypeConversion<FromType, ToType>.ConversionFn(value);
 
-#if !NETSTANDARD
+#if !NETSTANDARD13
 			// try converter
 			if (ConvertibleType<ToType>.Converter != null && ConvertibleType<ToType>.Converter.CanConvertFrom(typeof(FromType)))
 				return (ToType)ConvertibleType<ToType>.Converter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, (sourceIsValueType ? value : sourceObj));
@@ -571,10 +586,10 @@ namespace System
 			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString)
 				return (ToType)(object)(sourceIsValueType ? (object)value : sourceObj).ToString();
 
-			throw new InvalidCastException(string.Format("Unable to convert value '{2}' of type '{1}' to requested type '{0}'", typeof(ToType), typeof(FromType), ((object)value) ?? "<null>"));
+			throw new FormatException(string.Format("Unable to convert value [{1}]'{2}' to requested type '{0}'", typeof(ToType), typeof(FromType), TrimExceeding(((object)value ?? "<null>").ToString())));
 		}
 		/// <summary>
-		/// Try to convert passed <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// Try to convert passed <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using explicit/implicit conversion, Parse/ToString methods, constructors,
 		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
 		/// </summary>
 		/// <typeparam name="FromType">Type of <paramref name="value"/> object.</typeparam>
@@ -615,7 +630,7 @@ namespace System
 			return Convert<FromType, string>(value, format, formatProvider);
 		}
 		/// <summary>
-		/// Convert passed <paramref name="value"/> to <paramref name="toType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// Convert passed <paramref name="value"/> to <paramref name="toType"/> using explicit/implicit conversion, Parse/ToString methods, constructors,
 		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
 		/// </summary>
 		/// <param name="toType">A result type for <paramref name="value"/> object.</param>
@@ -666,7 +681,7 @@ namespace System
 			return convertFn.Invoke(value, format, formatProvider);
 		}
 		/// <summary>
-		/// Try to convert passed <paramref name="value"/> to <paramref name="toType"/> using explicit/implicit conversion, Parse/ToString methods,
+		/// Try to convert passed <paramref name="value"/> to <paramref name="toType"/> using explicit/implicit conversion, Parse/ToString methods, constructors,
 		/// <see cref="IFormattable"/> interface, <see cref="IConvertible"/> interface or From/To methods.
 		/// </summary>
 		/// <param name="toType">A result type for <paramref name="value"/> object.</param>
@@ -758,7 +773,7 @@ namespace System
 
 		private static ToEnumT ConvertFromEnumToEnum<ToEnumT, ToBaseT, FromEnumT, FromBaseT>(FromEnumT value, string format, IFormatProvider formatProvider)
 		{
-#if ENUMHELPER
+#if ENUM_HELPER
 			var valueNumber = ((Func<FromEnumT, FromBaseT>)EnumHelper<FromEnumT>.ToNumber).Invoke(value);
 			var resultNumber = Convert<FromBaseT, ToBaseT>(valueNumber, format, formatProvider);
 			return ((Func<ToBaseT, ToEnumT>)EnumHelper<ToEnumT>.FromNumber).Invoke(resultNumber);
@@ -770,7 +785,7 @@ namespace System
 		}
 		private static ToEnumT ConvertToEnum<ToEnumT, ToBaseT, FromType>(FromType value, string format, IFormatProvider formatProvider)
 		{
-#if ENUMHELPER
+#if ENUM_HELPER
 			var resultNumber = Convert<FromType, ToBaseT>(value, format, formatProvider);
 			return ((Func<ToBaseT, ToEnumT>)EnumHelper<ToEnumT>.FromNumber).Invoke(resultNumber);
 #else
@@ -780,13 +795,13 @@ namespace System
 		}
 		private static ToType ConvertFromEnum<ToType, FromEnumT, FromBaseT>(FromEnumT value, string format, IFormatProvider formatProvider)
 		{
-#if ENUMHELPER
+#if ENUM_HELPER
 			var valueNumber = ((Func<FromEnumT, FromBaseT>)EnumHelper<FromEnumT>.ToNumber).Invoke(value);
 			var resultNumber = Convert<FromBaseT, ToType>(valueNumber, format, formatProvider);
 			return resultNumber;
 #else
 			var valueNumber = (FromBaseT)System.Convert.ChangeType(value, typeof(FromBaseT));
-			var result = InternalConvert<FromBaseT, ToType>(valueNumber, format, formatProvider);
+			var result = Convert<FromBaseT, ToType>(valueNumber, format, formatProvider);
 			return result;
 #endif
 		}
@@ -861,6 +876,12 @@ namespace System
 			else
 				return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
 		}
+		private static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
+		{
+			if (type == null) throw new ArgumentNullException(nameof(type));
+
+			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+		}
 #else
 		private static IEnumerable<MethodInfo> GetPublicMethods(TypeInfo typeInfo, bool declaredOnly)
 		{
@@ -879,6 +900,15 @@ namespace System
 				typeInfo = typeInfo.BaseType == null || typeInfo.BaseType == typeof(object) ? null : typeInfo.BaseType.GetTypeInfo();
 			} while (typeInfo != null);
 		}
+		private static IEnumerable<ConstructorInfo> GetPublicConstructors(TypeInfo typeInfo)
+		{
+			foreach (var constructors in typeInfo.DeclaredConstructors)
+			{
+				if (constructors.IsPublic == false)
+					continue;
+				yield return constructors;
+			}
+		}
 #endif
 		private static long GetTypePairKey(Type fromType, Type toType)
 		{
@@ -888,6 +918,22 @@ namespace System
 			var fromHash = fromType.GetHashCode(); // it's not hashcode, it's an unique sync-lock of type-object
 			var toHash = toType.GetHashCode();
 			return unchecked(((long)fromHash << 32) | (uint)toHash);
+		}
+		private static string TrimExceeding(string value)
+		{
+			if (value == null)
+				return null;
+			if (value.Length > 30)
+				value = value.Substring(0, 27) + "...";
+			return value;
+		}
+		private static T Construct<T, Arg1>(Arg1 argument)
+		{
+#if TYPE_ACTIVATOR
+			return (T)TypeActivator.CreateInstance(typeof(T), argument);
+#else
+			return (T)Activator.CreateInstance(typeof(T), argument);
+#endif
 		}
 	}
 }
