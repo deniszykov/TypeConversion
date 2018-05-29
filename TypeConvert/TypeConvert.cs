@@ -194,7 +194,7 @@ namespace System
 
 				if (typeInfo.IsEnum)
 				{
-#if !NETSTANDARD
+#if !NETSTANDARD13
 					Converter = new EnumConverter(type);
 #endif
 					return;
@@ -207,7 +207,7 @@ namespace System
 				IsSupportFormatting = typeInfo.ImplementedInterfaces.Contains(typeof(IFormattable));
 #endif
 
-#if !NETSTANDARD
+#if !NETSTANDARD13
 				Converter = TypeDescriptor.GetConverter(type);
 				if (Converter != null && Converter.GetType() == typeof(TypeConverter))
 					Converter = null;
