@@ -352,7 +352,19 @@ namespace System
 			}
 			private static bool IsPlainParameter(ParameterInfo parameterInfo)
 			{
-				return parameterInfo.IsIn == false && parameterInfo.IsOut == false && parameterInfo.ParameterType.IsByRef == false && parameterInfo.ParameterType.IsPointer == false;
+#if NETCOREAPP2_1
+				if (parameterInfo.ParameterType.IsByRefLike)
+					return false;
+#endif
+#if NETCOREAPP
+				if (parameterInfo.ParameterType.IsSZArray)
+					return false;
+#endif
+
+				return parameterInfo.IsIn == false && parameterInfo.IsOut == false &&
+					parameterInfo.ParameterType.IsByRef == false &&
+					parameterInfo.ParameterType.IsPointer == false &&
+					parameterInfo.ParameterType.IsGenericParameter == false;
 			}
 
 			public static bool TryFindToConversion(Type toType, out ConvertMethodInfo convertMethod)
