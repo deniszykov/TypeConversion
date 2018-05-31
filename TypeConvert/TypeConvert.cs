@@ -70,7 +70,7 @@ namespace System
 				}
 				else if (sourceTypeInfo.IsEnum && resultType == typeof(string))
 				{
-					ConversionFn = (Func<SourceT, ResultT>)(object)new Func<ResultT, string>(EnumHelper<ResultT>.ToName);
+					ConversionFn = (Func<SourceT, ResultT>)(object)new Func<SourceT, string>(EnumHelper<SourceT>.ToName);
 				}
 				else
 #endif

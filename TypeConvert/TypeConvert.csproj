@@ -6,7 +6,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>net35;net45;netstandard1.3;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
 		<Authors>Denis Zykov</Authors>
-		<Version>2.1.1</Version>
+		<Version>2.1.2</Version>
 		<PackageId>TypeConvert</PackageId>
 		<Product>TypeConvert</Product>
 		<Description>Utility class for conversions between .NET types.</Description>
@@ -20,11 +20,12 @@
 		<StartupObject />
 		<AssemblyName>TypeConvert</AssemblyName>
 		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-		<AssemblyVersion>2.1.1.0</AssemblyVersion>
-		<FileVersion>2.1.1.0</FileVersion>
-		<PackageReleaseNotes># 2.1.1
+		<AssemblyVersion>2.1.2.0</AssemblyVersion>
+		<FileVersion>2.1.2.0</FileVersion>
+		<PackageReleaseNotes># 2.1.2
 - added netstandard2.0 and netcoreapp2.1 target platform
 - fixed error with netcoreapp2.1 ByRefLike types (they are not supported in conversion operations)
+- fixed error with string-&gt;enum conversion (new tests are added)
 
 # 2.1.0
 - added conversion via constructor support
@@ -37,7 +38,7 @@
 - optimized performance by cutting redundant initialization of internal classes
 - added documentation
 
-# braking changes
+# breaking changes
 - non-generic Convert and TryConvert signature has been changed. Parameter "fromType" has been removed. Order of parameters has been changed.
 - new priority of conversion methods could lead to conversion result that differs from v1.2.0.
 - TypeConvert.ToString now returns String.Empty instead of null when null value is passed.

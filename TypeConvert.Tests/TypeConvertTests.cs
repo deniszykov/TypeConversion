@@ -158,6 +158,26 @@ namespace TypeConvert.Tests
 		}
 
 		[Fact]
+		public void EnumToStringTest()
+		{
+			var value = "DarkBlue";
+			var expected = ConsoleColor.DarkBlue;
+			var actual = System.TypeConvert.Convert<string, ConsoleColor>(value);
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void StringToEnumTest()
+		{
+			var value = ConsoleColor.DarkBlue;
+			var expected = "DarkBlue";
+			var actual = System.TypeConvert.Convert<ConsoleColor, string>(value);
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
 		public void NullableEnumToEnumTest()
 		{
 			var value = (ConsoleColor?)ConsoleColor.DarkBlue;
