@@ -570,5 +570,14 @@ namespace TypeConvert.Tests
 
 			Assert.Equal(expected, actual);
 		}
+
+		[Fact]
+		public void StringToDateTest()
+		{
+			var expected = DateTime.MinValue;
+			var actual = System.TypeConvert.Convert<string, DateTime>(System.TypeConvert.Convert<DateTime, string>(expected));
+
+			Assert.Equal(expected, actual);
+		}
 	}
 }

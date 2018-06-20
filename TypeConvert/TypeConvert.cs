@@ -30,7 +30,8 @@ namespace System
 		private static class TypeConversion<SourceT, ResultT>
 		{
 			public static readonly Func<SourceT, ResultT> ConversionFn;
-
+			public static readonly RefFunc<SourceT, ResultT> RefConversionFn;
+			
 			public static Func<SourceT, string, IFormatProvider, ResultT> NativeConversionFn;
 
 			static TypeConversion()
@@ -57,7 +58,7 @@ namespace System
 				var transitionMethod = GetTransitionMethod(sourceType, resultType);
 				if (transitionMethod != null)
 				{
-					NativeConversionFn = (Func<SourceT, string, IFormatProvider, ResultT>)CreateDelegate(typeof(Func<SourceT, string, IFormatProvider, ResultT>), transitionMethod);
+					NativeConversionFn = (Func<SourceT, string, IFormatProvider, ResultT>)CreateDelegate(typeof(Func<SourceT, string, IFormatProvider, ResultT>), transitionMethod, throwOnBindingFailure: true);
 					return;
 				}
 
@@ -81,7 +82,17 @@ namespace System
 						ConvertibleType<ResultT>.TryFindFromConversion(sourceType, out convertMethodInfoY))
 					{
 						var bestConversionMethod = ConvertMethodInfo.ChooseByQuality(convertMethodInfoY, convertMethodInfoX).Method;
-						ConversionFn = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), null, bestConversionMethod);
+						var bestConversionMethodDeclaringType = (bestConversionMethod.DeclaringType ?? typeof(object))
+#if NETSTANDARD
+							.GetTypeInfo()
+#endif
+						;
+
+						if(bestConversionMethod.IsStatic || bestConversionMethodDeclaringType.IsValueType == false)
+							ConversionFn = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), null, bestConversionMethod, throwOnBindingFailure: false);
+						else
+							RefConversionFn = (RefFunc<SourceT, ResultT>)CreateDelegate(typeof(RefFunc<SourceT, ResultT>), null, bestConversionMethod, throwOnBindingFailure: false);
+
 					}
 					else if (KnownConversions.TryGetValue(sourceToResultKey, out knownConversion))
 					{
@@ -164,7 +175,6 @@ namespace System
 #endif
 			public static readonly Func<string, T> ParseFn;
 			public static readonly Func<string, IFormatProvider, T> ParseFormattedFn;
-			public static readonly Func<T, string> ToStringFn;
 			public static readonly Func<T, string, IFormatProvider, T> IdentityFn;
 			public static readonly Func<T, string, IFormatProvider, string> ToStringFormattedFn;
 			public static readonly ConvertMethodInfo[] ConvertFrom; // from ANY type to T type
@@ -228,26 +238,22 @@ namespace System
 						parameters = parameters ?? method.GetParameters();
 						if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string))
 						{
-							ParseFn = (Func<string, T>)CreateDelegate(typeof(Func<string, T>), method, true);
+							ParseFn = (Func<string, T>)CreateDelegate(typeof(Func<string, T>), method, throwOnBindingFailure: true);
 						}
 						else if (parameters.Length == 2 && parameters[0].ParameterType == typeof(string) && parameters[1].ParameterType == typeof(IFormatProvider))
 						{
-							ParseFormattedFn = (Func<string, IFormatProvider, T>)CreateDelegate(typeof(Func<string, IFormatProvider, T>), method, true);
+							ParseFormattedFn = (Func<string, IFormatProvider, T>)CreateDelegate(typeof(Func<string, IFormatProvider, T>), method, throwOnBindingFailure: true);
 						}
 					}
 					// ToString
 					else if (IsToStringMethod(method))
 					{
 						parameters = parameters ?? method.GetParameters();
-						if (parameters.Length == 0)
-						{
-							ToStringFn = (Func<T, string>)CreateDelegate(typeof(Func<T, string>), null, method, false);
-						}
-						else if (parameters.Length == 2 &&
+						if (parameters.Length == 2 &&
 							parameters[0].ParameterType == typeof(string) &&
 							parameters[1].ParameterType == typeof(IFormatProvider))
 						{
-							ToStringFormattedFn = (Func<T, string, IFormatProvider, string>)CreateDelegate(typeof(Func<T, string, IFormatProvider, string>), null, method, false);
+							ToStringFormattedFn = (Func<T, string, IFormatProvider, string>)CreateDelegate(typeof(Func<T, string, IFormatProvider, string>), null, method, throwOnBindingFailure: false);
 						}
 					}
 
@@ -456,6 +462,8 @@ namespace System
 			Implicit,
 		}
 
+		private delegate ResultT RefFunc<Arg1T, out ResultT>(ref Arg1T value);
+
 		private static readonly Dictionary<long, ConvertUntypedDelegate> CachedGenericConvertMethods;
 		private static readonly Dictionary<long, Delegate> KnownConversions;
 		private static readonly MethodInfo ConvertMethodDefinition;
@@ -578,11 +586,13 @@ namespace System
 				return (ToType)(object)ConvertibleType<FromType>.ToStringFormattedFn(value, format ?? ConvertibleType<FromType>.DefaultFormat, formatProvider);
 			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString && ConvertibleType<FromType>.IsSupportFormatting)
 				// ReSharper disable once PossibleNullReferenceException
-				return (ToType)(object)((sourceIsValueType ? (object)value : sourceObj) as IFormattable).ToString(format ?? ConvertibleType<FromType>.DefaultFormat, formatProvider);
+				return (ToType)(object)((sourceIsValueType ? value : sourceObj) as IFormattable).ToString(format ?? ConvertibleType<FromType>.DefaultFormat, formatProvider);
 
 			// find explicit/implicit, To*\From* methods, Convert.To*, Parse/ToString conversions between types
 			if (TypeConversion<FromType, ToType>.ConversionFn != null)
 				return TypeConversion<FromType, ToType>.ConversionFn(value);
+			if (TypeConversion<FromType, ToType>.RefConversionFn != null)
+				return TypeConversion<FromType, ToType>.RefConversionFn(ref value);
 
 #if !NETSTANDARD13
 			// try converter
@@ -593,10 +603,8 @@ namespace System
 #endif
 
 			// try ToString
-			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString && ConvertibleType<FromType>.ToStringFn != null)
-				return (ToType)(object)ConvertibleType<FromType>.ToStringFn(value);
-			if (!sourceIsNullRef && ConvertibleType<ToType>.IsString)
-				return (ToType)(object)(sourceIsValueType ? (object)value : sourceObj).ToString();
+			if (ConvertibleType<ToType>.IsString)
+				return (ToType)(object)(sourceIsNullRef ? null : value.ToString());
 
 			throw new FormatException(string.Format("Unable to convert value [{1}]'{2}' to requested type '{0}'", typeof(ToType), typeof(FromType), TrimExceeding(((object)value ?? "<null>").ToString())));
 		}
