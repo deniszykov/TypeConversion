@@ -6,7 +6,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>net35;net45;netstandard1.3;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
 		<Authors>Denis Zykov</Authors>
-		<Version>2.1.2</Version>
+		<Version>2.1.3</Version>
 		<PackageId>TypeConvert</PackageId>
 		<Product>TypeConvert</Product>
 		<Description>Utility class for conversions between .NET types.</Description>
@@ -20,9 +20,12 @@
 		<StartupObject />
 		<AssemblyName>TypeConvert</AssemblyName>
 		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-		<AssemblyVersion>2.1.2.0</AssemblyVersion>
-		<FileVersion>2.1.2.0</FileVersion>
-		<PackageReleaseNotes># 2.1.2
+		<AssemblyVersion>2.1.3.0</AssemblyVersion>
+		<FileVersion>2.1.3.0</FileVersion>
+		<PackageReleaseNotes># 2.1.3
+- fixed conversion methods (ToXXX, FromXXX) on value types cause delegate binding exception
+	
+# 2.1.2
 - added netstandard2.0 and netcoreapp2.1 target platform
 - fixed error with netcoreapp2.1 ByRefLike types (they are not supported in conversion operations)
 - fixed error with string-&gt;enum conversion (new tests are added)
