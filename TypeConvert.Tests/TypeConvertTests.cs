@@ -563,6 +563,15 @@ namespace TypeConvert.Tests
 		}
 
 		[Fact]
+		public void StringToRelativeUrlTest()
+		{
+			var expected = new Uri("/my", UriKind.Relative);
+			var actual = System.TypeConvert.Convert<string, Uri>(expected.OriginalString);
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
 		public void StringToVersionTest()
 		{
 			var expected = new Version(1, 0, 0, 0);

@@ -31,7 +31,7 @@ namespace System
 		{
 			public static readonly Func<SourceT, ResultT> ConversionFn;
 			public static readonly RefFunc<SourceT, ResultT> RefConversionFn;
-			
+
 			public static Func<SourceT, string, IFormatProvider, ResultT> NativeConversionFn;
 
 			static TypeConversion()
@@ -88,7 +88,7 @@ namespace System
 #endif
 						;
 
-						if(bestConversionMethod.IsStatic || bestConversionMethodDeclaringType.IsValueType == false)
+						if (bestConversionMethod.IsStatic || bestConversionMethodDeclaringType.IsValueType == false)
 							ConversionFn = (Func<SourceT, ResultT>)CreateDelegate(typeof(Func<SourceT, ResultT>), null, bestConversionMethod, throwOnBindingFailure: false);
 						else
 							RefConversionFn = (RefFunc<SourceT, ResultT>)CreateDelegate(typeof(RefFunc<SourceT, ResultT>), null, bestConversionMethod, throwOnBindingFailure: false);
@@ -528,6 +528,12 @@ namespace System
 #if NATIVE_CONVERSIONS
 			InitializeNativeConversions();
 #endif
+
+			RegisterCustomConversion<string, Uri>((value, format, fp) =>
+			{
+				var kind = string.IsNullOrEmpty(format) ? UriKind.RelativeOrAbsolute : (UriKind)Enum.Parse(typeof(UriKind), format, ignoreCase: true);
+				return new Uri(value, kind);
+			});
 		}
 
 		/// <summary>
@@ -738,6 +744,13 @@ namespace System
 				return (string)value ?? string.Empty;
 
 			return (string)Convert(value, typeof(string), format, formatProvider) ?? string.Empty;
+		}
+
+		public static void RegisterCustomConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> convertFunc)
+		{
+			if (convertFunc == null) throw new ArgumentNullException(nameof(convertFunc));
+
+			TypeConversion<FromType, ToType>.NativeConversionFn = convertFunc;
 		}
 
 		// transitions

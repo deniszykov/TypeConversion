@@ -35,7 +35,7 @@ namespace System
 				var toValue = ((IConvertible)fromValue).ToType(toType, null);
 
 #>
-			TypeConversion<<#= fromType.FullName #>, <#= toType.FullName #>>.NativeConversionFn = (v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v);
+			TypeConvert.RegisterCustomConversion<<#= fromType.FullName #>, <#= toType.FullName #>>((v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v));
 <#
 			} 
 			catch
