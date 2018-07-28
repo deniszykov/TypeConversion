@@ -588,5 +588,28 @@ namespace TypeConvert.Tests
 
 			Assert.Equal(expected, actual);
 		}
+
+		public static IEnumerable<object[]> DatesData()
+		{
+			var dates = new[] {
+				DateTime.MinValue,
+				DateTime.MaxValue,
+				DateTime.Now,
+				DateTime.UtcNow,
+				DateTime.Today,
+				new DateTime(DateTime.Today.Ticks, DateTimeKind.Unspecified)
+			};
+
+			return (from dt in dates select new object[] { dt });
+		}
+
+		[Theory]
+		[MemberData(nameof(DatesData))]
+		public void DatesTest(DateTime expected)
+		{
+			var actual = System.TypeConvert.Convert<string, DateTime>(System.TypeConvert.Convert<DateTime, string>(expected));
+
+			Assert.Equal(expected, actual);
+		}
 	}
 }

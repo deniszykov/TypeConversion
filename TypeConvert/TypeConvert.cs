@@ -225,6 +225,8 @@ namespace System
 
 				if (type == typeof(float) || type == typeof(double))
 					DefaultFormat = "R";
+				else if (type == typeof(DateTime))
+					DefaultFormat = "o";
 
 				var convertFrom = default(List<ConvertMethodInfo>);
 				var convertTo = default(List<ConvertMethodInfo>);
@@ -533,6 +535,18 @@ namespace System
 			{
 				var kind = string.IsNullOrEmpty(format) ? UriKind.RelativeOrAbsolute : (UriKind)Enum.Parse(typeof(UriKind), format, ignoreCase: true);
 				return new Uri(value, kind);
+			});
+
+			RegisterCustomConversion<string, DateTime>((str, f, fp) =>
+			{
+				if (f == null || string.Equals(f, "o", StringComparison.OrdinalIgnoreCase))
+				{
+					return DateTime.ParseExact(str, f ?? "o", fp, DateTimeStyles.RoundtripKind);
+				}
+				else
+				{
+					return DateTime.Parse(str, fp);
+				}
 			});
 		}
 
