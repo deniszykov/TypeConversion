@@ -154,10 +154,7 @@ namespace System
 			if (offset + count > hexString.Length) throw new ArgumentOutOfRangeException("count");
 
 			var buffer = new byte[(hexString.Length + 1) / 2];
-			var bufferOffset = 0;
-			var end = offset + count;
-			for (; offset < end; offset += 2, bufferOffset++)
-				buffer[bufferOffset] = ToUInt8(hexString, offset);
+			Decode(hexString, offset, count, buffer, 0);
 			return buffer;
 		}
 
@@ -169,7 +166,8 @@ namespace System
 		/// <param name="count">Number of bytes to encode in <paramref name="buffer"/>.</param>
 		/// <param name="hexBuffer">Char array to store hex encoded bytes from <paramref name="buffer"/>. Array should fit encoded bytes or exception will be thrown.</param>
 		/// <param name="hexBufferOffset">Storage offset in <paramref name="hexBuffer"/>.</param>
-		public static void Encode(byte[] buffer, int offset, int count, char[] hexBuffer, int hexBufferOffset)
+		/// <returns>Number of chars written to <paramref name="hexBuffer"/></returns>
+		public static int Encode(byte[] buffer, int offset, int count, char[] hexBuffer, int hexBufferOffset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
@@ -180,16 +178,18 @@ namespace System
 			if (hexBufferOffset + count * 2 > hexBuffer.Length) throw new ArgumentOutOfRangeException("hexBufferOffset");
 
 			if (count == 0)
-				return;
+				return 0;
 
+			var outputOffset = hexBufferOffset;
 			var end = offset + count;
 			for (var index = offset; index < end; index++)
 			{
 				var value = buffer[index];
-				hexBuffer[hexBufferOffset] = HexChar[(value >> 4) & 15u];
-				hexBuffer[hexBufferOffset + 1] = HexChar[value & 15u];
-				hexBufferOffset += 2;
+				hexBuffer[outputOffset] = HexChar[(value >> 4) & 15u];
+				hexBuffer[outputOffset + 1] = HexChar[value & 15u];
+				outputOffset += 2;
 			}
+			return outputOffset - hexBufferOffset;
 		}
 		/// <summary>
 		/// Decode part of <paramref name="hexBuffer"/> and store decoded bytes into specified part of <paramref name="buffer"/>.
@@ -199,7 +199,8 @@ namespace System
 		/// <param name="count">Number of chars to decode in <paramref name="hexBuffer"/>. Array should fit decoded bytes or exception will be thrown.</param>
 		/// <param name="buffer">Byte array to store decoded bytes from <paramref name="hexBuffer"/>. </param>
 		/// <param name="bufferOffset">Storage offset in <paramref name="buffer"/>.</param>
-		public static void Decode(char[] hexBuffer, int offset, int count, byte[] buffer, int bufferOffset)
+		/// <returns>Number of bytes written to <paramref name="buffer"/></returns>
+		public static int Decode(char[] hexBuffer, int offset, int count, byte[] buffer, int bufferOffset)
 		{
 			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
@@ -210,11 +211,41 @@ namespace System
 			if (bufferOffset + (count + 1) / 2 > buffer.Length) throw new ArgumentOutOfRangeException("count");
 
 			if (count == 0)
-				return;
+				return 0;
 
 			var end = offset + count;
 			for (; offset < end; offset += 2, bufferOffset++)
 				buffer[bufferOffset] = ToUInt8(hexBuffer, offset);
+
+			return (count + 1) / 2;
+		}
+		/// <summary>
+		/// Decode part of <paramref name="hexString"/> and store decoded bytes into specified part of <paramref name="buffer"/>.
+		/// </summary>
+		/// <param name="hexString">String contains hex encoded bytes.</param>
+		/// <param name="offset">Decode start index in <paramref name="hexString"/>.</param>
+		/// <param name="count">Number of chars to decode in <paramref name="hexString"/>. Array should fit decoded bytes or exception will be thrown.</param>
+		/// <param name="buffer">Byte array to store decoded bytes from <paramref name="hexString"/>. </param>
+		/// <param name="bufferOffset">Storage offset in <paramref name="buffer"/>.</param>
+		/// <returns>Number of bytes written to <paramref name="buffer"/></returns>
+		public static int Decode(string hexString, int offset, int count, byte[] buffer, int bufferOffset)
+		{
+			if (hexString == null) throw new ArgumentNullException("hexString");
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+			if (offset + count > hexString.Length) throw new ArgumentOutOfRangeException("offset");
+			if (count < 0) throw new ArgumentOutOfRangeException("count");
+			if (buffer == null) throw new ArgumentNullException("buffer");
+			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
+			if (bufferOffset + (count + 1) / 2 > buffer.Length) throw new ArgumentOutOfRangeException("count");
+
+			if (count == 0)
+				return 0;
+
+			var end = offset + count;
+			for (; offset < end; offset += 2, bufferOffset++)
+				buffer[bufferOffset] = ToUInt8(hexString, offset);
+
+			return (count + 1) / 2;
 		}
 
 		/// <summary>

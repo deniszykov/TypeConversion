@@ -258,10 +258,9 @@ namespace System
 		/// <returns>Number of bytes decoded into <paramref name="buffer"/>.</returns>
 		public static int Decode(char[] base64Buffer, int offset, int count, byte[] buffer, int bufferOffset, Base64Alphabet base64Alphabet = null)
 		{
-			if (base64Buffer == null) throw new ArgumentNullException("base64Buffer");
+			if (base64Buffer == null) throw new ArgumentNullException("base64String");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
 			if (offset + count > base64Buffer.Length) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0 || count % 4 != 0) throw new ArgumentOutOfRangeException("count");
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
 			if (bufferOffset + GetBytesCount(base64Buffer, offset, count) > buffer.Length) throw new ArgumentOutOfRangeException("count");
@@ -271,19 +270,37 @@ namespace System
 
 			var decoded = 0;
 			var end = offset + count;
-			var base64CharsInverse = base64Alphabet.AlphabetInverse;
+			var alphabetInverse = base64Alphabet.AlphabetInverse;
 			for (var i = offset; i < end; i += 4)
 			{
-				var number = unchecked(
-					(base64CharsInverse[base64Buffer[i + 0]] << 18) +
-					(base64CharsInverse[base64Buffer[i + 1]] << 12) +
-					(base64CharsInverse[base64Buffer[i + 2]] << 6) +
-					(base64CharsInverse[base64Buffer[i + 3]] << 0));
+				var number = 0u;
+				int j, base64Code, base64CodeIndex;
+				for (j = 0; j < 4; j++)
+				{
+					base64Code = base64Buffer[i + j];
+					if ((base64Code > 127) || (base64CodeIndex = alphabetInverse[base64Code]) == Base64Alphabet.NOT_IN_ALPHABET)
+					{
+						i++;
+						if (i + j >= end)
+						{
+							break;
+						}
+						else
+						{
+							continue;
+						}
+					}
+					number = (uint)unchecked(number + base64CodeIndex << (18 - 6 * j));
+				}
 
-				buffer[bufferOffset++] = (byte)((number >> 16) & 255);
-				buffer[bufferOffset++] = (byte)((number >> 8) & 255);
-				buffer[bufferOffset++] = (byte)((number >> 0) & 255);
-				decoded += 3;
+				switch (j)
+				{
+					case 1: buffer[bufferOffset++] = (byte)((number >> 16) & 255); goto case 2;
+					case 2: buffer[bufferOffset++] = (byte)((number >> 8) & 255); goto case 3;
+					case 3: buffer[bufferOffset++] = (byte)((number >> 0) & 255); break;
+					default: break;
+				}
+				decoded += j;
 			}
 			return decoded;
 		}
@@ -301,7 +318,6 @@ namespace System
 			if (base64String == null) throw new ArgumentNullException("base64String");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
 			if (offset + count > base64String.Length) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0 || count % 4 != 0) throw new ArgumentOutOfRangeException("count");
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
 			if (bufferOffset + GetBytesCount(base64String, offset, count) > buffer.Length) throw new ArgumentOutOfRangeException("count");
@@ -311,24 +327,37 @@ namespace System
 
 			var decoded = 0;
 			var end = offset + count;
-			var base64CharsInverse = base64Alphabet.AlphabetInverse;
+			var alphabetInverse = base64Alphabet.AlphabetInverse;
 			for (var i = offset; i < end; i += 4)
 			{
-				var a = base64String[i + 0];
-				var b = base64String[i + 1];
-				var c = base64String[i + 2];
-				var d = base64String[i + 3];
+				var number = 0u;
+				int j, base64Code, base64CodeIndex;
+				for (j = 0; j < 4; j++)
+				{
+					base64Code = base64String[i + j];
+					if ((base64Code > 127) || (base64CodeIndex = alphabetInverse[base64Code]) == Base64Alphabet.NOT_IN_ALPHABET)
+					{
+						i++;
+						if (i + j >= end)
+						{
+							break;
+						}
+						else
+						{
+							continue;
+						}
+					}
+					number = (uint)unchecked(number + base64CodeIndex << (18 - 6 * j));
+				}
 
-				var number = unchecked(
-					(base64CharsInverse[a] << 18) +
-					(base64CharsInverse[b] << 12) +
-					(base64CharsInverse[c] << 6) +
-					(base64CharsInverse[d] << 0));
-
-				buffer[bufferOffset++] = (byte)((number >> 16) & 255);
-				buffer[bufferOffset++] = (byte)((number >> 8) & 255);
-				buffer[bufferOffset++] = (byte)((number >> 0) & 255);
-				decoded += 3;
+				switch (j)
+				{
+					case 1: buffer[bufferOffset++] = (byte)((number >> 16) & 255); goto case 2;
+					case 2: buffer[bufferOffset++] = (byte)((number >> 8) & 255); goto case 3;
+					case 3: buffer[bufferOffset++] = (byte)((number >> 0) & 255); break;
+					default: break;
+				}
+				decoded += j;
 			}
 			return decoded;
 		}
