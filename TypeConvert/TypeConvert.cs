@@ -760,6 +760,9 @@ namespace System
 			return (string)Convert(value, typeof(string), format, formatProvider) ?? string.Empty;
 		}
 
+		/// <summary>
+		/// Register custom conversion between specified types. This conversion will take priority before any other methods.
+		/// </summary>
 		public static void RegisterCustomConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> convertFunc)
 		{
 			if (convertFunc == null) throw new ArgumentNullException(nameof(convertFunc));

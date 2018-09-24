@@ -16,7 +16,7 @@ namespace System
 	/// <summary>
 	/// Utility class for Number/Bytes to Hex transformation.
 	/// </summary>
-	public static class HexConvert
+	public static partial class HexConvert
 	{
 		private static readonly char[] HexChar = "0123456789abcdef".ToCharArray();
 

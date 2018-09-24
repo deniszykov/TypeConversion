@@ -9,6 +9,7 @@
 */
 
 using System;
+using System.Linq;
 using Xunit;
 
 namespace TypeConvert.Tests
@@ -38,6 +39,11 @@ namespace TypeConvert.Tests
 			buffer = new byte[expectedBuffer.Length];
 			HexConvert.Decode(expectedHexBuffer, 0, expectedHexBuffer.Length, buffer, 0);
 			Assert.Equal(expectedBuffer, buffer);
+
+			// hex buffer -> buffer (copy)
+			buffer = new byte[expectedBuffer.Length];
+			HexConvert.Decode(expectedHexString, 0, expectedHexBuffer.Length, buffer, 0);
+			Assert.Equal(expectedBuffer, buffer);
 		}
 
 		[Theory]
@@ -63,6 +69,64 @@ namespace TypeConvert.Tests
 			hexBuffer = new char[expectedHexBuffer.Length];
 			HexConvert.Encode(expectedBuffer, 0, expectedBuffer.Length, hexBuffer, 0);
 			Assert.Equal(expectedHexBuffer, hexBuffer);
+		}
+
+		[Theory]
+		[InlineData(1)]
+		[InlineData(8)]
+		[InlineData(9)]
+		[InlineData(255)]
+		public void FromHexTransformTest(int count)
+		{
+			var expectedBuffer = new byte[count];
+			var r = new Random(count);
+			r.NextBytes(expectedBuffer);
+			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "").ToLowerInvariant();
+			var expectedHexBuffer = expectedHexString.ToCharArray().Select(v => (byte)v).ToArray();
+			var fromHexTransform = new HexConvert.FromHexTransform();
+
+			// transform block
+			var inputOffset = r.Next(0, 100);
+			var inputBuffer = new byte[inputOffset + expectedHexBuffer.Length + inputOffset];
+			Buffer.BlockCopy(expectedHexBuffer, 0, inputBuffer, inputOffset, expectedHexBuffer.Length);
+			var outputOffset = r.Next(0, 100);
+			var outputBuffer = new byte[outputOffset + expectedBuffer.Length];
+			var written = fromHexTransform.TransformBlock(inputBuffer, inputOffset, expectedHexBuffer.Length, outputBuffer, outputOffset);
+			Assert.Equal(expectedBuffer.Length, written);
+			Assert.Equal(expectedBuffer, outputBuffer.Skip(outputOffset).ToArray());
+
+			// transform partial
+			outputBuffer = fromHexTransform.TransformFinalBlock(inputBuffer, inputOffset, expectedHexBuffer.Length);
+			Assert.Equal(expectedBuffer, outputBuffer);
+		}
+
+		[Theory]
+		[InlineData(1)]
+		[InlineData(8)]
+		[InlineData(9)]
+		[InlineData(255)]
+		public void ToHexTransformTest(int count)
+		{
+			var expectedBuffer = new byte[count];
+			var r = new Random(count);
+			r.NextBytes(expectedBuffer);
+			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "").ToLowerInvariant();
+			var expectedHexBuffer = expectedHexString.ToCharArray().Select(v => (byte)v).ToArray();
+			var toHexTransform = new HexConvert.ToHexTransform();
+
+			// transform block
+			var inputOffset = r.Next(0, 100);
+			var inputBuffer = new byte[inputOffset + expectedBuffer.Length + inputOffset];
+			Buffer.BlockCopy(expectedBuffer, 0, inputBuffer, inputOffset, expectedBuffer.Length);
+			var outputOffset = r.Next(0, 100);
+			var outputBuffer = new byte[outputOffset + expectedHexBuffer.Length];
+			var written = toHexTransform.TransformBlock(inputBuffer, inputOffset, expectedBuffer.Length, outputBuffer, outputOffset);
+			Assert.Equal(expectedHexBuffer.Length, written);
+			Assert.Equal(expectedHexBuffer, outputBuffer.Skip(outputOffset).ToArray());
+
+			// transform partial
+			outputBuffer = toHexTransform.TransformFinalBlock(inputBuffer, inputOffset, expectedBuffer.Length);
+			Assert.Equal(expectedHexBuffer, outputBuffer);
 		}
 
 		[Theory]
