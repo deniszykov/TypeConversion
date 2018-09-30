@@ -102,6 +102,7 @@
 	</ItemGroup>
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
+		<LangVersion>4</LangVersion>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3'">
 		<DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD13;NO_TYPE_REFS;</DefineConstants>

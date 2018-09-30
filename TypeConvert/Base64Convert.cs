@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using System.Text;
+﻿using ByteSegment = System.ArraySegment<byte>;
+using CharSegment = System.ArraySegment<char>;
 
 // ReSharper disable once CheckNamespace
 namespace System
@@ -9,6 +9,30 @@ namespace System
 	/// </summary>
 	public static partial class Base64Convert
 	{
+		private struct StringSegment
+		{
+			public readonly string Array;
+			public readonly int Offset;
+			public readonly int Count;
+
+			public StringSegment(string array, int offset, int count)
+			{
+				if (array == null) throw new ArgumentNullException("array");
+				if (count < 0 || count > array.Length) throw new ArgumentOutOfRangeException("count");
+				if (offset < 0 || offset + count > array.Length) throw new ArgumentOutOfRangeException("offset");
+
+				this.Array = array;
+				this.Offset = offset;
+				this.Count = count;
+			}
+
+			/// <inheritdoc />
+			public override string ToString()
+			{
+				return (this.Array ?? "").Substring(this.Offset, this.Count);
+			}
+		}
+
 		/// <summary>
 		/// Default Base64 alphabet.
 		/// </summary>
@@ -49,45 +73,14 @@ namespace System
 			if (count == 0) return string.Empty;
 			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
 
-			var outputLength = GetBase64OutputLength(count, base64Alphabet.HasPadding);
-			var base64Buffer = new StringBuilder(outputLength);
+			var outputCount = GetBase64OutputLength(count, base64Alphabet.HasPadding);
+			var inputBuffer = new ByteSegment(buffer, offset, count);
+			var outputBuffer = new CharSegment(new char[outputCount], 0, outputCount);
+			int inputUsed, outputUsed;
 
-			var lastChars = count % 3;
-			var countWIthQuads = offset + (count - lastChars);
-			var alphabet = base64Alphabet.Alphabet;
-			int i;
-			for (i = offset; i < countWIthQuads; i += 3)
-			{
-				base64Buffer.Append(alphabet[(buffer[i] & 0xFC) >> 2]);
-				base64Buffer.Append(alphabet[(buffer[i] & 3) << 4 | (buffer[i + 1] & 0xF0) >> 4]);
-				base64Buffer.Append(alphabet[(buffer[i + 1] & 0xF) << 2 | (buffer[i + 2] & 0xC0) >> 6]);
-				base64Buffer.Append(alphabet[buffer[i + 2] & 0x3F]);
-			}
-			i = countWIthQuads;
+			EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
 
-			switch (lastChars)
-			{
-				case 2:
-					base64Buffer.Append(alphabet[(buffer[i] & 0xFC) >> 2]);
-					base64Buffer.Append(alphabet[(buffer[i] & 3) << 4 | (buffer[i + 1] & 0xF0) >> 4]);
-					base64Buffer.Append(alphabet[(buffer[i + 1] & 0xF) << 2]);
-					if (base64Alphabet.HasPadding)
-					{
-						base64Buffer.Append(base64Alphabet.Padding);
-					}
-					break;
-				case 1:
-					base64Buffer.Append(alphabet[(buffer[i] & 0xFC) >> 2]);
-					base64Buffer.Append(alphabet[(buffer[i] & 3) << 4]);
-					if (base64Alphabet.HasPadding)
-					{
-						base64Buffer.Append(base64Alphabet.Padding);
-						base64Buffer.Append(base64Alphabet.Padding);
-					}
-					break;
-			}
-
-			return base64Buffer.ToString();
+			return new string(outputBuffer.Array);
 		}
 		/// <summary>
 		/// Encode byte array to Base64 char array.
@@ -119,9 +112,14 @@ namespace System
 			if (count == 0) return new char[0];
 			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
 
-			var base64Buffer = new char[GetBase64OutputLength(count, base64Alphabet.HasPadding)];
-			Encode(buffer, offset, count, base64Buffer, 0, base64Alphabet);
-			return base64Buffer;
+			var outputCount = GetBase64OutputLength(count, base64Alphabet.HasPadding);
+			var inputBuffer = new ByteSegment(buffer, offset, count);
+			var outputBuffer = new CharSegment(new char[outputCount], 0, outputCount);
+			int inputUsed, outputUsed;
+
+			EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+
+			return outputBuffer.Array;
 		}
 
 		/// <summary>
@@ -151,9 +149,16 @@ namespace System
 			if (count < 0) throw new ArgumentOutOfRangeException("count");
 			if (offset + count > base64Buffer.Length) throw new ArgumentOutOfRangeException("count");
 
-			var buffer = new byte[GetBytesCount(base64Buffer, offset, count, base64Alphabet)];
-			Decode(base64Buffer, offset, count, buffer, 0, base64Alphabet);
-			return buffer;
+			if (count == 0) return new byte[0];
+
+			var outputCount = GetBytesCount(base64Buffer, offset, count, base64Alphabet);
+			var inputBuffer = new CharSegment(base64Buffer, offset, count);
+			var outputBuffer = new ByteSegment(new byte[outputCount], offset, count);
+			int inputUsed, outputUsed;
+
+			DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+
+			return outputBuffer.Array;
 		}
 		/// <summary>
 		/// Decode Base64 string into byte array.
@@ -182,115 +187,334 @@ namespace System
 			if (count < 0) throw new ArgumentOutOfRangeException("count");
 			if (offset + count > base64String.Length) throw new ArgumentOutOfRangeException("count");
 
-			if (count == 0)
-				return new byte[0];
+			if (count == 0) return new byte[0];
 
-			var outputBuffer = new byte[GetBytesCount(base64String, offset, count, base64Alphabet)];
-			Decode(base64String, offset, count, outputBuffer, 0, base64Alphabet);
-			return outputBuffer;
+			var outputCount = GetBytesCount(base64String, offset, count, base64Alphabet);
+			var inputBuffer = new StringSegment(base64String, offset, count);
+			var outputBuffer = new ByteSegment(new byte[outputCount], offset, count);
+			int inputUsed, outputUsed;
+
+			DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+
+			return outputBuffer.Array;
 		}
 
 		/// <summary>
-		/// Encode part of <paramref name="buffer"/> and store encoded bytes into specified part of <paramref name="base64Buffer"/>.
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
 		/// </summary>
-		/// <param name="buffer">Bytes to encode.</param>
-		/// <param name="offset">Encode start index in <paramref name="buffer"/>.</param>
-		/// <param name="count">Number of bytes to encode in <paramref name="buffer"/>.</param>
-		/// <param name="base64Buffer">Char array to store Base64 encoded bytes from <paramref name="buffer"/>. Array should fit encoded bytes or exception will be thrown.</param>
-		/// <param name="base64BufferOffset">Storage offset in <paramref name="base64Buffer"/>.</param>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
 		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
-		/// <returns>Number of characters written to <paramref name="base64Buffer"/>.</returns>
-		public static int Encode(byte[] buffer, int offset, int count, char[] base64Buffer, int base64BufferOffset, Base64Alphabet base64Alphabet = null)
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, CharSegment outputBuffer, Base64Alphabet base64Alphabet = null)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0) throw new ArgumentOutOfRangeException("count");
-			if (offset + count > buffer.Length) throw new ArgumentOutOfRangeException("count");
-			if (base64Buffer == null) throw new ArgumentNullException("base64Buffer");
-			if (base64BufferOffset < 0) throw new ArgumentOutOfRangeException("base64BufferOffset");
-			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
-			if (base64BufferOffset + GetBase64OutputLength(count, base64Alphabet.HasPadding) > base64Buffer.Length) throw new ArgumentOutOfRangeException("base64BufferOffset");
-
-			if (count == 0) return 0;
-
-			var lastChars = count % 3;
-			var outputOffset = base64BufferOffset;
-			var quartetEnd = offset + (count - lastChars);
-			var base64Chars = Base64Alphabet.Alphabet;
-			int inputOffset;
-			for (inputOffset = offset; inputOffset < quartetEnd; inputOffset += 3)
-			{
-				base64Buffer[outputOffset] = base64Chars[(buffer[inputOffset] & 0xFC) >> 2];
-				base64Buffer[outputOffset + 1] = base64Chars[(buffer[inputOffset] & 3) << 4 | (buffer[inputOffset + 1] & 0xF0) >> 4];
-				base64Buffer[outputOffset + 2] = base64Chars[(buffer[inputOffset + 1] & 0xF) << 2 | (buffer[inputOffset + 2] & 0xC0) >> 6];
-				base64Buffer[outputOffset + 3] = base64Chars[buffer[inputOffset + 2] & 0x3F];
-				outputOffset += 4;
-			}
-			inputOffset = quartetEnd;
-
-			switch (lastChars)
-			{
-				case 2:
-					base64Buffer[outputOffset] = base64Chars[(buffer[inputOffset] & 0xFC) >> 2];
-					base64Buffer[outputOffset + 1] = base64Chars[(buffer[inputOffset] & 3) << 4 | (buffer[inputOffset + 1] & 0xF0) >> 4];
-					base64Buffer[outputOffset + 2] = base64Chars[(buffer[inputOffset + 1] & 0xF) << 2];
-					if (base64Alphabet.HasPadding)
-					{
-						base64Buffer[outputOffset + 3] = base64Alphabet.Padding;
-						outputOffset += 1;
-					}
-					outputOffset += 3;
-					break;
-				case 1:
-					base64Buffer[outputOffset] = base64Chars[(buffer[inputOffset] & 0xFC) >> 2];
-					base64Buffer[outputOffset + 1] = base64Chars[(buffer[inputOffset] & 3) << 4];
-					if (base64Alphabet.HasPadding)
-					{
-						base64Buffer[outputOffset + 2] = base64Alphabet.Padding;
-						base64Buffer[outputOffset + 3] = base64Alphabet.Padding;
-						outputOffset += 2;
-					}
-					outputOffset += 2;
-					break;
-			}
-
-			return outputOffset - base64BufferOffset;
+			int inputUsed, outputUsed;
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
 		}
 		/// <summary>
-		/// Decode part of <paramref name="base64Buffer"/> and store decoded bytes into specified part of <paramref name="buffer"/>. Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
 		/// </summary>
-		/// <param name="base64Buffer">Char array contains Base64 encoded bytes.</param>
-		/// <param name="offset">Decode start index in <paramref name="base64Buffer"/>.</param>
-		/// <param name="count">Number of chars to decode in <paramref name="base64Buffer"/>. Array should fit decoded bytes or exception will be thrown.</param>
-		/// <param name="buffer">Byte array to store decoded bytes from <paramref name="base64Buffer"/>. </param>
-		/// <param name="bufferOffset">Storage offset in <paramref name="buffer"/>.</param>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
 		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
-		/// <returns>Number of bytes decoded into <paramref name="buffer"/>.</returns>
-		public static int Decode(char[] base64Buffer, int offset, int count, byte[] buffer, int bufferOffset, Base64Alphabet base64Alphabet = null)
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, CharSegment outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
 		{
-			if (base64Buffer == null) throw new ArgumentNullException("base64Buffer");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (offset + count > base64Buffer.Length) throw new ArgumentOutOfRangeException("offset");
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, ByteSegment outputBuffer, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, ByteSegment outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="inputCount">Number of bytes to read from <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="outputCount">Max number of bytes to write into <paramref name="outputBuffer"/>.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static unsafe int Encode(byte* inputBuffer, int inputCount, byte* outputBuffer, int outputCount, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return Encode(inputBuffer, inputCount, outputBuffer, outputCount, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="inputCount">Number of bytes to read from <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="outputCount">Max number of bytes to write into <paramref name="outputBuffer"/>.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static unsafe int Encode(byte* inputBuffer, int inputCount, byte* outputBuffer, int outputCount, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			inputUsed = outputUsed = 0;
+			base64Alphabet = base64Alphabet ?? Base64Alphabet;
 
-			if (count == 0) return 0;
-			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
+			var base64Chars = base64Alphabet.Alphabet;
+			var inputEnd = inputBuffer + inputCount;
+			var originalOutputAddress = outputBuffer;
+			var originalInputAddress = inputBuffer;
 
-			var startingOffset = bufferOffset;
-			var end = offset + count;
+			for (; inputBuffer < inputEnd; inputBuffer += 3)
+			{
+				char first, second, third, forth;
+				var charsCount = 0;
+
+				switch (inputEnd - inputBuffer)
+				{
+					case 2:
+						first = base64Chars[(inputBuffer[0] & 0xFC) >> 2];
+						second = base64Chars[(inputBuffer[0] & 3) << 4 | (inputBuffer[1] & 0xF0) >> 4];
+						third = base64Chars[(inputBuffer[1] & 0xF) << 2];
+						charsCount = 3;
+						if (base64Alphabet.HasPadding)
+						{
+							forth = base64Alphabet.Padding;
+						}
+						else
+						{
+							forth = '\0';
+						}
+
+						if (outputCount < 3)
+						{
+							goto end;
+						}
+
+						break;
+					case 1:
+						first = base64Chars[(inputBuffer[0] & 0xFC) >> 2];
+						second = base64Chars[(inputBuffer[0] & 3) << 4];
+						charsCount = 2;
+						if (base64Alphabet.HasPadding)
+						{
+							third = base64Alphabet.Padding;
+							forth = base64Alphabet.Padding;
+						}
+						else
+						{
+							third = '\0';
+							forth = '\0';
+						}
+
+						if (outputCount < 2)
+						{
+							goto end;
+						}
+
+						break;
+					default:
+						first = base64Chars[(inputBuffer[0] & 0xFC) >> 2];
+						second = base64Chars[(inputBuffer[0] & 3) << 4 | (inputBuffer[1] & 0xF0) >> 4];
+						third = base64Chars[(inputBuffer[1] & 0xF) << 2 | (inputBuffer[2] & 0xC0) >> 6];
+						forth = base64Chars[inputBuffer[2] & 0x3F];
+						charsCount = 4;
+
+						if (outputCount < 4)
+						{
+							goto end;
+						}
+
+						break;
+				}
+
+
+				outputBuffer[0] = (byte)first;
+				outputBuffer[1] = (byte)second;
+				if (charsCount > 2)
+					outputBuffer[2] = (byte)third;
+				if (charsCount > 3)
+					outputBuffer[3] = (byte)forth;
+
+				outputBuffer += charsCount;
+				outputCount -= charsCount;
+			}
+
+			end:
+			inputUsed = (int)(inputBuffer - originalInputAddress);
+			outputUsed = (int)(outputBuffer - originalOutputAddress);
+
+			return outputUsed;
+		}
+
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBase64Chars"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBase64Chars">Char array contains Base64 encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBase64Chars"/>. </param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(CharSegment inputBase64Chars, ByteSegment outputBuffer, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return DecodeInternal(ref inputBase64Chars, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBase64Chars"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBase64Chars">Char array contains Base64 encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBase64Chars"/>. </param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBase64Chars"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(CharSegment inputBase64Chars, ByteSegment outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			return DecodeInternal(ref inputBase64Chars, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBase64String"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBase64String">String contains Base64 encoded bytes.</param>
+		/// <param name="inputOffset">Decode start index in <paramref name="inputBase64String"/>.</param>
+		/// <param name="inputCount">Number of chars to decode in <paramref name="inputBase64String"/>.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBase64String"/>.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(string inputBase64String, int inputOffset, int inputCount, ByteSegment outputBuffer, Base64Alphabet base64Alphabet = null)
+		{
+			if (inputBase64String == null) throw new ArgumentNullException("inputBase64String");
+
+			var stringSegment = new StringSegment(inputBase64String, inputOffset, inputCount);
+			int inputUsed, outputUsed;
+			return DecodeInternal(ref stringSegment, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBase64String"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBase64String">String contains Base64 encoded bytes.</param>
+		/// <param name="inputOffset">Decode start index in <paramref name="inputBase64String"/>.</param>
+		/// <param name="inputCount">Number of chars to decode in <paramref name="inputBase64String"/>.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBase64String"/>.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBase64String"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(string inputBase64String, int inputOffset, int inputCount, ByteSegment outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			if (inputBase64String == null) throw new ArgumentNullException("inputBase64String");
+
+			var stringSegment = new StringSegment(inputBase64String, inputOffset, inputCount);
+			return DecodeInternal(ref stringSegment, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Buffer contains Base64 encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>. </param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ByteSegment inputBuffer, ByteSegment outputBuffer, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Buffer contains Base64 encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>. </param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ByteSegment inputBuffer, ByteSegment outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			return DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Byte pointer to Base64 encoded bytes.</param>
+		/// <param name="inputCount">Number of bytes(chars) to decode in <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputBuffer">Byte pointer to place to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputCount">Number of bytes available in in <paramref name="outputBuffer"/>.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static unsafe int Decode(byte* inputBuffer, int inputCount, byte* outputBuffer, int outputCount, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return Decode(inputBuffer, inputCount, outputBuffer, outputCount, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Byte pointer to Base64 encoded bytes.</param>
+		/// <param name="inputCount">Number of bytes(chars) to decode in <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputBuffer">Byte pointer to place to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputCount">Number of bytes available in in <paramref name="outputBuffer"/>.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static unsafe int Decode(byte* inputBuffer, int inputCount, byte* outputBuffer, int outputCount, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			if (inputBuffer == null) throw new ArgumentNullException("inputBuffer");
+			if (outputBuffer == null) throw new ArgumentNullException("outputBuffer");
+			if (outputCount < 0) throw new ArgumentOutOfRangeException("outputCount");
+			if (inputCount < 0) throw new ArgumentOutOfRangeException("inputCount");
+
+			inputUsed = outputUsed = 0;
+
+			if (inputCount == 0)
+				return 0;
+
+			base64Alphabet = base64Alphabet ?? Base64Alphabet;
 			var alphabetInverse = base64Alphabet.AlphabetInverse;
-			for (var i = offset; i < end; i += 4)
+			var startingOutputPointer = outputBuffer;
+			var startingInputPointer = inputBuffer;
+			var inputEnd = inputBuffer + inputCount;
+			var outputCapacity = outputBuffer + outputCount;
+
+			for (; inputBuffer < inputEnd; inputBuffer += 4)
 			{
 				var number = 0u;
 				int j;
-				uint base64Code, base64CodeIndex;
-				for (j = 0; j < 4 && i + j < end; j++)
+				for (j = 0; j < 4 && inputBuffer + j < inputEnd; j++)
 				{
-					base64Code = base64Buffer[i + j];
+					uint base64Code = inputBuffer[j];
+					uint base64CodeIndex;
+
 					if ((base64Code > 127) || (base64CodeIndex = alphabetInverse[base64Code]) == Base64Alphabet.NOT_IN_ALPHABET)
 					{
-						i++;
+						inputBuffer++;
 						j--;
 						continue;
 					}
@@ -300,59 +524,90 @@ namespace System
 				switch (j)
 				{
 					case 2:
-						if (bufferOffset + 0 >= buffer.Length) return bufferOffset - startingOffset;
-						buffer[bufferOffset++] = (byte)((number >> 16) & 255);
+						if (outputBuffer >= outputCapacity)
+							goto default;
+
+						outputBuffer[0] = (byte)((number >> 16) & 255);
+						outputBuffer++;
 						break;
 					case 3:
-						if (bufferOffset + 1 >= buffer.Length) return bufferOffset - startingOffset;
-						buffer[bufferOffset++] = (byte)((number >> 16) & 255);
-						buffer[bufferOffset++] = (byte)((number >> 8) & 255);
+						if (outputBuffer + 1 >= outputCapacity)
+							goto default;
+
+						outputBuffer[0] = (byte)((number >> 16) & 255);
+						outputBuffer[1] = (byte)((number >> 8) & 255);
+						outputBuffer += 2;
 						break;
 					case 4:
-						if (bufferOffset + 2 >= buffer.Length) return bufferOffset - startingOffset;
-						buffer[bufferOffset++] = (byte)((number >> 16) & 255);
-						buffer[bufferOffset++] = (byte)((number >> 8) & 255);
-						buffer[bufferOffset++] = (byte)((number >> 0) & 255);
+						if (outputBuffer + 2 >= outputCapacity)
+							goto default;
+
+						outputBuffer[0] = (byte)((number >> 16) & 255);
+						outputBuffer[1] = (byte)((number >> 8) & 255);
+						outputBuffer[2] = (byte)((number >> 0) & 255);
+						outputBuffer += 3;
 						break;
-					default: break;
+					default:
+						inputBuffer -= j;
+						goto end;
 				}
 			}
-			return bufferOffset - startingOffset;
+
+			end:
+			outputUsed = (int)(outputBuffer - startingOutputPointer);
+			inputUsed = (int)(inputBuffer - startingInputPointer);
+
+			return outputUsed;
+		}
+#if NETCOREAPP2_1
+		/// <summary>
+		/// Decode base64-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Area of memory which contains Base64 encoded bytes.</param>
+		/// <param name="outputBuffer">Area of memory to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return Decode(inputBuffer, outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
 		}
 		/// <summary>
-		/// Decode part of <paramref name="base64String"/> and store decoded bytes into specified part of <paramref name="buffer"/>. Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// Decode base64-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
 		/// </summary>
-		/// <param name="base64String">String contains Base64 encoded bytes.</param>
-		/// <param name="offset">Decode start index in <paramref name="base64String"/>.</param>
-		/// <param name="count">Number of chars to decode in <paramref name="base64String"/>. Array should fit decoded bytes or exception will be thrown.</param>
-		/// <param name="buffer">Byte array to store decoded bytes from <paramref name="base64String"/>. </param>
-		/// <param name="bufferOffset">Storage offset in <paramref name="buffer"/>.</param>
+		/// <param name="inputBuffer">Area of memory which contains Base64 encoded bytes.</param>
+		/// <param name="outputBuffer">Area of memory to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
 		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
-		public static int Decode(string base64String, int offset, int count, byte[] buffer, int bufferOffset, Base64Alphabet base64Alphabet = null)
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
 		{
-			if (base64String == null) throw new ArgumentNullException("base64String");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (offset + count > base64String.Length) throw new ArgumentOutOfRangeException("offset");
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
+			inputUsed = outputUsed = 0;
 
-			if (count == 0) return 0;
-			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
+			if (inputBuffer.Length == 0)
+				return 0;
 
-			var startingOffset = bufferOffset;
-			var end = offset + count;
+			base64Alphabet = base64Alphabet ?? Base64Alphabet;
 			var alphabetInverse = base64Alphabet.AlphabetInverse;
-			for (var i = offset; i < end; i += 4)
+			var outputOffset = 0;
+			var inputOffset = 0;
+			var inputEnd = inputBuffer.Length;
+
+			for (inputOffset = 0; inputOffset < inputEnd; inputOffset += 4)
 			{
 				var number = 0u;
 				int j;
-				uint base64Code, base64CodeIndex;
-				for (j = 0; j < 4 && i + j < end; j++)
+				for (j = 0; j < 4 && inputOffset + j < inputEnd; j++)
 				{
-					base64Code = base64String[i + j];
+					uint base64Code = inputBuffer[inputOffset + j];
+					uint base64CodeIndex;
+
 					if ((base64Code > 127) || (base64CodeIndex = alphabetInverse[base64Code]) == Base64Alphabet.NOT_IN_ALPHABET)
 					{
-						i++;
+						inputOffset++;
 						j--;
 						continue;
 					}
@@ -362,25 +617,153 @@ namespace System
 				switch (j)
 				{
 					case 2:
-						if (bufferOffset + 0 >= buffer.Length) return bufferOffset - startingOffset;
-						buffer[bufferOffset++] = (byte)((number >> 16) & 255);
+						if (outputOffset >= outputBuffer.Length)
+							goto default;
+
+						outputBuffer[outputOffset++] = (byte)((number >> 16) & 255);
 						break;
 					case 3:
-						if (bufferOffset + 1 >= buffer.Length) return bufferOffset - startingOffset;
-						buffer[bufferOffset++] = (byte)((number >> 16) & 255);
-						buffer[bufferOffset++] = (byte)((number >> 8) & 255);
+						if (outputOffset + 1 >= outputBuffer.Length)
+							goto default;
+
+						outputBuffer[outputOffset++] = (byte)((number >> 16) & 255);
+						outputBuffer[outputOffset++] = (byte)((number >> 8) & 255);
 						break;
 					case 4:
-						if (bufferOffset + 2 >= buffer.Length) return bufferOffset - startingOffset;
-						buffer[bufferOffset++] = (byte)((number >> 16) & 255);
-						buffer[bufferOffset++] = (byte)((number >> 8) & 255);
-						buffer[bufferOffset++] = (byte)((number >> 0) & 255);
+						if (outputOffset + 2 >= outputBuffer.Length)
+							goto default;
+
+						outputBuffer[outputOffset++] = (byte)((number >> 16) & 255);
+						outputBuffer[outputOffset++] = (byte)((number >> 8) & 255);
+						outputBuffer[outputOffset++] = (byte)((number >> 0) & 255);
 						break;
-					default: break;
+					default:
+						inputOffset -= j;
+						goto end;
 				}
 			}
-			return bufferOffset - startingOffset;
+
+			end:
+			outputUsed = outputOffset;
+			inputUsed = inputOffset;
+
+			return outputUsed;
 		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, Base64Alphabet base64Alphabet = null)
+		{
+			int inputUsed, outputUsed;
+			return Encode(inputBuffer, outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store base64-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet = null)
+		{
+			inputUsed = outputUsed = 0;
+			base64Alphabet = base64Alphabet ?? Base64Alphabet;
+
+			var base64Chars = base64Alphabet.Alphabet;
+			var inputEnd = inputBuffer.Length;
+			var outputCapacity = outputBuffer.Length;
+			var outputOffset = 0;
+
+			int inputOffset;
+			for (inputOffset = 0; inputOffset < inputEnd; inputOffset += 3)
+			{
+				char first, second, third, forth;
+				var charsCount = 0;
+
+				switch (inputEnd - inputOffset)
+				{
+					case 2:
+						first = base64Chars[(inputBuffer[inputOffset] & 0xFC) >> 2];
+						second = base64Chars[(inputBuffer[inputOffset] & 3) << 4 | (inputBuffer[inputOffset + 1] & 0xF0) >> 4];
+						third = base64Chars[(inputBuffer[inputOffset + 1] & 0xF) << 2];
+						if (base64Alphabet.HasPadding)
+						{
+							forth = base64Alphabet.Padding;
+							charsCount = 4;
+						}
+						else
+						{
+							forth = '\0';
+							charsCount = 3;
+						}
+
+						if (outputCapacity < 3)
+						{
+							goto end;
+						}
+
+						break;
+					case 1:
+						first = base64Chars[(inputBuffer[inputOffset] & 0xFC) >> 2];
+						second = base64Chars[(inputBuffer[inputOffset] & 3) << 4];
+						if (base64Alphabet.HasPadding)
+						{
+							third = base64Alphabet.Padding;
+							forth = base64Alphabet.Padding;
+							charsCount = 4;
+						}
+						else
+						{
+							charsCount = 2;
+							third = '\0';
+							forth = '\0';
+						}
+
+						if (outputCapacity < 2)
+						{
+							goto end;
+						}
+
+						break;
+					default:
+						first = base64Chars[(inputBuffer[inputOffset] & 0xFC) >> 2];
+						second = base64Chars[(inputBuffer[inputOffset] & 3) << 4 | (inputBuffer[inputOffset + 1] & 0xF0) >> 4];
+						third = base64Chars[(inputBuffer[inputOffset + 1] & 0xF) << 2 | (inputBuffer[inputOffset + 2] & 0xC0) >> 6];
+						forth = base64Chars[inputBuffer[inputOffset + 2] & 0x3F];
+						charsCount = 4;
+
+						if (outputCapacity < 4)
+						{
+							goto end;
+						}
+
+						break;
+				}
+
+
+				outputBuffer[outputOffset++] = (byte)first;
+				outputBuffer[outputOffset++] = (byte)second;
+				if (charsCount > 2)
+					outputBuffer[outputOffset++] = (byte)third;
+				if (charsCount > 3)
+					outputBuffer[outputOffset++] = (byte)forth;
+
+				outputCapacity -= charsCount;
+			}
+
+			end:
+			inputUsed = inputOffset;
+			outputUsed = outputOffset;
+
+			return outputUsed;
+		}
+#endif
 
 		/// <summary>
 		/// Calculate size of base64 output based on input's size.
@@ -414,34 +797,12 @@ namespace System
 		/// <returns>Number of bytes encoded in <paramref name="base64Chars"/>.</returns>
 		public static int GetBytesCount(char[] base64Chars, int offset, int count, Base64Alphabet base64Alphabet = null)
 		{
-			if (base64Chars == null) throw new ArgumentNullException(nameof(base64Chars));
-			if (offset < 0 || offset >= base64Chars.Length) throw new ArgumentOutOfRangeException(nameof(offset));
-			if (count < 0 || offset + count > base64Chars.Length) throw new ArgumentOutOfRangeException(nameof(count));
+			if (base64Chars == null) throw new ArgumentNullException("base64Chars");
+			if (offset < 0 || offset >= base64Chars.Length) throw new ArgumentOutOfRangeException("offset");
+			if (count < 0 || offset + count > base64Chars.Length) throw new ArgumentOutOfRangeException("count");
 
-			if (count == 0) return 0;
-			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
-
-			var alphabetInverse = base64Alphabet.AlphabetInverse;
-			var end = offset + count;
-			for (var i = offset; i < end; i++)
-			{
-				var base64Char = base64Chars[i];
-				if (base64Char > 127 || alphabetInverse[base64Char] == Base64Alphabet.NOT_IN_ALPHABET)
-				{
-					count--;
-				}
-			}
-
-			var bytesCount = count / 4 * 3;
-
-			switch (count % 4)
-			{
-				case 2: bytesCount += 1; break;
-				case 3: bytesCount += 2; break;
-				default: break;
-			}
-
-			return bytesCount;
+			var byteSegment = new CharSegment(base64Chars, offset, count);
+			return GetBytesCountInternal(ref byteSegment, base64Alphabet);
 		}
 		/// <summary>
 		/// Get number of bytes encoded in passed <paramref name="base64String"/>. Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
@@ -453,30 +814,337 @@ namespace System
 		/// <returns>Number of bytes encoded in <paramref name="base64String"/>.</returns>
 		public static int GetBytesCount(string base64String, int offset, int count, Base64Alphabet base64Alphabet = null)
 		{
-			if (base64String == null) throw new ArgumentNullException(nameof(base64String));
-			if (offset < 0 || offset >= base64String.Length) throw new ArgumentOutOfRangeException(nameof(offset));
-			if (count < 0 || offset + count > base64String.Length) throw new ArgumentOutOfRangeException(nameof(count));
+			if (base64String == null) throw new ArgumentNullException("base64String");
+			if (offset < 0 || offset >= base64String.Length) throw new ArgumentOutOfRangeException("offset");
+			if (count < 0 || offset + count > base64String.Length) throw new ArgumentOutOfRangeException("count");
 
-			if (count == 0) return 0;
-			if (base64Alphabet == null) base64Alphabet = Base64Alphabet;
+			var byteSegment = new StringSegment(base64String, offset, count);
+			return GetBytesCountInternal(ref byteSegment, base64Alphabet);
+		}
+		/// <summary>
+		/// Get number of bytes encoded in passed <paramref name="base64Bytes"/>. Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="base64Bytes">Input data encoded by <paramref name="base64Alphabet"/>.</param>
+		/// <param name="offset">Offset in input data.</param>
+		/// <param name="count">Length of input data.</param>
+		/// <param name="base64Alphabet">Alphabet for base64 encoding. Can be null. Default is <see cref="Base64Alphabet"/>.</param>
+		/// <returns>Number of bytes encoded in <paramref name="base64Bytes"/>.</returns>
+		public static int GetBytesCount(byte[] base64Bytes, int offset, int count, Base64Alphabet base64Alphabet = null)
+		{
+			if (base64Bytes == null) throw new ArgumentNullException("base64Bytes");
+			if (offset < 0 || offset >= base64Bytes.Length) throw new ArgumentOutOfRangeException("offset");
+			if (count < 0 || offset + count > base64Bytes.Length) throw new ArgumentOutOfRangeException("count");
 
-			var alphabetInverse = base64Alphabet.AlphabetInverse;
-			var end = offset + count;
-			for (var i = offset; i < end; i++)
+			var byteSegment = new ByteSegment(base64Bytes, offset, count);
+			return GetBytesCountInternal(ref byteSegment, base64Alphabet);
+		}
+
+		private static int EncodeInternal<BufferT>(ref ByteSegment inputBuffer, ref BufferT outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet)
+		{
+			inputUsed = outputUsed = 0;
+			base64Alphabet = base64Alphabet ?? Base64Alphabet;
+
+			var base64Chars = base64Alphabet.Alphabet;
+			var input = inputBuffer.Array;
+			var inputEnd = inputBuffer.Offset + inputBuffer.Count;
+			var inputOffset = inputBuffer.Offset;
+			int outputOffset, originalOutputOffset, outputCapacity;
+
+			if (outputBuffer is ByteSegment)
 			{
-				var base64Char = base64String[i];
-				if (base64Char > 127 || alphabetInverse[base64Char] == Base64Alphabet.NOT_IN_ALPHABET)
+				var byteSegment = (ByteSegment)(object)outputBuffer;
+				outputOffset = originalOutputOffset = byteSegment.Offset;
+				outputCapacity = byteSegment.Count;
+			}
+			else if (outputBuffer is CharSegment)
+			{
+				var charSegment = (CharSegment)(object)outputBuffer;
+				outputOffset = originalOutputOffset = charSegment.Offset;
+				outputCapacity = charSegment.Count;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown type of output buffer: " + typeof(BufferT));
+			}
+
+			for (; inputOffset < inputEnd; inputOffset += 3)
+			{
+				char first, second, third, forth;
+				var charsCount = 0;
+
+				switch (inputEnd - inputOffset)
 				{
-					count--;
+					case 2:
+						first = base64Chars[(input[inputOffset] & 0xFC) >> 2];
+						second = base64Chars[(input[inputOffset] & 3) << 4 | (input[inputOffset + 1] & 0xF0) >> 4];
+						third = base64Chars[(input[inputOffset + 1] & 0xF) << 2];
+						if (base64Alphabet.HasPadding)
+						{
+							forth = base64Alphabet.Padding;
+							charsCount = 4;
+						}
+						else
+						{
+							forth = '\0';
+							charsCount = 3;
+						}
+
+						if (outputCapacity < 3)
+						{
+							goto end;
+						}
+
+						break;
+					case 1:
+						first = base64Chars[(input[inputOffset] & 0xFC) >> 2];
+						second = base64Chars[(input[inputOffset] & 3) << 4];
+						if (base64Alphabet.HasPadding)
+						{
+							third = base64Alphabet.Padding;
+							forth = base64Alphabet.Padding;
+							charsCount = 4;
+						}
+						else
+						{
+							charsCount = 2;
+							third = '\0';
+							forth = '\0';
+						}
+
+						if (outputCapacity < 2)
+						{
+							goto end;
+						}
+
+						break;
+					default:
+						first = base64Chars[(input[inputOffset] & 0xFC) >> 2];
+						second = base64Chars[(input[inputOffset] & 3) << 4 | (input[inputOffset + 1] & 0xF0) >> 4];
+						third = base64Chars[(input[inputOffset + 1] & 0xF) << 2 | (input[inputOffset + 2] & 0xC0) >> 6];
+						forth = base64Chars[input[inputOffset + 2] & 0x3F];
+						charsCount = 4;
+
+						if (outputCapacity < 4)
+						{
+							goto end;
+						}
+
+						break;
+				}
+
+				if (outputBuffer is ByteSegment)
+				{
+					var byteSegment = (ByteSegment)(object)outputBuffer;
+					byteSegment[outputOffset++] = (byte)first;
+					byteSegment[outputOffset++] = (byte)second;
+					if (charsCount > 2)
+						byteSegment[outputOffset++] = (byte)third;
+					if (charsCount > 3)
+						byteSegment[outputOffset++] = (byte)forth;
+				}
+				else
+				{
+					var charSegment = (CharSegment)(object)outputBuffer;
+					charSegment[outputOffset++] = first;
+					charSegment[outputOffset++] = second;
+					if (charsCount > 2)
+						charSegment[outputOffset++] = third;
+					if (charsCount > 3)
+						charSegment[outputOffset++] = forth;
+				}
+
+				outputCapacity -= charsCount;
+			}
+
+			end:
+			inputUsed = inputOffset - inputBuffer.Offset;
+			outputUsed = outputOffset - originalOutputOffset;
+
+			return outputUsed;
+		}
+		private static int DecodeInternal<BufferT>(ref BufferT inputBuffer, ref ByteSegment outputBuffer, out int inputUsed, out int outputUsed, Base64Alphabet base64Alphabet)
+		{
+			if (outputBuffer == null || outputBuffer.Array == null) throw new ArgumentNullException("outputBuffer");
+
+			inputUsed = outputUsed = 0;
+			base64Alphabet = base64Alphabet ?? Base64Alphabet;
+
+			var originalInputOffset = 0;
+			var inputOffset = 0;
+			var inputEnd = 0;
+			var outputOffset = outputBuffer.Offset;
+			var outputCapacity = outputBuffer.Offset + outputBuffer.Count;
+			var output = outputBuffer.Array;
+			var alphabetInverse = base64Alphabet.AlphabetInverse;
+
+			if (inputBuffer is ByteSegment)
+			{
+				var byteSegment = (ByteSegment)(object)inputBuffer;
+				if (byteSegment.Count == 0 || byteSegment.Array == null)
+					return 0;
+				inputOffset = originalInputOffset = byteSegment.Offset;
+				inputEnd = byteSegment.Offset + byteSegment.Count;
+			}
+			else if (inputBuffer is CharSegment)
+			{
+				var charSegment = (CharSegment)(object)inputBuffer;
+				if (charSegment.Count == 0 || charSegment.Array == null)
+					return 0;
+				inputOffset = originalInputOffset = charSegment.Offset;
+				inputEnd = charSegment.Offset + charSegment.Count;
+			}
+			else if (inputBuffer is StringSegment)
+			{
+				var stringSegment = (StringSegment)(object)inputBuffer;
+				if (stringSegment.Count == 0 || stringSegment.Array == null)
+					return 0;
+				inputOffset = originalInputOffset = stringSegment.Offset;
+				inputEnd = stringSegment.Offset + stringSegment.Count;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown input buffer type: " + typeof(BufferT));
+			}
+
+			for (; inputOffset < inputEnd; inputOffset += 4)
+			{
+				var number = 0u;
+				int j;
+				for (j = 0; j < 4 && inputOffset + j < inputEnd; j++)
+				{
+					uint base64Code;
+					uint base64CodeIndex;
+
+					if (inputBuffer is ByteSegment)
+					{
+						var byteSegment = (ByteSegment)(object)inputBuffer;
+						base64Code = byteSegment.Array[inputOffset + j];
+					}
+					else if (inputBuffer is CharSegment)
+					{
+						var charSegment = (CharSegment)(object)inputBuffer;
+						base64Code = charSegment.Array[inputOffset + j];
+					}
+					else
+					{
+						var stringSegment = (StringSegment)(object)inputBuffer;
+						base64Code = stringSegment.Array[inputOffset + j];
+					}
+
+					if ((base64Code > 127) || (base64CodeIndex = alphabetInverse[base64Code]) == Base64Alphabet.NOT_IN_ALPHABET)
+					{
+						inputOffset++;
+						j--;
+						continue;
+					}
+					number = unchecked(number | base64CodeIndex << (18 - 6 * j));
+				}
+
+				switch (j)
+				{
+					case 2:
+						if (outputOffset >= outputCapacity)
+							goto default;
+
+						output[outputOffset++] = (byte)((number >> 16) & 255);
+						break;
+					case 3:
+						if (outputOffset + 1 >= outputCapacity)
+							goto default;
+
+						output[outputOffset++] = (byte)((number >> 16) & 255);
+						output[outputOffset++] = (byte)((number >> 8) & 255);
+						break;
+					case 4:
+						if (outputOffset + 2 >= outputCapacity)
+							goto default;
+
+						output[outputOffset++] = (byte)((number >> 16) & 255);
+						output[outputOffset++] = (byte)((number >> 8) & 255);
+						output[outputOffset++] = (byte)((number >> 0) & 255);
+						break;
+					default:
+						inputOffset -= j;
+						goto end;
 				}
 			}
 
-			var bytesCount = count / 4 * 3;
+			end:
+			outputUsed = outputOffset - outputBuffer.Offset;
+			inputUsed = inputOffset - originalInputOffset;
 
-			switch (count % 4)
+			return outputUsed;
+		}
+		private static int GetBytesCountInternal<BufferT>(ref BufferT inputBuffer, Base64Alphabet base64Alphabet)
+		{
+			var alphabetInverse = (base64Alphabet ?? Base64Alphabet).AlphabetInverse;
+			int inputEnd, inputOffset, inputCount;
+
+			if (inputBuffer is ByteSegment)
+			{
+				var byteSegment = (ByteSegment)(object)inputBuffer;
+				if (byteSegment.Count == 0 || byteSegment.Array == null)
+					return 0;
+				inputOffset = byteSegment.Offset;
+				inputEnd = byteSegment.Offset + byteSegment.Count;
+				inputCount = byteSegment.Count;
+			}
+			else if (inputBuffer is CharSegment)
+			{
+				var charSegment = (CharSegment)(object)inputBuffer;
+				if (charSegment.Count == 0 || charSegment.Array == null)
+					return 0;
+				inputOffset = charSegment.Offset;
+				inputEnd = charSegment.Offset + charSegment.Count;
+				inputCount = charSegment.Count;
+			}
+			else if (inputBuffer is StringSegment)
+			{
+				var stringSegment = (StringSegment)(object)inputBuffer;
+				if (stringSegment.Count == 0 || stringSegment.Array == null)
+					return 0;
+				inputOffset = stringSegment.Offset;
+				inputEnd = stringSegment.Offset + stringSegment.Count;
+				inputCount = stringSegment.Count;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown input buffer type: " + typeof(BufferT));
+			}
+
+			for (; inputOffset < inputEnd; inputOffset++)
+			{
+				uint base64Code;
+
+				if (inputBuffer is ByteSegment)
+				{
+					var byteSegment = (ByteSegment)(object)inputBuffer;
+					base64Code = byteSegment.Array[inputOffset];
+				}
+				else if (inputBuffer is CharSegment)
+				{
+					var charSegment = (CharSegment)(object)inputBuffer;
+					base64Code = charSegment.Array[inputOffset];
+				}
+				else
+				{
+					var stringSegment = (StringSegment)(object)inputBuffer;
+					base64Code = stringSegment.Array[inputOffset];
+				}
+
+				if (base64Code > 127 || alphabetInverse[base64Code] == Base64Alphabet.NOT_IN_ALPHABET)
+				{
+					inputCount--;
+				}
+			}
+
+			var bytesCount = inputCount / 4 * 3;
+
+			switch (inputCount % 4)
 			{
 				case 2: bytesCount += 1; break;
 				case 3: bytesCount += 2; break;
+				// ReSharper disable once RedundantEmptySwitchSection
 				default: break;
 			}
 
