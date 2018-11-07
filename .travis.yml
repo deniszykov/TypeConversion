@@ -5,6 +5,6 @@ dist: trusty
 install:
 - dotnet restore
 script:
-- dotnet build
+- dotnet build -f netcoreapp2.1
 - cd TypeConvert.Tests 
-- dotnet xunit
+- dotnet xunit -f netcoreapp2.1
