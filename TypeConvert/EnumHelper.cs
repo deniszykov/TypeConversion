@@ -429,7 +429,7 @@ namespace System
 
 		private static bool TryParseNumber(string number, out EnumT value)
 		{
-			if (number == null) throw new ArgumentNullException(nameof(number));
+			if (number == null) throw new ArgumentNullException("number");
 
 			// ReSharper disable once SwitchStatementMissingSomeCases
 			switch (TypeCode)

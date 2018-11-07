@@ -13,11 +13,38 @@ using System.Text;
 // ReSharper disable once CheckNamespace
 namespace System
 {
+	using ByteSegment = ArraySegment<byte>;
+	using CharSegment = ArraySegment<char>;
+
 	/// <summary>
 	/// Utility class for Number/Bytes to Hex transformation.
 	/// </summary>
-	public static partial class HexConvert
+	public static class HexConvert
 	{
+		private struct StringSegment
+		{
+			public readonly string Array;
+			public readonly int Offset;
+			public readonly int Count;
+
+			public StringSegment(string array, int offset, int count)
+			{
+				if (array == null) throw new ArgumentNullException("array");
+				if (count < 0 || count > array.Length) throw new ArgumentOutOfRangeException("count");
+				if (offset < 0 || offset + count > array.Length) throw new ArgumentOutOfRangeException("offset");
+
+				this.Array = array;
+				this.Offset = offset;
+				this.Count = count;
+			}
+
+			/// <inheritdoc />
+			public override string ToString()
+			{
+				return (this.Array ?? "").Substring(this.Offset, this.Count);
+			}
+		}
+
 		private static readonly char[] HexChar = "0123456789abcdef".ToCharArray();
 
 		/// <summary>

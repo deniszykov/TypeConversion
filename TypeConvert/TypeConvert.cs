@@ -103,8 +103,8 @@ namespace System
 
 			private static MethodInfo GetTransitionMethod(Type sourceType, Type resultType)
 			{
-				if (sourceType == null) throw new ArgumentNullException(nameof(sourceType));
-				if (resultType == null) throw new ArgumentNullException(nameof(resultType));
+				if (sourceType == null) throw new ArgumentNullException("sourceType");
+				if (resultType == null) throw new ArgumentNullException("resultType");
 
 #if !NETSTANDARD
 				var sourceTypeInfo = sourceType;
@@ -422,7 +422,7 @@ namespace System
 
 			public ConvertMethodInfo(MethodInfo method, ref ParameterInfo[] methodParameters)
 			{
-				if (method == null) throw new ArgumentNullException(nameof(method));
+				if (method == null) throw new ArgumentNullException("method");
 
 				methodParameters = methodParameters ?? method.GetParameters();
 				this.Method = method;
@@ -765,7 +765,7 @@ namespace System
 		/// </summary>
 		public static void RegisterCustomConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> convertFunc)
 		{
-			if (convertFunc == null) throw new ArgumentNullException(nameof(convertFunc));
+			if (convertFunc == null) throw new ArgumentNullException("convertFunc");
 
 			TypeConversion<FromType, ToType>.NativeConversionFn = convertFunc;
 		}
@@ -919,7 +919,7 @@ namespace System
 #if !NETSTANDARD
 		private static IEnumerable<MethodInfo> GetPublicMethods(Type type, bool declaredOnly)
 		{
-			if (type == null) throw new ArgumentNullException(nameof(type));
+			if (type == null) throw new ArgumentNullException("type");
 
 			if (declaredOnly)
 				return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
@@ -928,7 +928,7 @@ namespace System
 		}
 		private static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
 		{
-			if (type == null) throw new ArgumentNullException(nameof(type));
+			if (type == null) throw new ArgumentNullException("type");
 
 			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 		}
@@ -962,8 +962,8 @@ namespace System
 #endif
 		private static long GetTypePairKey(Type fromType, Type toType)
 		{
-			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
-			if (toType == null) throw new ArgumentNullException(nameof(toType));
+			if (fromType == null) throw new ArgumentNullException("fromType");
+			if (toType == null) throw new ArgumentNullException("toType");
 
 			var fromHash = fromType.GetHashCode(); // it's not hashcode, it's an unique sync-lock of type-object
 			var toHash = toType.GetHashCode();

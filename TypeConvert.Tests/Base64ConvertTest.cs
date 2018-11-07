@@ -43,19 +43,19 @@ namespace TypeConvert.Tests
 			// base64 string -> buffer
 			var outputBuffer = Base64Convert.ToBytes(inputString, inputOffset, expectedBase64String.Length);
 			Assert.Equal(expectedBuffer, outputBuffer);
-			
+
 			// base64 buffer -> buffer
 			outputBuffer = Base64Convert.ToBytes(inputBuffer, inputOffset, expectedBase64Chars.Length);
 			Assert.Equal(expectedBuffer, outputBuffer);
 
 			// base64 buffer -> buffer (copy)
 			outputBuffer = new byte[expectedBuffer.Length];
-			Base64Convert.Decode(inputBuffer, inputOffset, expectedBase64Chars.Length, outputBuffer, 0);
+			Base64Convert.Decode(new ArraySegment<char>(inputBuffer, inputOffset, expectedBase64Chars.Length), new ArraySegment<byte>(outputBuffer));
 			Assert.Equal(expectedBuffer, outputBuffer);
 
 			// base64 buffer -> buffer (copy)
 			outputBuffer = new byte[expectedBuffer.Length];
-			Base64Convert.Decode(inputString, inputOffset, expectedBase64Chars.Length, outputBuffer, 0);
+			Base64Convert.Decode(inputString, inputOffset, expectedBase64Chars.Length, new ArraySegment<byte>(outputBuffer));
 			Assert.Equal(expectedBuffer, outputBuffer);
 		}
 
@@ -85,7 +85,7 @@ namespace TypeConvert.Tests
 
 			// buffer -> base64 buffer (copy)
 			base64Chars = new char[expectedBase64Chars.Length];
-			Base64Convert.Encode(inputBuffer, inputOffset, expectedBuffer.Length, base64Chars, 0);
+			Base64Convert.Encode(new ArraySegment<byte>(inputBuffer, inputOffset, expectedBuffer.Length), new ArraySegment<char>(base64Chars));
 			Assert.Equal(expectedBase64Chars, base64Chars);
 		}
 
@@ -100,14 +100,13 @@ namespace TypeConvert.Tests
 		[InlineData(255)]
 		[InlineData(512)]
 		[InlineData(1024)]
-		public void FromBase64TransformTest(int count)
+		public void Base64BytesDecodeTest(int count)
 		{
 			var expectedBuffer = new byte[count];
 			var r = new Random(count);
 			r.NextBytes(expectedBuffer);
 			var base64String = Convert.ToBase64String(expectedBuffer);
 			var base64Buffer = base64String.ToCharArray().Select(v => (byte)v).ToArray();
-			var fromBase64Transform = new Base64Convert.FromBase64Transform();
 
 			// transform block
 			var inputOffset = r.Next(0, 100);
@@ -115,13 +114,9 @@ namespace TypeConvert.Tests
 			Buffer.BlockCopy(base64Buffer, 0, inputBuffer, inputOffset, base64Buffer.Length);
 			var outputOffset = r.Next(0, 100);
 			var outputBuffer = new byte[outputOffset + expectedBuffer.Length];
-			var written = fromBase64Transform.TransformBlock(inputBuffer, inputOffset, base64Buffer.Length, outputBuffer, outputOffset);
+			var written = Base64Convert.Decode(new ArraySegment<byte>(inputBuffer, inputOffset, base64Buffer.Length), new ArraySegment<byte>(outputBuffer, outputOffset, outputBuffer.Length - outputOffset));
 			Assert.Equal(expectedBuffer.Length, written);
 			Assert.Equal(expectedBuffer, outputBuffer.Skip(outputOffset).ToArray());
-
-			// transform partial
-			outputBuffer = fromBase64Transform.TransformFinalBlock(inputBuffer, inputOffset, base64Buffer.Length);
-			Assert.Equal(expectedBuffer, outputBuffer);
 		}
 
 		[Theory]
@@ -134,14 +129,13 @@ namespace TypeConvert.Tests
 		[InlineData(255)]
 		[InlineData(512)]
 		[InlineData(1024)]
-		public void ToBase64TransformTest(int count)
+		public void Base64BytesEncodeTest(int count)
 		{
 			var expectedBuffer = new byte[count];
 			var r = new Random(count);
 			r.NextBytes(expectedBuffer);
 			var expectedBase64String = Convert.ToBase64String(expectedBuffer);
 			var expectedBase64Buffer = expectedBase64String.ToCharArray().Select(v => (byte)v).ToArray();
-			var toBase64Transform = new Base64Convert.ToBase64Transform();
 
 			// transform block
 			var inputOffset = r.Next(0, 100);
@@ -149,13 +143,9 @@ namespace TypeConvert.Tests
 			Buffer.BlockCopy(expectedBuffer, 0, inputBuffer, inputOffset, expectedBuffer.Length);
 			var outputOffset = r.Next(0, 100);
 			var outputBuffer = new byte[outputOffset + expectedBase64Buffer.Length];
-			var written = toBase64Transform.TransformBlock(inputBuffer, inputOffset, expectedBuffer.Length, outputBuffer, outputOffset);
+			var written = Base64Convert.Encode(new ArraySegment<byte>(inputBuffer, inputOffset, expectedBuffer.Length), new ArraySegment<byte>(outputBuffer, outputOffset, outputBuffer.Length - outputOffset));
 			Assert.Equal(expectedBase64Buffer.Length, written);
 			Assert.Equal(expectedBase64Buffer, outputBuffer.Skip(outputOffset).ToArray());
-
-			// transform partial
-			outputBuffer = toBase64Transform.TransformFinalBlock(inputBuffer, inputOffset, expectedBuffer.Length);
-			Assert.Equal(expectedBase64Buffer, outputBuffer);
 		}
 	}
 }
