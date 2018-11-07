@@ -1,36 +1,37 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFrameworks>net45;netcoreapp2.1</TargetFrameworks>
-        <Authors>Denis Zykov</Authors>
-        <Version>0.0.0</Version>
-        <PackageId>TypeConvert.Tests</PackageId>
-        <Product>TypeConvert.Tests</Product>
-        <Description>Tests.</Description>
-        <Company />
-        <SignAssembly>True</SignAssembly>
-        <AssemblyOriginatorKeyFile>../TypeConvert/sign.snk</AssemblyOriginatorKeyFile>
-        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<PropertyGroup>
+		<TargetFrameworks>net45;netcoreapp2.1</TargetFrameworks>
+		<RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">2.1.403</RuntimeFrameworkVersion>
+		<Authors>Denis Zykov</Authors>
+		<Version>0.0.0</Version>
+		<PackageId>TypeConvert.Tests</PackageId>
+		<Product>TypeConvert.Tests</Product>
+		<Description>Tests.</Description>
+		<Company />
+		<SignAssembly>True</SignAssembly>
+		<AssemblyOriginatorKeyFile>../TypeConvert/sign.snk</AssemblyOriginatorKeyFile>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-        <ApplicationIcon />
-        <OutputTypeEx>library</OutputTypeEx>
+		<ApplicationIcon />
+		<OutputTypeEx>library</OutputTypeEx>
 		<OutputType>Library</OutputType>
-        <StartupObject />
-        <AssemblyVersion>0.0.0.0</AssemblyVersion>
-        <FileVersion>0.0.0.0</FileVersion>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-        <Optimize>False</Optimize>
-        <DefineConstants>ENUMHELPER;RELEASE</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-        <DefineConstants>ENUMHELPER;DEBUG;TRACE</DefineConstants>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="xunit" Version="2.4.1" />
-        <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\TypeConvert\TypeConvert.csproj" />
-    </ItemGroup>
+		<StartupObject />
+		<AssemblyVersion>0.0.0.0</AssemblyVersion>
+		<FileVersion>0.0.0.0</FileVersion>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<Optimize>False</Optimize>
+		<DefineConstants>ENUMHELPER;RELEASE</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DefineConstants>ENUMHELPER;DEBUG;TRACE</DefineConstants>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="xunit" Version="2.4.1" />
+		<DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\TypeConvert\TypeConvert.csproj" />
+	</ItemGroup>
 </Project>
