@@ -2,7 +2,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net45;netcoreapp2.1</TargetFrameworks>
-		<RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">2.1.403</RuntimeFrameworkVersion>
 		<Authors>Denis Zykov</Authors>
 		<Version>0.0.0</Version>
 		<PackageId>TypeConvert.Tests</PackageId>
