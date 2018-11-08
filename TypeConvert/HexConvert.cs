@@ -45,12 +45,12 @@ namespace System
 			}
 		}
 
-		private static readonly char[] HexChar = "0123456789abcdef".ToCharArray();
+		private static readonly char[] HexChars = "0123456789abcdef".ToCharArray();
 
 		/// <summary>
 		/// Set this property to true to use upper case letters in hex encoding methods. Default case is lower.
 		/// </summary>
-		public static bool UseUppercaseHex { set { for (var i = 0; i < HexChar.Length; i++) HexChar[i] = value ? char.ToLower(HexChar[i]) : char.ToUpper(HexChar[i]); } }
+		public static bool UseUppercaseHex { set { for (var i = 0; i < HexChars.Length; i++) HexChars[i] = value ? char.ToLower(HexChars[i]) : char.ToUpper(HexChars[i]); } }
 
 		/// <summary>
 		/// Encode byte array to hex string.
@@ -87,8 +87,8 @@ namespace System
 			for (var index = offset; index < end; index++)
 			{
 				var value = buffer[index];
-				hexString[hexStringIndex] = HexChar[(value >> 4) & 15u];
-				hexString[hexStringIndex + 1] = HexChar[value & 15u];
+				hexString[hexStringIndex] = HexChars[(value >> 4) & 15u];
+				hexString[hexStringIndex + 1] = HexChars[value & 15u];
 				hexStringIndex += 2;
 			}
 
@@ -122,7 +122,7 @@ namespace System
 			if (count == 0) return new char[0];
 
 			var hexBuffer = new char[count * 2];
-			Encode(buffer, offset, count, hexBuffer, 0);
+			Encode(new ByteSegment(buffer, offset, count), new CharSegment(hexBuffer));
 			return hexBuffer;
 		}
 
@@ -152,7 +152,7 @@ namespace System
 			if (offset + count > hexBuffer.Length) throw new ArgumentOutOfRangeException("count");
 
 			var buffer = new byte[(hexBuffer.Length + 1) / 2];
-			Decode(hexBuffer, offset, count, buffer, 0);
+			Decode(new CharSegment(hexBuffer, offset, count), new ByteSegment(buffer));
 			return buffer;
 		}
 		/// <summary>
@@ -181,99 +181,237 @@ namespace System
 			if (offset + count > hexString.Length) throw new ArgumentOutOfRangeException("count");
 
 			var buffer = new byte[(hexString.Length + 1) / 2];
-			Decode(hexString, offset, count, buffer, 0);
+			Decode(hexString, offset, count, new ByteSegment(buffer));
 			return buffer;
 		}
 
 		/// <summary>
-		/// Encode part of <paramref name="buffer"/> and store encoded bytes into specified part of <paramref name="hexBuffer"/>.
+		/// Encode <paramref name="inputBuffer"/> bytes and store hex-encoded bytes into <paramref name="outputBuffer"/>.
 		/// </summary>
-		/// <param name="buffer">Bytes to encode.</param>
-		/// <param name="offset">Encode start index in <paramref name="buffer"/>.</param>
-		/// <param name="count">Number of bytes to encode in <paramref name="buffer"/>.</param>
-		/// <param name="hexBuffer">Char array to store hex encoded bytes from <paramref name="buffer"/>. Array should fit encoded bytes or exception will be thrown.</param>
-		/// <param name="hexBufferOffset">Storage offset in <paramref name="hexBuffer"/>.</param>
-		/// <returns>Number of chars written to <paramref name="hexBuffer"/></returns>
-		public static int Encode(byte[] buffer, int offset, int count, char[] hexBuffer, int hexBufferOffset)
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, CharSegment outputBuffer)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0) throw new ArgumentOutOfRangeException("count");
-			if (offset + count > buffer.Length) throw new ArgumentOutOfRangeException("count");
-			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
-			if (hexBufferOffset < 0) throw new ArgumentOutOfRangeException("hexBufferOffset");
-			if (hexBufferOffset + count * 2 > hexBuffer.Length) throw new ArgumentOutOfRangeException("hexBufferOffset");
+			int inputUsed, outputUsed;
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store hex-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, CharSegment outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store hex-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, ByteSegment outputBuffer)
+		{
+			int inputUsed, outputUsed;
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Encode <paramref name="inputBuffer"/> bytes and store hex-encoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ByteSegment inputBuffer, ByteSegment outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			return EncodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
 
-			if (count == 0)
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Char array contains hex encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>. </param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(CharSegment inputBuffer, ByteSegment outputBuffer)
+		{
+			int inputUsed, outputUsed;
+			return DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Char array contains hex encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>. </param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(CharSegment inputBuffer, ByteSegment outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			return DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">String contains hex encoded bytes.</param>
+		/// <param name="inputOffset">Decode start index in <paramref name="inputBuffer"/>.</param>
+		/// <param name="inputCount">Number of chars to decode in <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(string inputBuffer, int inputOffset, int inputCount, ByteSegment outputBuffer)
+		{
+			if (inputBuffer == null) throw new ArgumentNullException("inputBuffer");
+
+			var stringSegment = new StringSegment(inputBuffer, inputOffset, inputCount);
+			int inputUsed, outputUsed;
+			return DecodeInternal(ref stringSegment, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">String contains hex encoded bytes.</param>
+		/// <param name="inputOffset">Decode start index in <paramref name="inputBuffer"/>.</param>
+		/// <param name="inputCount">Number of chars to decode in <paramref name="inputBuffer"/>.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(string inputBuffer, int inputOffset, int inputCount, ByteSegment outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			if (inputBuffer == null) throw new ArgumentNullException("inputBuffer");
+
+			var stringSegment = new StringSegment(inputBuffer, inputOffset, inputCount);
+			return DecodeInternal(ref stringSegment, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Buffer contains hex encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>. </param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ByteSegment inputBuffer, ByteSegment outputBuffer)
+		{
+			int inputUsed, outputUsed;
+			return DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// </summary>
+		/// <param name="inputBuffer">Buffer contains hex encoded bytes.</param>
+		/// <param name="outputBuffer">Byte array to store decoded bytes from <paramref name="inputBuffer"/>. </param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ByteSegment inputBuffer, ByteSegment outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			return DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed);
+		}
+
+#if NETCOREAPP2_1
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Area of memory which contains hex encoded bytes.</param>
+		/// <param name="outputBuffer">Area of memory to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer)
+		{
+			int inputUsed, outputUsed;
+			return Decode(inputBuffer, outputBuffer, out inputUsed, out outputUsed);
+		}
+		/// <summary>
+		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
+		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
+		/// </summary>
+		/// <param name="inputBuffer">Area of memory which contains hex encoded bytes.</param>
+		/// <param name="outputBuffer">Area of memory to store decoded bytes from <paramref name="inputBuffer"/>.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
+		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
+		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
+		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Decode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			inputUsed = outputUsed = 0;
+
+			if (inputBuffer.Length == 0)
 				return 0;
 
-			var outputOffset = hexBufferOffset;
-			var end = offset + count;
-			for (var index = offset; index < end; index++)
+			var outputOffset = 0;
+			var inputOffset = 0;
+			var inputEnd = inputBuffer.Length;
+			var outputCapacity = outputBuffer.Length;
+			inputEnd = inputEnd - (inputEnd % 2); // only read by two letters
+			
+			for (inputOffset = 0; inputOffset < inputEnd && outputCapacity > 0; inputOffset += 2)
 			{
-				var value = buffer[index];
-				hexBuffer[outputOffset] = HexChar[(value >> 4) & 15u];
-				hexBuffer[outputOffset + 1] = HexChar[value & 15u];
-				outputOffset += 2;
+				var hexHalfByte1 = default(uint);
+				var hexHalfByte2 = default(uint);
+
+				hexHalfByte1 = ToNumber((char)inputBuffer[inputOffset]);
+				hexHalfByte2 = ToNumber((char)inputBuffer[inputOffset + 1]);
+
+				outputBuffer[outputOffset++] = checked((byte)((hexHalfByte1 << 4) | hexHalfByte2));
+				outputCapacity--;
 			}
-			return outputOffset - hexBufferOffset;
+
+			outputUsed = outputOffset;
+			inputUsed = inputOffset;
+
+			return outputUsed;
 		}
 		/// <summary>
-		/// Decode part of <paramref name="hexBuffer"/> and store decoded bytes into specified part of <paramref name="buffer"/>.
+		/// Encode <paramref name="inputBuffer"/> bytes and store hex-encoded bytes into <paramref name="outputBuffer"/>.
 		/// </summary>
-		/// <param name="hexBuffer">Char array contains hex encoded bytes.</param>
-		/// <param name="offset">Decode start index in <paramref name="hexBuffer"/>.</param>
-		/// <param name="count">Number of chars to decode in <paramref name="hexBuffer"/>. Array should fit decoded bytes or exception will be thrown.</param>
-		/// <param name="buffer">Byte array to store decoded bytes from <paramref name="hexBuffer"/>. </param>
-		/// <param name="bufferOffset">Storage offset in <paramref name="buffer"/>.</param>
-		/// <returns>Number of bytes written to <paramref name="buffer"/></returns>
-		public static int Decode(char[] hexBuffer, int offset, int count, byte[] buffer, int bufferOffset)
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer)
 		{
-			if (hexBuffer == null) throw new ArgumentNullException("hexBuffer");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (offset + count > hexBuffer.Length) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0) throw new ArgumentOutOfRangeException("count");
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
-			if (bufferOffset + (count + 1) / 2 > buffer.Length) throw new ArgumentOutOfRangeException("count");
-
-			if (count == 0)
-				return 0;
-
-			var end = offset + count;
-			for (; offset < end; offset += 2, bufferOffset++)
-				buffer[bufferOffset] = ToUInt8(hexBuffer, offset);
-
-			return (count + 1) / 2;
+			int inputUsed, outputUsed;
+			return Encode(inputBuffer, outputBuffer, out inputUsed, out outputUsed);
 		}
 		/// <summary>
-		/// Decode part of <paramref name="hexString"/> and store decoded bytes into specified part of <paramref name="buffer"/>.
+		/// Encode <paramref name="inputBuffer"/> bytes and store hex-encoded bytes into <paramref name="outputBuffer"/>.
 		/// </summary>
-		/// <param name="hexString">String contains hex encoded bytes.</param>
-		/// <param name="offset">Decode start index in <paramref name="hexString"/>.</param>
-		/// <param name="count">Number of chars to decode in <paramref name="hexString"/>. Array should fit decoded bytes or exception will be thrown.</param>
-		/// <param name="buffer">Byte array to store decoded bytes from <paramref name="hexString"/>. </param>
-		/// <param name="bufferOffset">Storage offset in <paramref name="buffer"/>.</param>
-		/// <returns>Number of bytes written to <paramref name="buffer"/></returns>
-		public static int Decode(string hexString, int offset, int count, byte[] buffer, int bufferOffset)
+		/// <param name="inputBuffer">Bytes to encode.</param>
+		/// <param name="outputBuffer">Char array to store encoded bytes. Minimum length is 4.</param>
+		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during encoding.</param>
+		/// <param name="outputUsed">Number of characters written in <paramref name="outputBuffer"/> during encoding.</param>
+		/// <returns>Number of characters encoded into <paramref name="outputBuffer"/>.</returns>
+		public static int Encode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, out int inputUsed, out int outputUsed)
 		{
-			if (hexString == null) throw new ArgumentNullException("hexString");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (offset + count > hexString.Length) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0) throw new ArgumentOutOfRangeException("count");
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (bufferOffset < 0) throw new ArgumentOutOfRangeException("bufferOffset");
-			if (bufferOffset + (count + 1) / 2 > buffer.Length) throw new ArgumentOutOfRangeException("count");
+			inputUsed = outputUsed = 0;
 
-			if (count == 0)
-				return 0;
+			var inputEnd = inputBuffer.Length;
+			var outputCapacity = outputBuffer.Length;
+			var outputOffset = 0;
+			var hexChars = HexChars;
 
-			var end = offset + count;
-			for (; offset < end; offset += 2, bufferOffset++)
-				buffer[bufferOffset] = ToUInt8(hexString, offset);
+			int inputOffset;
+			for (inputOffset = 0; inputOffset < inputEnd; inputOffset++)
+				for (; inputOffset < inputEnd && outputCapacity >= 2; inputOffset++)
+				{
+					var value = inputBuffer[inputOffset];
 
-			return (count + 1) / 2;
+					outputBuffer[outputOffset++] = (byte)hexChars[(value >> 4) & 15u];
+					outputBuffer[outputOffset++] = (byte)hexChars[value & 15u];
+					outputCapacity -= 2;
+				}
+
+
+			inputUsed = inputOffset;
+			outputUsed = outputOffset;
+
+			return outputUsed;
 		}
+#endif
 
 		/// <summary>
 		/// Decode <see cref="UInt64"/> from hex char array. Minimal required length of <paramref name="hexBuffer"/> is 1. Maximal used length is 16.
@@ -530,22 +668,22 @@ namespace System
 			}
 			else
 			{
-				hexBuffer[offset + 0] = HexChar[(value >> 4) & 15u];
-				hexBuffer[offset + 1] = HexChar[value & 15u];
-				hexBuffer[offset + 2] = HexChar[(value >> 4 * 3) & 15u];
-				hexBuffer[offset + 3] = HexChar[(value >> 4 * 2) & 15u];
-				hexBuffer[offset + 4] = HexChar[(value >> 4 * 5) & 15u];
-				hexBuffer[offset + 5] = HexChar[(value >> 4 * 4) & 15u];
-				hexBuffer[offset + 6] = HexChar[(value >> 4 * 7) & 15u];
-				hexBuffer[offset + 7] = HexChar[(value >> 4 * 6) & 15u];
-				hexBuffer[offset + 8] = HexChar[(value >> 4 * 9) & 15u];
-				hexBuffer[offset + 9] = HexChar[(value >> 4 * 8) & 15u];
-				hexBuffer[offset + 10] = HexChar[(value >> 4 * 11) & 15u];
-				hexBuffer[offset + 11] = HexChar[(value >> 4 * 10) & 15u];
-				hexBuffer[offset + 12] = HexChar[(value >> 4 * 13) & 15u];
-				hexBuffer[offset + 13] = HexChar[(value >> 4 * 12) & 15u];
-				hexBuffer[offset + 14] = HexChar[(value >> 4 * 15) & 15u];
-				hexBuffer[offset + 15] = HexChar[(value >> 4 * 14) & 15u];
+				hexBuffer[offset + 0] = HexChars[(value >> 4) & 15u];
+				hexBuffer[offset + 1] = HexChars[value & 15u];
+				hexBuffer[offset + 2] = HexChars[(value >> 4 * 3) & 15u];
+				hexBuffer[offset + 3] = HexChars[(value >> 4 * 2) & 15u];
+				hexBuffer[offset + 4] = HexChars[(value >> 4 * 5) & 15u];
+				hexBuffer[offset + 5] = HexChars[(value >> 4 * 4) & 15u];
+				hexBuffer[offset + 6] = HexChars[(value >> 4 * 7) & 15u];
+				hexBuffer[offset + 7] = HexChars[(value >> 4 * 6) & 15u];
+				hexBuffer[offset + 8] = HexChars[(value >> 4 * 9) & 15u];
+				hexBuffer[offset + 9] = HexChars[(value >> 4 * 8) & 15u];
+				hexBuffer[offset + 10] = HexChars[(value >> 4 * 11) & 15u];
+				hexBuffer[offset + 11] = HexChars[(value >> 4 * 10) & 15u];
+				hexBuffer[offset + 12] = HexChars[(value >> 4 * 13) & 15u];
+				hexBuffer[offset + 13] = HexChars[(value >> 4 * 12) & 15u];
+				hexBuffer[offset + 14] = HexChars[(value >> 4 * 15) & 15u];
+				hexBuffer[offset + 15] = HexChars[(value >> 4 * 14) & 15u];
 			}
 
 			return MAX_LENGTH;
@@ -571,14 +709,14 @@ namespace System
 			}
 			else
 			{
-				hexBuffer[offset + 0] = HexChar[(value >> 4) & 15u];
-				hexBuffer[offset + 1] = HexChar[value & 15u];
-				hexBuffer[offset + 2] = HexChar[(value >> 4 * 3) & 15u];
-				hexBuffer[offset + 3] = HexChar[(value >> 4 * 2) & 15u];
-				hexBuffer[offset + 4] = HexChar[(value >> 4 * 5) & 15u];
-				hexBuffer[offset + 5] = HexChar[(value >> 4 * 4) & 15u];
-				hexBuffer[offset + 6] = HexChar[(value >> 4 * 7) & 15u];
-				hexBuffer[offset + 7] = HexChar[(value >> 4 * 6) & 15u];
+				hexBuffer[offset + 0] = HexChars[(value >> 4) & 15u];
+				hexBuffer[offset + 1] = HexChars[value & 15u];
+				hexBuffer[offset + 2] = HexChars[(value >> 4 * 3) & 15u];
+				hexBuffer[offset + 3] = HexChars[(value >> 4 * 2) & 15u];
+				hexBuffer[offset + 4] = HexChars[(value >> 4 * 5) & 15u];
+				hexBuffer[offset + 5] = HexChars[(value >> 4 * 4) & 15u];
+				hexBuffer[offset + 6] = HexChars[(value >> 4 * 7) & 15u];
+				hexBuffer[offset + 7] = HexChars[(value >> 4 * 6) & 15u];
 			}
 
 			return MAX_LENGTH;
@@ -606,10 +744,10 @@ namespace System
 			}
 			else
 			{
-				hexBuffer[offset + 0] = HexChar[(value >> 4) & 15u];
-				hexBuffer[offset + 1] = HexChar[value & 15u];
-				hexBuffer[offset + 2] = HexChar[(value >> 4 * 3) & 15u];
-				hexBuffer[offset + 3] = HexChar[(value >> 4 * 2) & 15u];
+				hexBuffer[offset + 0] = HexChars[(value >> 4) & 15u];
+				hexBuffer[offset + 1] = HexChars[value & 15u];
+				hexBuffer[offset + 2] = HexChars[(value >> 4 * 3) & 15u];
+				hexBuffer[offset + 3] = HexChars[(value >> 4 * 2) & 15u];
 			}
 
 			return MAX_LENGTH;
@@ -635,11 +773,144 @@ namespace System
 			}
 			else
 			{
-				hexBuffer[offset] = HexChar[(value >> 4) & 15u];
-				hexBuffer[offset + 1] = HexChar[value & 15u];
+				hexBuffer[offset] = HexChars[(value >> 4) & 15u];
+				hexBuffer[offset + 1] = HexChars[value & 15u];
 			}
 
 			return MAX_LENGTH;
+		}
+
+		private static int EncodeInternal<BufferT>(ref ByteSegment inputBuffer, ref BufferT outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			inputUsed = outputUsed = 0;
+			var hexChars = HexChars;
+
+			if (inputBuffer.Count == 0 || inputBuffer.Array == null)
+				return 0;
+
+			var input = inputBuffer.Array;
+			var inputEnd = inputBuffer.Offset + inputBuffer.Count;
+			var inputOffset = inputBuffer.Offset;
+			int outputOffset, originalOutputOffset, outputCapacity;
+
+			if (outputBuffer is ByteSegment)
+			{
+				var byteSegment = (ByteSegment)(object)outputBuffer;
+				outputOffset = originalOutputOffset = byteSegment.Offset;
+				outputCapacity = byteSegment.Count;
+			}
+			else if (outputBuffer is CharSegment)
+			{
+				var charSegment = (CharSegment)(object)outputBuffer;
+				outputOffset = originalOutputOffset = charSegment.Offset;
+				outputCapacity = charSegment.Count;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown type of output buffer: " + typeof(BufferT));
+			}
+
+			for (; inputOffset < inputEnd && outputCapacity >= 2; inputOffset++)
+			{
+				var value = input[inputOffset];
+
+				if (outputBuffer is ByteSegment)
+				{
+					var outputSegment = (ByteSegment)(object)outputBuffer;
+					outputSegment.Array[outputOffset++] = (byte)hexChars[(value >> 4) & 15u];
+					outputSegment.Array[outputOffset++] = (byte)hexChars[value & 15u];
+				}
+				else
+				{
+					var outputSegment = (CharSegment)(object)outputBuffer;
+					outputSegment.Array[outputOffset++] = hexChars[(value >> 4) & 15u];
+					outputSegment.Array[outputOffset++] = hexChars[value & 15u];
+				}
+				outputCapacity -= 2;
+			}
+			inputUsed = inputOffset - inputBuffer.Offset;
+			outputUsed = outputOffset - originalOutputOffset;
+
+			return outputUsed;
+		}
+		private static int DecodeInternal<BufferT>(ref BufferT inputBuffer, ref ByteSegment outputBuffer, out int inputUsed, out int outputUsed)
+		{
+			inputUsed = outputUsed = 0;
+
+			if (outputBuffer.Count == 0 || outputBuffer.Array == null)
+				return 0;
+
+			var originalInputOffset = 0;
+			var inputOffset = 0;
+			var inputEnd = 0;
+			var outputOffset = outputBuffer.Offset;
+			var outputCapacity = outputBuffer.Count;
+			var output = outputBuffer.Array;
+
+			if (inputBuffer is ByteSegment)
+			{
+				var byteSegment = (ByteSegment)(object)inputBuffer;
+				if (byteSegment.Count == 0 || byteSegment.Array == null)
+					return 0;
+				inputOffset = originalInputOffset = byteSegment.Offset;
+				inputEnd = byteSegment.Offset + byteSegment.Count;
+			}
+			else if (inputBuffer is CharSegment)
+			{
+				var charSegment = (CharSegment)(object)inputBuffer;
+				if (charSegment.Count == 0 || charSegment.Array == null)
+					return 0;
+				inputOffset = originalInputOffset = charSegment.Offset;
+				inputEnd = charSegment.Offset + charSegment.Count;
+			}
+			else if (inputBuffer is StringSegment)
+			{
+				var stringSegment = (StringSegment)(object)inputBuffer;
+				if (stringSegment.Count == 0 || stringSegment.Array == null)
+					return 0;
+				inputOffset = originalInputOffset = stringSegment.Offset;
+				inputEnd = stringSegment.Offset + stringSegment.Count;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown input buffer type: " + typeof(BufferT));
+			}
+
+			inputEnd = inputEnd - (inputEnd % 2); // only read by two letters
+
+			for (; inputOffset < inputEnd && outputCapacity > 0; inputOffset += 2)
+			{
+				var hexHalfByte1 = default(uint);
+				var hexHalfByte2 = default(uint);
+
+				if (inputBuffer is ByteSegment)
+				{
+					var inputSegment = (ByteSegment)(object)inputBuffer;
+
+					hexHalfByte1 = ToNumber((char)inputSegment.Array[inputOffset]);
+					hexHalfByte2 = ToNumber((char)inputSegment.Array[inputOffset + 1]);
+				}
+				else if (inputBuffer is CharSegment)
+				{
+					var inputSegment = (CharSegment)(object)inputBuffer;
+					hexHalfByte1 = ToNumber(inputSegment.Array[inputOffset]);
+					hexHalfByte2 = ToNumber(inputSegment.Array[inputOffset + 1]);
+				}
+				else
+				{
+					var inputSegment = (StringSegment)(object)inputBuffer;
+					hexHalfByte1 = ToNumber(inputSegment.Array[inputOffset]);
+					hexHalfByte2 = ToNumber(inputSegment.Array[inputOffset + 1]);
+				}
+
+				output[outputOffset++] = checked((byte)((hexHalfByte1 << 4) | hexHalfByte2));
+				outputCapacity--;
+			}
+
+			outputUsed = outputOffset - outputBuffer.Offset;
+			inputUsed = inputOffset - originalInputOffset;
+
+			return outputUsed;
 		}
 
 		private static uint ToNumber(char hexChar)

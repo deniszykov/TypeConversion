@@ -155,7 +155,7 @@ namespace System
 
 			var outputCount = GetBytesCount(base64Buffer, offset, count, base64Alphabet);
 			var inputBuffer = new CharSegment(base64Buffer, offset, count);
-			var outputBuffer = new ByteSegment(new byte[outputCount], offset, count);
+			var outputBuffer = new ByteSegment(new byte[outputCount], 0, outputCount);
 			int inputUsed, outputUsed;
 
 			DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
@@ -193,7 +193,7 @@ namespace System
 
 			var outputCount = GetBytesCount(base64String, offset, count, base64Alphabet);
 			var inputBuffer = new StringSegment(base64String, offset, count);
-			var outputBuffer = new ByteSegment(new byte[outputCount], offset, count);
+			var outputBuffer = new ByteSegment(new byte[outputCount], 0, outputCount);
 			int inputUsed, outputUsed;
 
 			DecodeInternal(ref inputBuffer, ref outputBuffer, out inputUsed, out outputUsed, base64Alphabet);
@@ -362,7 +362,7 @@ namespace System
 			}
 
 			end:
-			inputUsed = (int)(inputBuffer - originalInputAddress);
+			inputUsed = (int)((Math.Min((long)inputBuffer, (long)inputEnd) - (long)originalInputAddress));
 			outputUsed = (int)(outputBuffer - originalOutputAddress);
 
 			return outputUsed;
@@ -509,6 +509,7 @@ namespace System
 			{
 				var number = 0u;
 				int j;
+				var lookupStartInputPointer = inputBuffer;
 				for (j = 0; j < 4 && inputBuffer + j < inputEnd; j++)
 				{
 					uint base64Code = inputBuffer[j];
@@ -531,7 +532,7 @@ namespace System
 
 						outputBuffer[0] = (byte)((number >> 16) & 255);
 						outputBuffer++;
-						break;
+						goto end;
 					case 3:
 						if (outputBuffer + 1 >= outputCapacity)
 							goto default;
@@ -539,7 +540,7 @@ namespace System
 						outputBuffer[0] = (byte)((number >> 16) & 255);
 						outputBuffer[1] = (byte)((number >> 8) & 255);
 						outputBuffer += 2;
-						break;
+						goto end;
 					case 4:
 						if (outputBuffer + 2 >= outputCapacity)
 							goto default;
@@ -550,7 +551,7 @@ namespace System
 						outputBuffer += 3;
 						break;
 					default:
-						inputBuffer -= j;
+						inputBuffer = lookupStartInputPointer;
 						goto end;
 				}
 			}
@@ -597,11 +598,13 @@ namespace System
 			var outputOffset = 0;
 			var inputOffset = 0;
 			var inputEnd = inputBuffer.Length;
+			var outputCapacity = outputBuffer.Length;
 
-			for (inputOffset = 0; inputOffset < inputEnd; inputOffset += 4)
+			for (inputOffset = 0; inputOffset < inputEnd && outputCapacity > 0; inputOffset += 4)
 			{
 				var number = 0u;
 				int j;
+				var lookupStartInputOffset = inputOffset;
 				for (j = 0; j < 4 && inputOffset + j < inputEnd; j++)
 				{
 					uint base64Code = inputBuffer[inputOffset + j];
@@ -619,28 +622,33 @@ namespace System
 				switch (j)
 				{
 					case 2:
-						if (outputOffset >= outputBuffer.Length)
+						if (outputCapacity < 1)
 							goto default;
 
 						outputBuffer[outputOffset++] = (byte)((number >> 16) & 255);
-						break;
+						outputCapacity--;
+						inputOffset += j;
+						goto end;
 					case 3:
-						if (outputOffset + 1 >= outputBuffer.Length)
+						if (outputCapacity < 2)
 							goto default;
 
 						outputBuffer[outputOffset++] = (byte)((number >> 16) & 255);
 						outputBuffer[outputOffset++] = (byte)((number >> 8) & 255);
-						break;
+						outputCapacity -= 2;
+						inputOffset += j;
+						goto end;
 					case 4:
-						if (outputOffset + 2 >= outputBuffer.Length)
+						if (outputCapacity < 3)
 							goto default;
 
 						outputBuffer[outputOffset++] = (byte)((number >> 16) & 255);
 						outputBuffer[outputOffset++] = (byte)((number >> 8) & 255);
 						outputBuffer[outputOffset++] = (byte)((number >> 0) & 255);
+						outputCapacity -= 3;
 						break;
 					default:
-						inputOffset -= j;
+						inputOffset = lookupStartInputOffset;
 						goto end;
 				}
 			}
@@ -760,7 +768,7 @@ namespace System
 			}
 
 			end:
-			inputUsed = inputOffset;
+			inputUsed = Math.Min(inputOffset, inputEnd);
 			outputUsed = outputOffset;
 
 			return outputUsed;
@@ -771,16 +779,16 @@ namespace System
 		/// Calculate size of base64 output based on input's size.
 		/// </summary>
 		/// <param name="bytesCount">Length of input buffer in bytes.</param>
-		/// <param name="withPadding">Flag indicating what output will be padded.</param>
+		/// <param name="alphabetHasPadding">Flag indicating what output will be padded.</param>
 		/// <returns>Length of base64 output in bytes/letters.</returns>
-		public static int GetBase64OutputLength(int bytesCount, bool withPadding)
+		public static int GetBase64OutputLength(int bytesCount, bool alphabetHasPadding = true)
 		{
 			if (bytesCount < 0) throw new ArgumentOutOfRangeException("bytesCount");
 
 			if (bytesCount == 0)
 				return 0;
 
-			if (withPadding)
+			if (alphabetHasPadding)
 			{
 				return checked((bytesCount / 3 * 4) + ((bytesCount % 3 != 0) ? 4 : 0));
 			}
@@ -894,8 +902,9 @@ namespace System
 							charsCount = 3;
 						}
 
-						if (outputCapacity < 3)
+						if (outputCapacity < charsCount)
 						{
+							inputOffset -= 2;
 							goto end;
 						}
 
@@ -916,8 +925,9 @@ namespace System
 							forth = '\0';
 						}
 
-						if (outputCapacity < 2)
+						if (outputCapacity < charsCount)
 						{
+							inputOffset -= 1;
 							goto end;
 						}
 
@@ -931,6 +941,7 @@ namespace System
 
 						if (outputCapacity < 4)
 						{
+							inputOffset -= 3;
 							goto end;
 						}
 
@@ -962,7 +973,7 @@ namespace System
 			}
 
 			end:
-			inputUsed = inputOffset - inputBuffer.Offset;
+			inputUsed = Math.Min(inputEnd, inputOffset) - inputBuffer.Offset;
 			outputUsed = outputOffset - originalOutputOffset;
 
 			return outputUsed;
@@ -979,7 +990,7 @@ namespace System
 			var inputOffset = 0;
 			var inputEnd = 0;
 			var outputOffset = outputBuffer.Offset;
-			var outputCapacity = outputBuffer.Offset + outputBuffer.Count;
+			var outputCapacity = outputBuffer.Count;
 			var output = outputBuffer.Array;
 			var alphabetInverse = base64Alphabet.AlphabetInverse;
 
@@ -1016,6 +1027,7 @@ namespace System
 			{
 				var number = 0u;
 				int j;
+				var lookupStartInputOffset = inputOffset;
 				for (j = 0; j < 4 && inputOffset + j < inputEnd; j++)
 				{
 					uint base64Code;
@@ -1023,18 +1035,18 @@ namespace System
 
 					if (inputBuffer is ByteSegment)
 					{
-						var byteSegment = (ByteSegment)(object)inputBuffer;
-						base64Code = byteSegment.Array[inputOffset + j];
+						var inputSegment = (ByteSegment)(object)inputBuffer;
+						base64Code = inputSegment.Array[inputOffset + j];
 					}
 					else if (inputBuffer is CharSegment)
 					{
-						var charSegment = (CharSegment)(object)inputBuffer;
-						base64Code = charSegment.Array[inputOffset + j];
+						var inputSegment = (CharSegment)(object)inputBuffer;
+						base64Code = inputSegment.Array[inputOffset + j];
 					}
 					else
 					{
-						var stringSegment = (StringSegment)(object)inputBuffer;
-						base64Code = stringSegment.Array[inputOffset + j];
+						var inputSegment = (StringSegment)(object)inputBuffer;
+						base64Code = inputSegment.Array[inputOffset + j];
 					}
 
 					if ((base64Code > 127) || (base64CodeIndex = alphabetInverse[base64Code]) == Base64Alphabet.NOT_IN_ALPHABET)
@@ -1049,28 +1061,34 @@ namespace System
 				switch (j)
 				{
 					case 2:
-						if (outputOffset >= outputCapacity)
+						if (outputCapacity < 1)
 							goto default;
 
 						output[outputOffset++] = (byte)((number >> 16) & 255);
-						break;
+
+						outputCapacity--;
+						inputOffset += j;
+						goto end;
 					case 3:
-						if (outputOffset + 1 >= outputCapacity)
+						if (outputCapacity < 2)
 							goto default;
 
 						output[outputOffset++] = (byte)((number >> 16) & 255);
 						output[outputOffset++] = (byte)((number >> 8) & 255);
-						break;
+						outputCapacity -= 2;
+						inputOffset += j;
+						goto end;
 					case 4:
-						if (outputOffset + 2 >= outputCapacity)
+						if (outputCapacity < 3)
 							goto default;
 
 						output[outputOffset++] = (byte)((number >> 16) & 255);
 						output[outputOffset++] = (byte)((number >> 8) & 255);
 						output[outputOffset++] = (byte)((number >> 0) & 255);
+						outputCapacity -= 3;
 						break;
 					default:
-						inputOffset -= j;
+						inputOffset = lookupStartInputOffset;
 						goto end;
 				}
 			}
