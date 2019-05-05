@@ -315,11 +315,9 @@ namespace System
 #if NETCOREAPP2_1
 		/// <summary>
 		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
-		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
 		/// </summary>
 		/// <param name="inputBuffer">Area of memory which contains hex encoded bytes.</param>
 		/// <param name="outputBuffer">Area of memory to store decoded bytes from <paramref name="inputBuffer"/>.</param>
-		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
 		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
 		public static int Decode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer)
 		{
@@ -328,13 +326,11 @@ namespace System
 		}
 		/// <summary>
 		/// Decode hex-encoded <paramref name="inputBuffer"/> and store decoded bytes into <paramref name="outputBuffer"/>.
-		/// Only symbols from <paramref name="base64Alphabet"/> is counted. Other symbols are skipped.
 		/// </summary>
 		/// <param name="inputBuffer">Area of memory which contains hex encoded bytes.</param>
 		/// <param name="outputBuffer">Area of memory to store decoded bytes from <paramref name="inputBuffer"/>.</param>
 		/// <param name="inputUsed">Number of bytes read from <paramref name="inputBuffer"/> during decoding.</param>
 		/// <param name="outputUsed">Number of bytes written in <paramref name="outputBuffer"/> during decoding.</param>
-		/// <param name="base64Alphabet">Base alphabet used for encoding/decoding. <see cref="Base64Alphabet"/> is used if <paramref name="base64Alphabet"/> is null.</param>
 		/// <returns>Number of bytes decoded into <paramref name="outputBuffer"/>.</returns>
 		public static int Decode(ReadOnlySpan<byte> inputBuffer, Span<byte> outputBuffer, out int inputUsed, out int outputUsed)
 		{
