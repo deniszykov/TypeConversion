@@ -23,26 +23,30 @@ namespace TypeConvert.Tests
 		[InlineData(255)]
 		public void HexToBufferConvertTest(int count)
 		{
+			var random = new Random(count);
 			var expectedBuffer = new byte[count];
-			new Random(count).NextBytes(expectedBuffer);
-			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "").ToLowerInvariant();
+			random.NextBytes(expectedBuffer);
+
+			var offset = random.Next(0, 10);
+			var extra = random.Next(0, 10);
+			var expectedHexString = new string('X', offset) + BitConverter.ToString(expectedBuffer, 0, count).Replace("-", "").ToLowerInvariant() + new string('Y', extra);
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// hex string -> buffer
-			var buffer = HexConvert.ToBytes(expectedHexString, 0, expectedHexString.Length);
+			var buffer = HexConvert.ToBytes(expectedHexString, offset, count * 2);
 			Assert.Equal(expectedBuffer, buffer);
 			// hex buffer -> buffer
-			buffer = HexConvert.ToBytes(expectedHexBuffer, 0, expectedHexBuffer.Length);
+			buffer = HexConvert.ToBytes(expectedHexBuffer, offset, count * 2);
 			Assert.Equal(expectedBuffer, buffer);
 
 			// hex buffer -> buffer (copy)
 			buffer = new byte[expectedBuffer.Length];
-			HexConvert.Decode(new ArraySegment<char>(expectedHexBuffer, 0, expectedHexBuffer.Length), new ArraySegment<byte>(buffer));
+			HexConvert.Decode(new ArraySegment<char>(expectedHexBuffer, offset, count * 2), new ArraySegment<byte>(buffer));
 			Assert.Equal(expectedBuffer, buffer);
 
 			// hex buffer -> buffer (copy)
 			buffer = new byte[expectedBuffer.Length];
-			HexConvert.Decode(expectedHexString, 0, expectedHexBuffer.Length, new ArraySegment<byte>(buffer));
+			HexConvert.Decode(expectedHexString, offset, count * 2, new ArraySegment<byte>(buffer));
 			Assert.Equal(expectedBuffer, buffer);
 		}
 
@@ -53,21 +57,24 @@ namespace TypeConvert.Tests
 		[InlineData(255)]
 		public void BufferToHexConvertTest(int count)
 		{
-			var expectedBuffer = new byte[count];
-			new Random(count).NextBytes(expectedBuffer);
-			var expectedHexString = BitConverter.ToString(expectedBuffer).Replace("-", "").ToLowerInvariant();
+			var random = new Random(count);
+			var offset = random.Next(0, 10);
+			var extra = random.Next(0, 10);
+			var expectedBuffer = new byte[offset + count + extra];
+			random.NextBytes(expectedBuffer);
+			var expectedHexString = BitConverter.ToString(expectedBuffer, offset, count).Replace("-", "").ToLowerInvariant();
 			var expectedHexBuffer = expectedHexString.ToCharArray();
 
 			// buffer -> hex string
-			var hexString = HexConvert.ToString(expectedBuffer, 0, expectedBuffer.Length);
+			var hexString = HexConvert.ToString(expectedBuffer, offset, count);
 			Assert.Equal(expectedHexString, hexString);
 			// buffer -> hex buffer
-			var hexBuffer = HexConvert.ToCharArray(expectedBuffer, 0, expectedBuffer.Length);
+			var hexBuffer = HexConvert.ToCharArray(expectedBuffer, offset, count);
 			Assert.Equal(expectedHexBuffer, hexBuffer);
 
 			// buffer -> hex buffer (copy)
 			hexBuffer = new char[expectedHexBuffer.Length];
-			HexConvert.Encode(new ArraySegment<byte>(expectedBuffer, 0, expectedBuffer.Length), new ArraySegment<char>(hexBuffer));
+			HexConvert.Encode(new ArraySegment<byte>(expectedBuffer, offset, count), new ArraySegment<char>(hexBuffer));
 			Assert.Equal(expectedHexBuffer, hexBuffer);
 		}
 

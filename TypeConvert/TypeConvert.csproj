@@ -20,7 +20,11 @@
 		<StartupObject />
 		<AssemblyName>TypeConvert</AssemblyName>
 		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-		<PackageReleaseNotes># 2.1.4
+		<PackageReleaseNotes># 2.1.5
+- fixed HexConvert.ToString(buffer, offset, count) dont respect count parameter
+- fixed HexConvert.ToBytes(hexBuffer, offset, count) dont respect count parameter
+
+# 2.1.4
 - added TypeConvert.RegisterCustomConversion method that allow override conversion operation between selected types.
 - fixed Uri conversion. Relative url is now supported.
 
@@ -64,7 +68,7 @@
 		</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/deniszykov/typeconvert</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/deniszykov/typeconvert/master/LICENSE</PackageLicenseUrl>
-		<Copyright>(c) Denis Zykov 2017</Copyright>
+		<Copyright>(c) Denis Zykov 2019</Copyright>
 		<RepositoryUrl>https://github.com/deniszykov/typeconvert</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>hex convert construct enum tools units</PackageTags>

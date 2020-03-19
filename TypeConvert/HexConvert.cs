@@ -79,7 +79,7 @@ namespace System
 
 			if (count == 0) return string.Empty;
 
-			var hexString = new StringBuilder(buffer.Length * 2);
+			var hexString = new StringBuilder(count * 2);
 			hexString.Append('0', hexString.Capacity);
 
 			var end = offset + count;
@@ -91,6 +91,7 @@ namespace System
 				hexString[hexStringIndex + 1] = HexChars[value & 15u];
 				hexStringIndex += 2;
 			}
+			hexString.Length = count * 2;
 
 			return hexString.ToString();
 		}
@@ -151,7 +152,7 @@ namespace System
 			if (count < 0) throw new ArgumentOutOfRangeException("count");
 			if (offset + count > hexBuffer.Length) throw new ArgumentOutOfRangeException("count");
 
-			var buffer = new byte[(hexBuffer.Length + 1) / 2];
+			var buffer = new byte[(count + 1) / 2];
 			Decode(new CharSegment(hexBuffer, offset, count), new ByteSegment(buffer));
 			return buffer;
 		}
@@ -180,7 +181,7 @@ namespace System
 			if (count < 0) throw new ArgumentOutOfRangeException("count");
 			if (offset + count > hexString.Length) throw new ArgumentOutOfRangeException("count");
 
-			var buffer = new byte[(hexString.Length + 1) / 2];
+			var buffer = new byte[(count + 1) / 2];
 			Decode(hexString, offset, count, new ByteSegment(buffer));
 			return buffer;
 		}

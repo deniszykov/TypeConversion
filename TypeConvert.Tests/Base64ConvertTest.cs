@@ -28,34 +28,32 @@ namespace TypeConvert.Tests
 		[InlineData(1024)]
 		public void Base64ToBufferConvertTest(int count)
 		{
+			var random = new Random(count);
 			var expectedBuffer = new byte[count];
-			var r = new Random(count);
-			r.NextBytes(expectedBuffer);
+			random.NextBytes(expectedBuffer);
+
+			var offset = random.Next(0, 10);
+			var extra = random.Next(0, 10);
 			var expectedBase64String = Convert.ToBase64String(expectedBuffer);
-			var expectedBase64Chars = expectedBase64String.ToCharArray();
-
-
-			var inputOffset = r.Next(0, 100);
-			var inputBuffer = new char[inputOffset + expectedBase64Chars.Length + inputOffset];
-			expectedBase64Chars.CopyTo(inputBuffer, inputOffset);
-			var inputString = new string('a', inputOffset) + expectedBase64String + new string('a', inputOffset);
+			var base64String = new string('X', offset) + expectedBase64String  + new string('Y', extra);
+			var base64Chars = base64String.ToCharArray();
 
 			// base64 string -> buffer
-			var outputBuffer = Base64Convert.ToBytes(inputString, inputOffset, expectedBase64String.Length);
+			var outputBuffer = Base64Convert.ToBytes(base64String, offset, expectedBase64String.Length);
 			Assert.Equal(expectedBuffer, outputBuffer);
 
 			// base64 buffer -> buffer
-			outputBuffer = Base64Convert.ToBytes(inputBuffer, inputOffset, expectedBase64Chars.Length);
+			outputBuffer = Base64Convert.ToBytes(base64Chars, offset, expectedBase64String.Length);
 			Assert.Equal(expectedBuffer, outputBuffer);
 
 			// base64 buffer -> buffer (copy)
 			outputBuffer = new byte[expectedBuffer.Length];
-			Base64Convert.Decode(new ArraySegment<char>(inputBuffer, inputOffset, expectedBase64Chars.Length), new ArraySegment<byte>(outputBuffer));
+			Base64Convert.Decode(new ArraySegment<char>(base64Chars, offset, expectedBase64String.Length), new ArraySegment<byte>(outputBuffer));
 			Assert.Equal(expectedBuffer, outputBuffer);
 
 			// base64 buffer -> buffer (copy)
 			outputBuffer = new byte[expectedBuffer.Length];
-			Base64Convert.Decode(inputString, inputOffset, expectedBase64Chars.Length, new ArraySegment<byte>(outputBuffer));
+			Base64Convert.Decode(base64String, offset, expectedBase64String.Length, new ArraySegment<byte>(outputBuffer));
 			Assert.Equal(expectedBuffer, outputBuffer);
 		}
 
@@ -66,26 +64,24 @@ namespace TypeConvert.Tests
 		[InlineData(255)]
 		public void BufferToBase64ConvertTest(int count)
 		{
-			var expectedBuffer = new byte[count];
-			var r = new Random(count);
-			r.NextBytes(expectedBuffer);
-			var expectedBase64String = Convert.ToBase64String(expectedBuffer);
+			var random = new Random(count);
+			var offset = random.Next(0, 10);
+			var extra = random.Next(0, 10);
+			var expectedBuffer = new byte[offset + count + extra];
+			random.NextBytes(expectedBuffer);
+			var expectedBase64String = Convert.ToBase64String(expectedBuffer, offset, count);
 			var expectedBase64Chars = expectedBase64String.ToCharArray();
 
-			var inputOffset = r.Next(0, 100);
-			var inputBuffer = new byte[inputOffset + expectedBuffer.Length + inputOffset];
-			Buffer.BlockCopy(expectedBuffer, 0, inputBuffer, inputOffset, expectedBuffer.Length);
-
 			// buffer -> base64 string
-			var base64String = Base64Convert.ToString(inputBuffer, inputOffset, expectedBuffer.Length);
+			var base64String = Base64Convert.ToString(expectedBuffer, offset, count);
 			Assert.Equal(expectedBase64String, base64String);
 			// buffer -> base64 buffer
-			var base64Chars = Base64Convert.ToCharArray(inputBuffer, inputOffset, expectedBuffer.Length);
+			var base64Chars = Base64Convert.ToCharArray(expectedBuffer, offset, count);
 			Assert.Equal(expectedBase64Chars, base64Chars);
 
 			// buffer -> base64 buffer (copy)
 			base64Chars = new char[expectedBase64Chars.Length];
-			Base64Convert.Encode(new ArraySegment<byte>(inputBuffer, inputOffset, expectedBuffer.Length), new ArraySegment<char>(base64Chars));
+			Base64Convert.Encode(new ArraySegment<byte>(expectedBuffer, offset, count), new ArraySegment<char>(base64Chars));
 			Assert.Equal(expectedBase64Chars, base64Chars);
 		}
 
