@@ -388,7 +388,7 @@ namespace System
 
 			value = (EnumT)Enum.Parse(typeof(EnumT), name, ignoreCase: false);
 			return value;
-		}
+		} //TODO: make case insensitive parsing
 		/// <summary>
 		/// Try to map passed <paramref name="name"/> to enumeration member name and return it's value. Or try to parse <paramref name="name"/> as number and maps it to first matching enumeration member.
 		/// </summary>

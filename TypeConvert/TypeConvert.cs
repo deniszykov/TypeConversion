@@ -531,7 +531,7 @@ namespace System
 			InitializeNativeConversions();
 #endif
 
-			RegisterCustomConversion<string, Uri>((value, format, fp) =>
+			RegisterCustomConversion<string, Uri>((value, format, fp) => // TODO special conversion Uri -> string should be Uri.OriginalString
 			{
 				var kind = string.IsNullOrEmpty(format) ? UriKind.RelativeOrAbsolute : (UriKind)Enum.Parse(typeof(UriKind), format, ignoreCase: true);
 				return new Uri(value, kind);
