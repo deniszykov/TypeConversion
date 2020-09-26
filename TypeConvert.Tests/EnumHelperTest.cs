@@ -45,6 +45,61 @@ namespace TypeConvert.Tests
 			testMethod?.Invoke();
 		}
 
+		[Fact]
+		public void TestParse()
+		{
+			var expected = ByteEnum.One;
+			var actual = EnumHelper<ByteEnum>.Parse(expected.ToString());
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void TestParseCaseInsensitie()
+		{
+			var expected = ByteEnum.One;
+			var actual = EnumHelper<ByteEnum>.Parse(expected.ToString().ToLowerInvariant(), ignoreCase: true);
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void TestTryParse()
+		{
+			var expected = ByteEnum.One;
+			var parsed = EnumHelper<ByteEnum>.TryParse(expected.ToString(), out var actual);
+
+			Assert.True(parsed);
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void TestTryParseIgnoreCase()
+		{
+			var expected = ByteEnum.One;
+			var parsed = EnumHelper<ByteEnum>.TryParse(expected.ToString().ToLowerInvariant(), out var actual, ignoreCase: true);
+
+			Assert.True(parsed);
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void TestTryParseFailCase()
+		{
+			var expected = ByteEnum.One;
+			var parsed = EnumHelper<ByteEnum>.TryParse(expected.ToString().ToLowerInvariant(), out var actual);
+
+			Assert.False(parsed);
+		}
+
+		[Fact]
+		public void TestTryParseFailValue()
+		{
+			var parsed = EnumHelper<ByteEnum>.TryParse("WRONG", out var _);
+
+			Assert.False(parsed);
+		}
+
 		private void FromToMethodsTestImpl<EnumT, UnderlyingT>()
 		{
 			Assert.IsType<Func<EnumT, UnderlyingT>>(EnumHelper<EnumT>.ToNumber);

@@ -16,6 +16,7 @@ namespace System
 	{
 		private static readonly SortedDictionary<EnumT, string> NamesByValue;
 		private static readonly SortedDictionary<string, EnumT> ValueByName;
+		private static readonly SortedDictionary<string, EnumT> ValueByNameCaseInsensitive;
 
 		// ReSharper disable StaticMemberInGenericType
 		/// <summary>
@@ -106,6 +107,7 @@ namespace System
 
 			NamesByValue = new SortedDictionary<EnumT, string>(Comparer);
 			ValueByName = new SortedDictionary<string, EnumT>(StringComparer.Ordinal);
+			ValueByNameCaseInsensitive = new SortedDictionary<string, EnumT>(StringComparer.OrdinalIgnoreCase);
 			DefaultValue = default(EnumT);
 
 			var valuesArray = Enum.GetValues(enumType);
@@ -119,6 +121,7 @@ namespace System
 
 				NamesByValue[value] = name;
 				ValueByName[name] = value;
+				ValueByNameCaseInsensitive[name] = value;
 				names.Add(name);
 				values.Add(value);
 
@@ -377,18 +380,29 @@ namespace System
 		/// <returns>Enumeration value.</returns>
 		public static EnumT Parse(string name)
 		{
+			return Parse(name, ignoreCase: false);
+		}
+		/// <summary>
+		/// Map passed <paramref name="name"/> to enumeration member name and return it's value. Or parse <paramref name="name"/> as number and maps it to first matching enumeration member.
+		/// </summary>
+		/// <param name="name">Enumeration member name-or-Enumeration member's numeric value-or-Enumeration member names separated by comma.</param>
+		/// <param name="ignoreCase">Ignore case of enumerable names during parsing.</param>
+		/// <returns>Enumeration value.</returns>
+		public static EnumT Parse(string name, bool ignoreCase)
+		{
 			if (name == null) throw new ArgumentNullException("name");
 
 			EnumT value;
-			if (ValueByName.TryGetValue(name, out value))
+			var byNameMap = ignoreCase ? ValueByNameCaseInsensitive : ValueByName;
+			if (byNameMap.TryGetValue(name, out value))
 				return value;
 
 			if (TryParseNumber(name, out value))
 				return value;
 
-			value = (EnumT)Enum.Parse(typeof(EnumT), name, ignoreCase: false);
+			value = (EnumT)Enum.Parse(typeof(EnumT), name, ignoreCase);
 			return value;
-		} //TODO: make case insensitive parsing
+		}
 		/// <summary>
 		/// Try to map passed <paramref name="name"/> to enumeration member name and return it's value. Or try to parse <paramref name="name"/> as number and maps it to first matching enumeration member.
 		/// </summary>
@@ -396,6 +410,17 @@ namespace System
 		/// <param name="value">Mapped enumeration value.</param>
 		/// <returns>True if mapped successfully. False if mapping failed.</returns>
 		public static bool TryParse(string name, out EnumT value)
+		{
+			return TryParse(name, out value, ignoreCase: false);
+		}
+		/// <summary>
+		/// Try to map passed <paramref name="name"/> to enumeration member name and return it's value. Or try to parse <paramref name="name"/> as number and maps it to first matching enumeration member.
+		/// </summary>
+		/// <param name="name">Enumeration member name-or-Enumeration member's numeric value-or-Enumeration member names separated by comma.</param>
+		/// <param name="value">Mapped enumeration value.</param>
+		/// <param name="ignoreCase">Ignore case of enumerable names during parsing.</param>
+		/// <returns>True if mapped successfully. False if mapping failed.</returns>
+		public static bool TryParse(string name, out EnumT value, bool ignoreCase)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 
@@ -406,7 +431,8 @@ namespace System
 				return false;
 			}
 
-			if (ValueByName.TryGetValue(name, out value))
+			var byNameMap = ignoreCase ? ValueByNameCaseInsensitive : ValueByName;
+			if (byNameMap.TryGetValue(name, out value))
 				return true;
 
 			try
@@ -414,7 +440,7 @@ namespace System
 				if (TryParseNumber(name, out value))
 					return true;
 
-				value = (EnumT)Enum.Parse(typeof(EnumT), name, ignoreCase: false);
+				value = (EnumT)Enum.Parse(typeof(EnumT), name, ignoreCase);
 				return true;
 			}
 			catch (OverflowException)
