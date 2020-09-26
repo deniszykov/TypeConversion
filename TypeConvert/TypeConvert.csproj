@@ -72,7 +72,7 @@
 		</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/deniszykov/typeconvert</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/deniszykov/typeconvert/master/LICENSE</PackageLicenseUrl>
-		<Copyright>(c) Denis Zykov 2019</Copyright>
+		<Copyright>(c) Denis Zykov 2020</Copyright>
 		<RepositoryUrl>https://github.com/deniszykov/typeconvert</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>hex convert construct enum tools units</PackageTags>
@@ -94,8 +94,8 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <None Update="NativeConversions.tt">
-	    <Generator>TextTemplatingFileGenerator</Generator>
-	    <LastGenOutput>NativeConversions.cs</LastGenOutput>
+		<Generator>TextTemplatingFileGenerator</Generator>
+		<LastGenOutput>NativeConversions.cs</LastGenOutput>
 	  </None>
 	</ItemGroup>
 	<ItemGroup>
@@ -103,9 +103,9 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Compile Update="NativeConversions.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>NativeConversions.tt</DependentUpon>
+		<DesignTime>True</DesignTime>
+		<AutoGen>True</AutoGen>
+		<DependentUpon>NativeConversions.tt</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 	<PropertyGroup>

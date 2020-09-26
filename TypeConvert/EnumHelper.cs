@@ -1,4 +1,14 @@
-﻿using System.Collections.Generic;
+﻿/*
+	Copyright (c) 2020 Denis Zykov
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+
+	License: https://opensource.org/licenses/MIT
+*/
+
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
@@ -73,7 +83,7 @@ namespace System
 		{
 			var enumType = typeof(EnumT);
 #if NETSTANDARD
-            var enumTypeInfo = enumType.GetTypeInfo();
+			var enumTypeInfo = enumType.GetTypeInfo();
 #else
 			var enumTypeInfo = enumType;
 #endif
