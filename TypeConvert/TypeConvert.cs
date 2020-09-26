@@ -191,8 +191,8 @@ namespace System
 #endif
 				IsValueType = typeInfo.IsValueType;
 				CanBeNull = IsValueType == false;
-				ConvertFrom = (ConvertMethodInfo[])Enumerable.Empty<ConvertMethodInfo>();
-				ConvertTo = (ConvertMethodInfo[])Enumerable.Empty<ConvertMethodInfo>();
+				ConvertFrom = EmptyConversionMethods;
+				ConvertTo = EmptyConversionMethods;
 				IdentityFn = Identity;
 
 				if (typeInfo.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
@@ -478,6 +478,7 @@ namespace System
 		private static readonly MethodInfo ConvertToEnumMethodDefinition;
 		private static readonly MethodInfo ConvertFromEnumMethodDefinition;
 		private static readonly MethodInfo ConstructMethodDefinition;
+		private static readonly ConvertMethodInfo[] EmptyConversionMethods = new ConvertMethodInfo[0];
 		/// <summary>
 		/// Default format provider used when null formatProvider parameter is passed to <see cref="Convert"/> methods.
 		/// </summary>
