@@ -6,7 +6,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>net35;net45;netstandard1.3;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
 		<Authors>Denis Zykov</Authors>
-		<Version>2.1.5</Version>
+		<Version>2.1.6</Version>
 		<PackageId>TypeConvert</PackageId>
 		<Product>TypeConvert</Product>
 		<Description>Utility class for conversions between .NET types.</Description>
@@ -20,7 +20,10 @@
 		<StartupObject />
 		<AssemblyName>TypeConvert</AssemblyName>
 		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-		<PackageReleaseNotes># 2.1.5
+		<PackageReleaseNotes># 2.1.6
+- fixed 'by-ref-like' parameter errors from .NET 5.0
+
+# 2.1.5
 - added case-insensitive EnumHelper.Parse overloads
 - fixed: Uri -&gt; string conversion should use Uri.Original string instead of Uri.ToString()
 - fixed: HexConvert.ToString(buffer, offset, count) dont respect count parameter
