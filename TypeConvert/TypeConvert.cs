@@ -233,11 +233,20 @@ namespace System
 
 				foreach (var method in GetPublicMethods(typeInfo, declaredOnly: true))
 				{
-					var parameters = default(ParameterInfo[]);
+					var parameters = method.GetParameters();
+
+					if (!parameters.All(IsPlainParameter))
+					{
+						continue;  // some ref/out/by ref like/pointer parameters
+					}
+					if (!IsPlainParameter(method.ReturnParameter))
+					{
+						continue;  // ref/out/by ref like/pointer return type
+					}
+
 					// Parse
 					if (IsParseMethod(method, type))
 					{
-						parameters = parameters ?? method.GetParameters();
 						if (parameters.Length == 1 && parameters[0].ParameterType == typeof(string))
 						{
 							ParseFn = (Func<string, T>)CreateDelegate(typeof(Func<string, T>), method, throwOnBindingFailure: true);
@@ -250,7 +259,6 @@ namespace System
 					// ToString
 					else if (IsToStringMethod(method))
 					{
-						parameters = parameters ?? method.GetParameters();
 						if (parameters.Length == 2 &&
 							parameters[0].ParameterType == typeof(string) &&
 							parameters[1].ParameterType == typeof(IFormatProvider))
@@ -262,27 +270,30 @@ namespace System
 					// Explicit/Implicit operators
 					if (method.IsStatic && method.IsSpecialName && (method.Name == "op_Explicit" || method.Name == "op_Implicit"))
 					{
-						parameters = parameters ?? method.GetParameters();
 						if (parameters.Length == 1 && parameters[0].ParameterType == type)
 						{
-							(convertTo ?? (convertTo = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+							convertTo = convertTo ?? new List<ConvertMethodInfo>();
+							convertTo.Add(new ConvertMethodInfo(method, ref parameters));
 						}
 						else if (parameters.Length == 1 && method.ReturnType == type)
 						{
-							(convertFrom ?? (convertFrom = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+							convertFrom = convertFrom ?? new List<ConvertMethodInfo>();
+							convertFrom.Add(new ConvertMethodInfo(method, ref parameters));
 						}
 					}
 
 					// custom FromX method
 					if (IsConvertFromMethod(method, type, ref parameters))
 					{
-						(convertFrom ?? (convertFrom = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+						convertFrom = convertFrom ?? new List<ConvertMethodInfo>();
+						convertFrom.Add(new ConvertMethodInfo(method, ref parameters));
 					}
 
 					// custom ToX method
 					if (IsConvertToMethod(method, type, ref parameters))
 					{
-						(convertTo ?? (convertTo = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(method, ref parameters));
+						convertTo = convertTo ?? new List<ConvertMethodInfo>();
+						convertTo.Add(new ConvertMethodInfo(method, ref parameters));
 					}
 				}
 
@@ -290,12 +301,17 @@ namespace System
 				{
 					var parameters = constructor.GetParameters();
 
-					if (parameters.Length != 1 || IsPlainParameter(parameters[0]) == false || parameters[0].ParameterType == type)
+					if (parameters.Length != 1 ||
+						IsPlainParameter(parameters[0]) == false ||
+						parameters[0].ParameterType == type)
+					{
 						continue;
+					}
 
 					var methodInfo = ConstructMethodDefinition.MakeGenericMethod(type, parameters[0].ParameterType);
-					parameters = null; //
-					(convertFrom ?? (convertFrom = new List<ConvertMethodInfo>())).Add(new ConvertMethodInfo(methodInfo, ref parameters));
+					convertFrom = convertFrom ?? new List<ConvertMethodInfo>();
+					var convertMethodParameters = default(ParameterInfo[]);
+					convertFrom.Add(new ConvertMethodInfo(methodInfo, ref convertMethodParameters));
 				}
 
 				if (convertTo != null)
@@ -357,22 +373,6 @@ namespace System
 				return (method.IsStatic ?
 					parameters.Length == 1 && parameters[0].ParameterType == type && IsPlainParameter(parameters[0]) :
 					parameters.Length == 0);
-			}
-			private static bool IsPlainParameter(ParameterInfo parameterInfo)
-			{
-#if NETCOREAPP2_1
-				if (parameterInfo.ParameterType.IsByRefLike)
-					return false;
-#endif
-#if NETCOREAPP
-				if (parameterInfo.ParameterType.IsSZArray)
-					return false;
-#endif
-
-				return parameterInfo.IsIn == false && parameterInfo.IsOut == false &&
-					parameterInfo.ParameterType.IsByRef == false &&
-					parameterInfo.ParameterType.IsPointer == false &&
-					parameterInfo.ParameterType.IsGenericParameter == false;
 			}
 
 			public static bool TryFindToConversion(Type toType, out ConvertMethodInfo convertMethod)
@@ -511,9 +511,20 @@ namespace System
 			foreach (var method in convertMethods)
 			{
 				if (method.IsStatic == false)
+				{
 					continue;
+				}
 
 				var parameters = method.GetParameters();
+				if (!parameters.All(IsPlainParameter))
+				{
+					continue;  // some ref/out/by ref like/pointer parameters
+				}
+				if (!IsPlainParameter(method.ReturnParameter))
+				{
+					continue;  // ref/out/by ref like/pointer return type
+				}
+
 				if (method.Name.StartsWith("To", StringComparison.Ordinal) == false ||
 					method.GetParameters().Length != 1 ||
 					method.ReturnType == typeof(void))
@@ -922,30 +933,59 @@ namespace System
 
 			return methodInfo;
 		}
+		private static bool IsByRefLike(ParameterInfo parameterInfo)
+		{
+			if (parameterInfo == null) throw new ArgumentNullException("parameterInfo");
+
+#if NETCOREAPP2_1
+			if (parameterInfo.ParameterType.IsByRefLike)
+			{
+				return true;
+			}
+#endif
+
+			foreach (var customAttribute in parameterInfo.GetCustomAttributes(inherit: true))
+			{
+				if (customAttribute.GetType().Name == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static bool IsPlainParameter(ParameterInfo parameterInfo)
+		{
+			if (IsByRefLike(parameterInfo))
+			{
+				return false;
+			}
+#if NETCOREAPP
+				if (parameterInfo.ParameterType.IsSZArray)
+					return false;
+#endif
+
+			return parameterInfo.IsIn == false && parameterInfo.IsOut == false &&
+				parameterInfo.ParameterType.IsByRef == false &&
+				parameterInfo.ParameterType.IsPointer == false &&
+				parameterInfo.ParameterType.IsGenericParameter == false;
+		}
+
 #if !NETSTANDARD
 		private static IEnumerable<MethodInfo> GetPublicMethods(Type type, bool declaredOnly)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			var methods = declaredOnly
-				? type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-				: type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+			var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | (declaredOnly ? BindingFlags.DeclaredOnly : 0));
 
-			return methods
-				.Where(method =>
-					method.ReturnType.FullName != "System.Runtime.CompilerServices.IsByRefLikeAttribute"
-					&& method.GetParameters()
-						.SelectMany(p => p.ParameterType.CustomAttributes)
-						.All(a => a.AttributeType.FullName != "System.Runtime.CompilerServices.IsByRefLikeAttribute"));
+			return methods;
 		}
 		private static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-				.Where(constructor => constructor.GetParameters()
-					.SelectMany(p => p.ParameterType.CustomAttributes)
-					.All(a => a.AttributeType.FullName != "System.Runtime.CompilerServices.IsByRefLikeAttribute"));
+			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 		}
 #else
 		private static IEnumerable<MethodInfo> GetPublicMethods(TypeInfo typeInfo, bool declaredOnly)
@@ -956,31 +996,6 @@ namespace System
 				{
 					if (method.IsPublic == false)
 						continue;
-
-					var isByRefLike = false;
-
-					if (method.ReturnType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
-					{
-						isByRefLike = true;
-						goto TestIsByRefLike;
-					}
-
-					foreach (var parameter in method.GetParameters())
-					{
-						foreach (var attribute in parameter.ParameterType.CustomAttributes)
-						{
-							if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
-							{
-								isByRefLike = true;
-								goto TestIsByRefLike;
-							}
-						}
-					}
-
-					TestIsByRefLike:
-					if (isByRefLike)
-						continue;
-
 					yield return method;
 				}
 
@@ -995,24 +1010,6 @@ namespace System
 			foreach (var constructor in typeInfo.DeclaredConstructors)
 			{
 				if (constructor.IsPublic == false)
-					continue;
-
-				var isByRefLike = false;
-
-				foreach (var parameter in constructor.GetParameters())
-				{
-					foreach (var attribute in parameter.ParameterType.CustomAttributes)
-					{
-						if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
-						{
-							isByRefLike = true;
-							goto TestIsByRefLike;
-						}
-					}
-				}
-
-				TestIsByRefLike:
-				if (isByRefLike)
 					continue;
 
 				yield return constructor;
