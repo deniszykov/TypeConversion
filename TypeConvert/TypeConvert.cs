@@ -927,16 +927,25 @@ namespace System
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			if (declaredOnly)
-				return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
-			else
-				return type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+			var methods = declaredOnly
+				? type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+				: type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+
+			return methods
+				.Where(method =>
+					method.ReturnType.FullName != "System.Runtime.CompilerServices.IsByRefLikeAttribute"
+					&& method.GetParameters()
+						.SelectMany(p => p.ParameterType.CustomAttributes)
+						.All(a => a.AttributeType.FullName != "System.Runtime.CompilerServices.IsByRefLikeAttribute"));
 		}
 		private static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
-			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+				.Where(constructor => constructor.GetParameters()
+					.SelectMany(p => p.ParameterType.CustomAttributes)
+					.All(a => a.AttributeType.FullName != "System.Runtime.CompilerServices.IsByRefLikeAttribute"));
 		}
 #else
 		private static IEnumerable<MethodInfo> GetPublicMethods(TypeInfo typeInfo, bool declaredOnly)
@@ -947,6 +956,31 @@ namespace System
 				{
 					if (method.IsPublic == false)
 						continue;
+
+					var isByRefLike = false;
+
+					if (method.ReturnType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
+					{
+						isByRefLike = true;
+						goto TestIsByRefLike;
+					}
+
+					foreach (var parameter in method.GetParameters())
+					{
+						foreach (var attribute in parameter.ParameterType.CustomAttributes)
+						{
+							if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
+							{
+								isByRefLike = true;
+								goto TestIsByRefLike;
+							}
+						}
+					}
+
+					TestIsByRefLike:
+					if (isByRefLike)
+						continue;
+
 					yield return method;
 				}
 
@@ -958,11 +992,30 @@ namespace System
 		}
 		private static IEnumerable<ConstructorInfo> GetPublicConstructors(TypeInfo typeInfo)
 		{
-			foreach (var constructors in typeInfo.DeclaredConstructors)
+			foreach (var constructor in typeInfo.DeclaredConstructors)
 			{
-				if (constructors.IsPublic == false)
+				if (constructor.IsPublic == false)
 					continue;
-				yield return constructors;
+
+				var isByRefLike = false;
+
+				foreach (var parameter in constructor.GetParameters())
+				{
+					foreach (var attribute in parameter.ParameterType.CustomAttributes)
+					{
+						if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
+						{
+							isByRefLike = true;
+							goto TestIsByRefLike;
+						}
+					}
+				}
+
+				TestIsByRefLike:
+				if (isByRefLike)
+					continue;
+
+				yield return constructor;
 			}
 		}
 #endif
