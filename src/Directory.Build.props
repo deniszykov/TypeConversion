@@ -1,0 +1,26 @@
+<Project>
+	<PropertyGroup>
+		<Authors>Denis Zykov</Authors>
+		<Version>3.0.0</Version>
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)sign.snk</AssemblyOriginatorKeyFile>
+		<SignAssembly>True</SignAssembly>
+		<LangVersion>latest</LangVersion>
+		<NoWarn>1701;1702;1705;420;1591</NoWarn>
+		<DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName).xml</DocumentationFile>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<PackageProjectUrl>https://github.com/deniszykov/typeconvert</PackageProjectUrl>
+		<PackageLicenseUrl>https://raw.githubusercontent.com/deniszykov/typeconvert/master/LICENSE</PackageLicenseUrl>
+		<Copyright>(c) Denis Zykov 2020</Copyright>
+		<RepositoryUrl>https://github.com/deniszykov/typeconvert</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		
+		<NetFrameworkBottomTarget>net45</NetFrameworkBottomTarget>
+		<NetCoreAppTarget>netcoreapp2.1</NetCoreAppTarget>
+		<NetStandardBottomTarget>netstandard1.6</NetStandardBottomTarget>
+		<NetStandardTopTarget>netstandard2.0</NetStandardTopTarget>
+		<NetTargetPlatforms>$(NetFrameworkBottomTarget);$(NetStandardBottomTarget);$(NetStandardTopTarget);$(NetCoreAppTarget);</NetTargetPlatforms>
+		<NetEndPlatforms>$(NetFrameworkBottomTarget);$(NetCoreAppTarget);</NetEndPlatforms>
+	</PropertyGroup>
+</Project>

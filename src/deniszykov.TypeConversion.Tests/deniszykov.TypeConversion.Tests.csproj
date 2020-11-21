@@ -1,23 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net5.0</TargetFrameworks>
-		<Authors>Denis Zykov</Authors>
+		<TargetFrameworks>$(NetEndPlatforms)</TargetFrameworks>
 		<Version>0.0.0</Version>
-		<PackageId>TypeConvert.Tests</PackageId>
-		<Product>TypeConvert.Tests</Product>
-		<Description>Tests.</Description>
-		<Company />
-		<SignAssembly>True</SignAssembly>
-		<AssemblyOriginatorKeyFile>../TypeConvert/sign.snk</AssemblyOriginatorKeyFile>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
-		<ApplicationIcon />
-		<OutputTypeEx>library</OutputTypeEx>
-		<OutputType>Library</OutputType>
-		<StartupObject />
-		<AssemblyVersion>0.0.0.0</AssemblyVersion>
-		<FileVersion>0.0.0.0</FileVersion>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<Optimize>False</Optimize>
@@ -35,6 +20,7 @@
 		</PackageReference>
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\TypeConvert\TypeConvert.csproj" />
+		<ProjectReference Include="..\deniszykov.DataTransformation\deniszykov.DataTransformation.csproj" />
+		<ProjectReference Include="..\deniszykov.TypeConversion\deniszykov.TypeConversion.csproj" />
 	</ItemGroup>
 </Project>
