@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
 
@@ -16,53 +17,86 @@ namespace deniszykov.TypeConversion
 		public readonly Type ToType;
 		public readonly ConversionQuality Quality;
 
-		internal ConversionMethodInfo([NotNull] MethodBase methodBase, ref ParameterInfo[] methodParameters)
+		public ConversionMethodInfo(
+			[NotNull] MethodBase methodBase,
+			[NotNull] ParameterInfo[] methodParameters,
+			[CanBeNull] ParameterInfo fromValueParameter,
+			[CanBeNull] ConversionQuality? conversionQualityOverride = null)
 		{
 			if (methodBase == null) throw new ArgumentNullException(nameof(methodBase));
 
-			methodParameters ??= methodBase.GetParameters();
 			this.Parameters = methodParameters;
 			this.Method = methodBase;
-			this.FromType = (methodBase.IsStatic ? methodParameters[0].ParameterType : methodBase.DeclaringType) ?? typeof(object);
+			if (methodBase.IsStatic)
+			{
+				if (fromValueParameter == null) throw new ArgumentNullException(nameof(fromValueParameter));
+				this.FromType = fromValueParameter.ParameterType;
+			}
+			else
+			{
+				this.FromType = methodBase.DeclaringType ?? typeof(object);
+			}
 			this.ToType = methodBase is MethodInfo methodInfo ? methodInfo.ReturnType : methodBase.DeclaringType ?? typeof(object);
-			this.Quality = methodBase.Name == "op_Explicit" ? ConversionQuality.Explicit :
+			this.Quality = conversionQualityOverride ?? (methodBase.Name == "op_Explicit" ? ConversionQuality.Explicit :
 				methodBase.Name == "op_Implicit" ? ConversionQuality.Implicit :
-				methodBase is ConstructorInfo ? ConversionQuality.Constructor : ConversionQuality.Method;
+				methodBase is ConstructorInfo ? ConversionQuality.Constructor : ConversionQuality.Method);
 		}
 
 		internal static ConversionMethodInfo ChooseByQuality(ConversionMethodInfo x, ConversionMethodInfo y)
 		{
+			switch (Math.Sign(Compare(x, y)))
+			{
+				case 1: return x;
+				case -1: return y;
+				case 0:
+				default: return y;
+			}
+		}
+		internal static int Compare(ConversionMethodInfo x, ConversionMethodInfo y)
+		{
 			if (x == null && y == null)
 			{
-				return null;
+				return 0;
 			}
 			else if (x != null && y == null)
 			{
-				return x;
+				return 1;
 			}
 			else if (x == null)
 			{
-				return y;
+				return -1;
 			}
 
-			if (x.Quality >= y.Quality)
+			var cmp = ((int)x.Quality).CompareTo((int)y.Quality); // better quality conversion
+			if (cmp != 0)
 			{
-				return x;
+				return cmp;
 			}
-			else if (x.Parameters.Length > y.Parameters.Length) // more parameter = more precise conversion because of format and format provider
+
+			cmp = (x.Method.Name.IndexOf(x.ToType.Name, StringComparison.OrdinalIgnoreCase) >= 0)
+				.CompareTo(x.Method.Name.IndexOf(x.ToType.Name, StringComparison.OrdinalIgnoreCase) >= 0); // has target type in name = better
+			if (cmp != 0)
 			{
-				return x;
+				return cmp;
 			}
-			else
+
+			cmp = (x.Method.Name.IndexOf(x.FromType.Name, StringComparison.OrdinalIgnoreCase) >= 0)
+				.CompareTo(x.Method.Name.IndexOf(x.FromType.Name, StringComparison.OrdinalIgnoreCase) >= 0); // has source type in name = better
+			if (cmp != 0)
 			{
-				return y;
+				return cmp;
 			}
+
+			cmp = x.Parameters.Length.CompareTo(y.Parameters.Length); // more parameters (format, formatProvider) = better
+			if (cmp != 0)
+			{
+				return cmp;
+			}
+
+			return y.Method.Name.Length.CompareTo(x.Method.Name.Length); // shorter name = better 
 		}
 
 		/// <inheritdoc />
-		public override string ToString()
-		{
-			return string.Format("From: " + this.FromType.Name + ", To: " + this.ToType.Name + ", Method: " + this.Method.Name + ", Quality:" + this.Quality);
-		}
+		public override string ToString() => $"From: {this.FromType.Name}, To: {this.ToType.Name}, Method: {this.Method.Name} ({string.Join(", ", this.Parameters.Select(p => p.Name))}), Quality: {this.Quality}";
 	}
 }

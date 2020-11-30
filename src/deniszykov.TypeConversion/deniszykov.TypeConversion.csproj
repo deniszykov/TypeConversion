@@ -57,13 +57,11 @@
 - fixed object &lt;-&gt; nullable value, enum &lt;-&gt; nullable conversions
 		</PackageReleaseNotes>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>False</Optimize>
-		<DefineConstants>RELEASE</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<DefineConstants>DEBUG;TRACE</DefineConstants>
-	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" Condition=" '$(TargetFramework)' == '$(NetStandardBottomTarget)' " />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="1.1.2" Condition=" '$(TargetFramework)' == '$(NetStandardBottomTarget)' " />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="3.1.10" Condition=" '$(TargetFramework)' == '$(NetStandardTopTarget)' or '$(TargetFramework)' == '$(NetCoreAppTarget)' " />
+	</ItemGroup>
 	<ItemGroup>
 		<None Update="NativeConversions.tt">
 			<Generator>TextTemplatingFileGenerator</Generator>
@@ -82,17 +80,5 @@
 	</ItemGroup>
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3'">
-		<DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD13;NO_TYPE_REFS;</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' or '$(TargetFramework)' == 'netstandard2.0'">
-		<DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD20;NO_TYPE_REFS;</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
-		<DefineConstants>$(DefineConstants);NET45</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'net35' ">
-		<DefineConstants>$(DefineConstants);NET35</DefineConstants>
 	</PropertyGroup>
 </Project>

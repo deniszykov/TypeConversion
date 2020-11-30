@@ -3,15 +3,19 @@
 	public enum ConversionQuality
 	{
 		/// <summary>
-		/// Constructor accepting appropriate type.
+		/// No conversion method is found. Trying to invoke conversion with this quality will cause <see cref="System.InvalidOperationException"/>.
+		/// </summary>
+		None,
+		/// <summary>
+		/// Conversion via Constructor accepting appropriate type.
 		/// </summary>
 		Constructor,
 		/// <summary>
-		/// <see cref="System.ComponentModel.TypeConverter"/> instance.
+		/// Conversion via System.ComponentModel.TypeConverter instance.
 		/// </summary>
 		TypeConverter,
 		/// <summary>
-		/// Conversion method on type (Parse, ToXXX, FromXXX)
+		/// Conversion via method on type (Parse, ToXXX, FromXXX)
 		/// </summary>
 		Method,
 		/// <summary>

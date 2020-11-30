@@ -11,6 +11,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using deniszykov.TypeConversion;
 using Xunit;
 
 namespace TypeConvert.Tests
@@ -20,9 +21,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void ObjectToValueTypeTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var timeSpanString = "00:00:01";
 			var expected = TimeSpan.Parse(timeSpanString);
-			var actual = System.TypeConvert.Convert<object, TimeSpan>(timeSpanString);
+			var actual = conversionProvider.Convert<object, TimeSpan>(timeSpanString);
 
 			Assert.Equal(expected, actual);
 		}
@@ -30,9 +32,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void ObjectToNullableTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var timeSpanString = "00:00:01";
 			var expected = TimeSpan.Parse(timeSpanString);
-			var actual = System.TypeConvert.Convert<object, TimeSpan?>(timeSpanString);
+			var actual = conversionProvider.Convert<object, TimeSpan?>(timeSpanString);
 
 			Assert.Equal(expected, actual);
 		}
@@ -40,9 +43,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullObjectToNullableTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = default(object);
 			var expected = default(TimeSpan?);
-			var actual = System.TypeConvert.Convert<object, TimeSpan?>(value);
+			var actual = conversionProvider.Convert<object, TimeSpan?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -50,9 +54,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullableToObjectTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = default(int?);
 			var expected = default(object);
-			var actual = System.TypeConvert.Convert<int?, object>(value);
+			var actual = conversionProvider.Convert<int?, object>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -60,9 +65,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void ObjectToEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = "Green";
 			var expected = ConsoleColor.Green;
-			var actual = System.TypeConvert.Convert<object, ConsoleColor>(value);
+			var actual = conversionProvider.Convert<object, ConsoleColor>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -70,9 +76,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void EnumToObjectTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = ConsoleColor.Green;
 			var expected = ConsoleColor.Green;
-			var actual = System.TypeConvert.Convert<ConsoleColor, object>(value);
+			var actual = conversionProvider.Convert<ConsoleColor, object>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -80,9 +87,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullableEnumToObjectTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = (ConsoleColor?)ConsoleColor.Green;
 			var expected = ConsoleColor.Green;
-			var actual = System.TypeConvert.Convert<ConsoleColor?, object>(value);
+			var actual = conversionProvider.Convert<ConsoleColor?, object>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -90,9 +98,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void ObjectToNullableEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = "Green";
 			var expected = (ConsoleColor?)ConsoleColor.Green;
-			var actual = System.TypeConvert.Convert<object, ConsoleColor?>(value);
+			var actual = conversionProvider.Convert<object, ConsoleColor?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -100,9 +109,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullObjectToNullableEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = default(object);
 			var expected = default(ConsoleColor?);
-			var actual = System.TypeConvert.Convert<object, ConsoleColor?>(value);
+			var actual = conversionProvider.Convert<object, ConsoleColor?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -110,17 +120,19 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void ObjectToObjectTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var expected = "00:00:01";
-			var actual = System.TypeConvert.Convert<object, object>(expected);
+			var actual = conversionProvider.Convert<object, object>(expected);
 			Assert.Equal(expected, actual);
 		}
 
 		[Fact]
 		public void NullObjectToClassTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = default(object);
 			var expected = default(EventArgs);
-			var actual = System.TypeConvert.Convert<object, EventArgs>(value);
+			var actual = conversionProvider.Convert<object, EventArgs>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -128,9 +140,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullableToNullableTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = 1;
 			var expected = (int?)1;
-			var actual = System.TypeConvert.Convert<long?, int?>(value);
+			var actual = conversionProvider.Convert<long?, int?>(value);
 
 			Assert.Equal(expected, actual);
 
@@ -139,9 +152,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullableToNullableNullTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = default(long?);
 			var expected = default(int?);
-			var actual = System.TypeConvert.Convert<long?, int?>(value);
+			var actual = conversionProvider.Convert<long?, int?>(value);
 
 			Assert.Equal(expected, actual);
 
@@ -150,9 +164,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void EnumToNullableTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = ConsoleColor.DarkYellow;
 			var expected = (int?)(int)value;
-			var actual = System.TypeConvert.Convert<ConsoleColor, int?>(value);
+			var actual = conversionProvider.Convert<ConsoleColor, int?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -160,9 +175,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void EnumToEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = ConsoleColor.DarkBlue;
 			var expected = CollectionBehavior.CollectionPerClass;
-			var actual = System.TypeConvert.Convert<ConsoleColor, CollectionBehavior>(value);
+			var actual = conversionProvider.Convert<ConsoleColor, CollectionBehavior>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -170,9 +186,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void EnumToStringTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = "DarkBlue";
 			var expected = ConsoleColor.DarkBlue;
-			var actual = System.TypeConvert.Convert<string, ConsoleColor>(value);
+			var actual = conversionProvider.Convert<string, ConsoleColor>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -180,9 +197,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void StringToEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = ConsoleColor.DarkBlue;
 			var expected = "DarkBlue";
-			var actual = System.TypeConvert.Convert<ConsoleColor, string>(value);
+			var actual = conversionProvider.Convert<ConsoleColor, string>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -190,9 +208,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullableEnumToEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = (ConsoleColor?)ConsoleColor.DarkBlue;
 			var expected = CollectionBehavior.CollectionPerClass;
-			var actual = System.TypeConvert.Convert<ConsoleColor?, CollectionBehavior>(value);
+			var actual = conversionProvider.Convert<ConsoleColor?, CollectionBehavior>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -200,9 +219,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void EnumToNullableEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = ConsoleColor.DarkBlue;
 			var expected = (CollectionBehavior?)CollectionBehavior.CollectionPerClass;
-			var actual = System.TypeConvert.Convert<ConsoleColor, CollectionBehavior?>(value);
+			var actual = conversionProvider.Convert<ConsoleColor, CollectionBehavior?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -210,9 +230,10 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void NullableEnumToNullableEnumTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var value = (ConsoleColor?)ConsoleColor.DarkBlue;
 			var expected = (CollectionBehavior?)CollectionBehavior.CollectionPerClass;
-			var actual = System.TypeConvert.Convert<ConsoleColor?, CollectionBehavior?>(value);
+			var actual = conversionProvider.Convert<ConsoleColor?, CollectionBehavior?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -519,8 +540,9 @@ namespace TypeConvert.Tests
 		[MemberData(nameof(NumbersTestData))]
 		public void ConvertNumberToStringTest(object expected)
 		{
-			var stringValue = System.TypeConvert.Convert(expected, typeof(string));
-			var actual = System.TypeConvert.Convert(stringValue, expected.GetType());
+			var conversionProvider = new TypeConversionProvider();
+			var stringValue = conversionProvider.Convert(expected.GetType(), typeof(string), expected);
+			var actual = conversionProvider.Convert(stringValue.GetType(), expected.GetType(), stringValue);
 
 			Assert.Equal(expected.GetType(), actual.GetType());
 			Assert.Equal(expected, actual);
@@ -555,9 +577,10 @@ namespace TypeConvert.Tests
 		[MemberData(nameof(NumberTypesTestData))]
 		public void ConvertNumbersTest(Type fromType, Type toType)
 		{
-			var fromValue = System.TypeConvert.Convert(1, fromType);
-			var expected = System.TypeConvert.Convert(1, toType);
-			var actual = System.TypeConvert.Convert(fromValue, toType);
+			var conversionProvider = new TypeConversionProvider();
+			var fromValue = conversionProvider.Convert(1.GetType(), fromType, 1);
+			var expected = conversionProvider.Convert(1.GetType(), toType, 1);
+			var actual = conversionProvider.Convert(fromValue.GetType(), toType, fromValue);
 
 			Assert.Equal(expected.GetType(), actual.GetType());
 			Assert.Equal(expected, actual);
@@ -566,8 +589,9 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void StringToUrlTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var expected = new Uri("http://exapmle.com/");
-			var actual = System.TypeConvert.Convert<string, Uri>(expected.OriginalString);
+			var actual = conversionProvider.Convert<string, Uri>(expected.OriginalString);
 
 			Assert.Equal(expected, actual);
 		}
@@ -575,8 +599,9 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void StringToRelativeUrlTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var expected = new Uri("/my", UriKind.Relative);
-			var actual = System.TypeConvert.Convert<string, Uri>(expected.OriginalString);
+			var actual = conversionProvider.Convert<string, Uri>(expected.OriginalString);
 
 			Assert.Equal(expected, actual);
 		}
@@ -584,8 +609,9 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void StringToVersionTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var expected = new Version(1, 0, 0, 0);
-			var actual = System.TypeConvert.Convert<string, Version>("1.0.0.0");
+			var actual = conversionProvider.Convert<string, Version>("1.0.0.0");
 
 			Assert.Equal(expected, actual);
 		}
@@ -593,8 +619,9 @@ namespace TypeConvert.Tests
 		[Fact]
 		public void StringToDateTest()
 		{
+			var conversionProvider = new TypeConversionProvider();
 			var expected = DateTime.MinValue;
-			var actual = System.TypeConvert.Convert<string, DateTime>(System.TypeConvert.Convert<DateTime, string>(expected));
+			var actual = conversionProvider.Convert<string, DateTime>(conversionProvider.Convert<DateTime, string>(expected));
 
 			Assert.Equal(expected, actual);
 		}
@@ -617,7 +644,8 @@ namespace TypeConvert.Tests
 		[MemberData(nameof(DatesData))]
 		public void DatesTest(DateTime expected)
 		{
-			var actual = System.TypeConvert.Convert<string, DateTime>(System.TypeConvert.Convert<DateTime, string>(expected));
+			var conversionProvider = new TypeConversionProvider();
+			var actual = conversionProvider.Convert<string, DateTime>(conversionProvider.Convert<DateTime, string>(expected));
 
 			Assert.Equal(expected, actual);
 		}

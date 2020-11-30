@@ -37,15 +37,35 @@ namespace deniszykov.TypeConversion
 		public void Convert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
 			var convertFn = (Func<FromType, string, IFormatProvider, ToType>)this.Info.Conversion;
-			result = convertFn(value, format, formatProvider);
+			result = convertFn(value, format ?? this.Info.DefaultFormat, formatProvider);
 		}
 		/// <inheritdoc />
 		public bool TryConvert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
 			var safeConvertFn = (Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>)this.Info.SafeConversion;
-			var resultOrFail = safeConvertFn(value, format, formatProvider);
-			result = resultOrFail.Key;
-			return resultOrFail.Value;
+			if (safeConvertFn != null)
+			{
+				var resultOrFail = safeConvertFn(value, format ?? this.Info.DefaultFormat, formatProvider);
+				result = resultOrFail.Key;
+				return resultOrFail.Value;
+			}
+			else
+			{
+				result = default;
+				try
+				{
+					this.Convert(value, out result, format ?? this.Info.DefaultFormat, formatProvider);
+					return true;
+				}
+				catch (Exception e)
+				{
+					if (e is InvalidCastException || e is FormatException ||
+						e is ArithmeticException || e is NotSupportedException ||
+						e is ArgumentException || e is InvalidTimeZoneException) // TODO make exception list configurable
+						return false;
+					throw;
+				}
+			}
 		}
 	}
 }

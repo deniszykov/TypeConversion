@@ -1,14 +1,13 @@
 ﻿<#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ output extension=".cs" #>
-
 <#
 	var types = new Type[] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(double), typeof(float), typeof(char) };
 #>
-
 // ReSharper disable All
-namespace System
+
+namespace deniszykov.TypeConversion
 {
-	partial class TypeConvert
+	public partial class TypeConversionProvider
 	{
 		/// <summary>
 		/// Format string enabling "checked" numeric conversion.
@@ -19,7 +18,7 @@ namespace System
 		/// </summary>
 		public const string UncheckedConversionFormat = "unchecked";
 
-		private static void InitializeNativeConversions()
+		private void InitializeNativeConversions()
 		{
 <#
 	foreach (var fromType in types)
@@ -35,7 +34,7 @@ namespace System
 				var toValue = ((IConvertible)fromValue).ToType(toType, null);
 
 #>
-			TypeConvert.RegisterCustomConversion<<#= fromType.FullName #>, <#= toType.FullName #>>((v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v));
+			this.RegisterConverter<<#= fromType.FullName #>, <#= toType.FullName #>>((v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v), ConversionQuality.Native);
 <#
 			} 
 			catch

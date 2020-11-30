@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using deniszykov.TypeConversion;
 using Xunit;
 
 namespace TypeConvert.Tests
@@ -40,9 +41,10 @@ namespace TypeConvert.Tests
 		[MemberData(nameof(EnumHelperTestData))]
 		public void TestConstants(Type enumType, Type underlyingType)
 		{
-			var testMethodInfo = new Action(FromToMethodsTestImpl<ByteEnum, Byte>).Method.GetGenericMethodDefinition();
-			var testMethod = (Action)Delegate.CreateDelegate(typeof(Action), this, testMethodInfo.MakeGenericMethod(enumType, underlyingType), throwOnBindFailure: true);
-			testMethod?.Invoke();
+			var conversionProvider = new TypeConversionProvider();
+			var testMethodInfo = new Action<ITypeConversionProvider>(FromToMethodsTestImpl<ByteEnum, Byte>).Method.GetGenericMethodDefinition();
+			var testMethod = (Action<ITypeConversionProvider>)Delegate.CreateDelegate(typeof(Action<ITypeConversionProvider>), this, testMethodInfo.MakeGenericMethod(enumType, underlyingType), throwOnBindFailure: true);
+			testMethod?.Invoke(conversionProvider);
 		}
 
 		[Fact]
@@ -100,7 +102,7 @@ namespace TypeConvert.Tests
 			Assert.False(parsed);
 		}
 
-		private void FromToMethodsTestImpl<EnumT, UnderlyingT>()
+		private void FromToMethodsTestImpl<EnumT, UnderlyingT>(ITypeConversionProvider provider)
 		{
 			Assert.IsType<Func<EnumT, UnderlyingT>>(EnumHelper<EnumT>.ToNumber);
 			Assert.IsType<Func<UnderlyingT, EnumT>>(EnumHelper<EnumT>.FromNumber);
@@ -113,10 +115,10 @@ namespace TypeConvert.Tests
 				typeof(UnderlyingT) == typeof(int) ||
 				typeof(UnderlyingT) == typeof(long), EnumHelper<EnumT>.IsSigned);
 			Assert.Equal(default(EnumT), EnumHelper<EnumT>.DefaultValue);
-			Assert.Equal(System.TypeConvert.Convert<int, EnumT>(1), EnumHelper<EnumT>.MinValue);
-			Assert.Equal(System.TypeConvert.Convert<int, EnumT>(2), EnumHelper<EnumT>.MaxValue);
+			Assert.Equal(provider.Convert<int, EnumT>(1), EnumHelper<EnumT>.MinValue);
+			Assert.Equal(provider.Convert<int, EnumT>(2), EnumHelper<EnumT>.MaxValue);
 			Assert.Equal(new[] { nameof(SByteEnum.One), nameof(SByteEnum.Two) }, EnumHelper<EnumT>.Names);
-			Assert.Equal(new[] { System.TypeConvert.Convert<int, EnumT>(1), System.TypeConvert.Convert<int, EnumT>(2) }, EnumHelper<EnumT>.Values);
+			Assert.Equal(new[] { provider.Convert<int, EnumT>(1), provider.Convert<int, EnumT>(2) }, EnumHelper<EnumT>.Values);
 		}
 	}
 }
