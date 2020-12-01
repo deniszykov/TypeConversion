@@ -54,7 +54,7 @@ namespace System
 		/// </summary>
 		public static readonly bool IsFlags;
 		/// <summary>
-		/// Flag indicating what enum's <see cref="UnderlyingType"/> is signed number.
+		/// Flag indicating what Enum <see cref="UnderlyingType"/> is signed number.
 		/// </summary>
 		public static readonly bool IsSigned;
 		/// <summary>
@@ -165,12 +165,12 @@ namespace System
 		/// <returns>Cached name of enumeration member or string representation of it's underlying type.</returns>
 		public static string ToName(EnumT value)
 		{
-			var name = default(string);
-			if (NamesByValue.TryGetValue(value, out name))
+			if (NamesByValue.TryGetValue(value, out var name))
 				return name;
 
 			return Convert.ToString(value);
 		}
+
 		/// <summary>
 		/// Convert passed enumeration value to <see cref="SByte"/>. Throws <see cref="OverflowException"/> if value can't fit into <see cref="SByte"/>.
 		/// </summary>
@@ -192,7 +192,7 @@ namespace System
 					case TypeCode.Int64: return (sbyte)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (sbyte)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -217,7 +217,7 @@ namespace System
 					case TypeCode.Int64: return (byte)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (byte)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -242,7 +242,7 @@ namespace System
 					case TypeCode.Int64: return (short)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (short)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -267,7 +267,7 @@ namespace System
 					case TypeCode.Int64: return (ushort)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (ushort)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -292,7 +292,7 @@ namespace System
 					case TypeCode.Int64: return (int)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (int)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -317,7 +317,7 @@ namespace System
 					case TypeCode.Int64: return (uint)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (uint)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -342,7 +342,7 @@ namespace System
 					case TypeCode.Int64: return (long)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (long)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
@@ -367,10 +367,306 @@ namespace System
 					case TypeCode.Int64: return (ulong)((Func<EnumT, long>)ToNumber).Invoke(value);
 					case TypeCode.UInt64: return (ulong)((Func<EnumT, ulong>)ToNumber).Invoke(value);
 					default:
-						throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 				}
 			}
 		}
+		/// <summary>
+		/// Convert passed enumeration value to <see cref="Single"/>.
+		/// </summary>
+		/// <param name="value">Enumeration value.</param>
+		/// <returns><see cref="Single"/> value of passed enumeration value.</returns>
+		public static float ToSingle(EnumT value)
+		{
+			// ReSharper disable once SwitchStatementMissingSomeCases
+			switch (TypeCode)
+			{
+				case TypeCode.SByte: return (float)((Func<EnumT, sbyte>)ToNumber).Invoke(value);
+				case TypeCode.Byte: return (float)((Func<EnumT, byte>)ToNumber).Invoke(value);
+				case TypeCode.Int16: return (float)((Func<EnumT, short>)ToNumber).Invoke(value);
+				case TypeCode.UInt16: return (float)((Func<EnumT, ushort>)ToNumber).Invoke(value);
+				case TypeCode.Int32: return (float)((Func<EnumT, int>)ToNumber).Invoke(value);
+				case TypeCode.UInt32: return (float)((Func<EnumT, uint>)ToNumber).Invoke(value);
+				case TypeCode.Int64: return (float)((Func<EnumT, long>)ToNumber).Invoke(value);
+				case TypeCode.UInt64: return (float)((Func<EnumT, ulong>)ToNumber).Invoke(value);
+				default:
+					throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+			}
+		}
+		/// <summary>
+		/// Convert passed enumeration value to <see cref="Double"/>. Throws <see cref="OverflowException"/> if value can't fit into <see cref="Double"/>.
+		/// </summary>
+		/// <param name="value">Enumeration value.</param>
+		/// <returns><see cref="Double"/> value of passed enumeration value.</returns>
+		public static double ToDouble(EnumT value)
+		{
+			// ReSharper disable once SwitchStatementMissingSomeCases
+			switch (TypeCode)
+			{
+				case TypeCode.SByte: return (double)((Func<EnumT, sbyte>)ToNumber).Invoke(value);
+				case TypeCode.Byte: return (double)((Func<EnumT, byte>)ToNumber).Invoke(value);
+				case TypeCode.Int16: return (double)((Func<EnumT, short>)ToNumber).Invoke(value);
+				case TypeCode.UInt16: return (double)((Func<EnumT, ushort>)ToNumber).Invoke(value);
+				case TypeCode.Int32: return (double)((Func<EnumT, int>)ToNumber).Invoke(value);
+				case TypeCode.UInt32: return (double)((Func<EnumT, uint>)ToNumber).Invoke(value);
+				case TypeCode.Int64: return (double)((Func<EnumT, long>)ToNumber).Invoke(value);
+				case TypeCode.UInt64: return (double)((Func<EnumT, ulong>)ToNumber).Invoke(value);
+				default:
+					throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+			}
+		}
+
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromSByte(sbyte value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromByte(byte value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromInt16(short value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration . Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromUInt16(ushort value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromInt32(int value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromUInt32(uint value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromInt64(long value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromUInt64(ulong value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromSingle(float value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+		/// <summary>
+		/// Convert passed number value to enumeration. Throws <see cref="OverflowException"/> if value can't fit into enumeration's underlying type.
+		/// </summary>
+		/// <param name="value">Numeric value.</param>
+		/// <returns>Enumeration value from passed numeric value.</returns>
+		public static EnumT FromDouble(double value)
+		{
+			checked
+			{
+				// ReSharper disable once SwitchStatementMissingSomeCases
+				switch (TypeCode)
+				{
+					case TypeCode.SByte: return ((Func<sbyte, EnumT>)FromNumber).Invoke((sbyte)value);
+					case TypeCode.Byte: return ((Func<byte, EnumT>)FromNumber).Invoke((byte)value);
+					case TypeCode.Int16: return ((Func<short, EnumT>)FromNumber).Invoke((short)value);
+					case TypeCode.UInt16: return ((Func<ushort, EnumT>)FromNumber).Invoke((ushort)value);
+					case TypeCode.Int32: return ((Func<int, EnumT>)FromNumber).Invoke((int)value);
+					case TypeCode.UInt32: return ((Func<uint, EnumT>)FromNumber).Invoke((uint)value);
+					case TypeCode.Int64: return ((Func<long, EnumT>)FromNumber).Invoke((long)value);
+					case TypeCode.UInt64: return ((Func<ulong, EnumT>)FromNumber).Invoke((ulong)value);
+					default:
+						throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
+				}
+			}
+		}
+
 		/// <summary>
 		/// Check if passed enumeration value is defined in enumeration.
 		/// </summary>
@@ -379,9 +675,13 @@ namespace System
 		public static bool IsDefined(EnumT value)
 		{
 			if (IsFlags)
+			{
 				return Enum.IsDefined(typeof(EnumT), value);
+			}
 			else
+			{
 				return NamesByValue.ContainsKey(value);
+			}
 		}
 		/// <summary>
 		/// Map passed <paramref name="name"/> to enumeration member name and return it's value. Or parse <paramref name="name"/> as number and maps it to first matching enumeration member.
@@ -400,11 +700,10 @@ namespace System
 		/// <returns>Enumeration value.</returns>
 		public static EnumT Parse(string name, bool ignoreCase)
 		{
-			if (name == null) throw new ArgumentNullException("name");
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			EnumT value;
 			var byNameMap = ignoreCase ? ValueByNameCaseInsensitive : ValueByName;
-			if (byNameMap.TryGetValue(name, out value))
+			if (byNameMap.TryGetValue(name, out var value))
 				return value;
 
 			if (TryParseNumber(name, out value))
@@ -432,7 +731,7 @@ namespace System
 		/// <returns>True if mapped successfully. False if mapping failed.</returns>
 		public static bool TryParse(string name, out EnumT value, bool ignoreCase)
 		{
-			if (name == null) throw new ArgumentNullException("name");
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			value = default(EnumT);
 
@@ -465,77 +764,69 @@ namespace System
 
 		private static bool TryParseNumber(string number, out EnumT value)
 		{
-			if (number == null) throw new ArgumentNullException("number");
+			if (number == null) throw new ArgumentNullException(nameof(number));
 
 			// ReSharper disable once SwitchStatementMissingSomeCases
 			switch (TypeCode)
 			{
 				case TypeCode.SByte:
-					var int8Value = default(sbyte);
-					if (sbyte.TryParse(number, out int8Value))
+					if (sbyte.TryParse(number, out var int8Value))
 					{
 						value = ((Func<sbyte, EnumT>)FromNumber).Invoke(int8Value);
 						return true;
 					}
 					break;
 				case TypeCode.Byte:
-					var uint8Value = default(byte);
-					if (byte.TryParse(number, out uint8Value))
+					if (byte.TryParse(number, out var uint8Value))
 					{
 						value = ((Func<byte, EnumT>)FromNumber).Invoke(uint8Value);
 						return true;
 					}
 					break;
 				case TypeCode.Int16:
-					var int16Value = default(short);
-					if (short.TryParse(number, out int16Value))
+					if (short.TryParse(number, out var int16Value))
 					{
 						value = ((Func<short, EnumT>)FromNumber).Invoke(int16Value);
 						return true;
 					}
 					break;
 				case TypeCode.UInt16:
-					var uint16Value = default(ushort);
-					if (ushort.TryParse(number, out uint16Value))
+					if (ushort.TryParse(number, out var uint16Value))
 					{
 						value = ((Func<ushort, EnumT>)FromNumber).Invoke(uint16Value);
 						return true;
 					}
 					break;
 				case TypeCode.Int32:
-					var int32Value = default(int);
-					if (int.TryParse(number, out int32Value))
+					if (int.TryParse(number, out var int32Value))
 					{
 						value = ((Func<int, EnumT>)FromNumber).Invoke(int32Value);
 						return true;
 					}
 					break;
 				case TypeCode.UInt32:
-					var uint32Value = default(uint);
-					if (uint.TryParse(number, out uint32Value))
+					if (uint.TryParse(number, out var uint32Value))
 					{
 						value = ((Func<uint, EnumT>)FromNumber).Invoke(uint32Value);
 						return true;
 					}
 					break;
 				case TypeCode.Int64:
-					var int64Value = default(long);
-					if (long.TryParse(number, out int64Value))
+					if (long.TryParse(number, out var int64Value))
 					{
 						value = ((Func<long, EnumT>)FromNumber).Invoke(int64Value);
 						return true;
 					}
 					break;
 				case TypeCode.UInt64:
-					var uint64Value = default(ulong);
-					if (ulong.TryParse(number, out uint64Value))
+					if (ulong.TryParse(number, out var uint64Value))
 					{
 						value = ((Func<ulong, EnumT>)FromNumber).Invoke(uint64Value);
 						return true;
 					}
 					break;
 				default:
-					throw new ArgumentOutOfRangeException(string.Format("Invalid value '{0}' of type code of '{1}' enum.", TypeCode, typeof(EnumT)));
+					throw new ArgumentOutOfRangeException($"Invalid value '{TypeCode}' of type code of '{typeof(EnumT)}' enum.");
 			}
 
 			value = default(EnumT);
@@ -548,7 +839,7 @@ namespace System
 
 			public ComparisonComparer(Comparison<T> comparison)
 			{
-				if (comparison == null) throw new ArgumentNullException("comparison");
+				if (comparison == null) throw new ArgumentNullException(nameof(comparison));
 
 				this.comparison = comparison;
 			}

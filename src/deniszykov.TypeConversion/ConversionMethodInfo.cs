@@ -19,18 +19,18 @@ namespace deniszykov.TypeConversion
 
 		public ConversionMethodInfo(
 			[NotNull] MethodBase methodBase,
-			[NotNull] ParameterInfo[] methodParameters,
-			[CanBeNull] ParameterInfo fromValueParameter,
+			int fromValueParameterIndex,
+			[CanBeNull] ParameterInfo[] methodParameters = null,
 			[CanBeNull] ConversionQuality? conversionQualityOverride = null)
 		{
 			if (methodBase == null) throw new ArgumentNullException(nameof(methodBase));
 
-			this.Parameters = methodParameters;
+			this.Parameters = methodParameters ?? methodBase.GetParameters();
 			this.Method = methodBase;
 			if (methodBase.IsStatic)
 			{
-				if (fromValueParameter == null) throw new ArgumentNullException(nameof(fromValueParameter));
-				this.FromType = fromValueParameter.ParameterType;
+				if (fromValueParameterIndex < 0 || fromValueParameterIndex >= this.Parameters.Length) throw new ArgumentOutOfRangeException(nameof(fromValueParameterIndex));
+				this.FromType = this.Parameters[fromValueParameterIndex].ParameterType;
 			}
 			else
 			{

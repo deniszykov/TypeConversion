@@ -55,12 +55,12 @@ namespace deniszykov.TypeConversion
 						if (parameters.Length == 1 && parameters[0].ParameterType == type)
 						{
 							toMethods ??= new List<ConversionMethodInfo>(10);
-							toMethods.Add(new ConversionMethodInfo(method, parameters, parameters[0]));
+							toMethods.Add(new ConversionMethodInfo(method, 0, parameters));
 						}
 						else if (parameters.Length == 1 && method.ReturnType == type)
 						{
 							fromMethods ??= new List<ConversionMethodInfo>(10);
-							fromMethods.Add(new ConversionMethodInfo(method, parameters, parameters[0]));
+							fromMethods.Add(new ConversionMethodInfo(method, 0, parameters));
 						}
 					}
 
@@ -68,14 +68,14 @@ namespace deniszykov.TypeConversion
 					if (provider.IsConvertFromMethod(method, type, parameters, out var fromValueParameter))
 					{
 						fromMethods ??= new List<ConversionMethodInfo>(10);
-						fromMethods.Add(new ConversionMethodInfo(method, parameters, fromValueParameter));
+						fromMethods.Add(new ConversionMethodInfo(method, Array.IndexOf(parameters, fromValueParameter), parameters));
 					}
 
 					// custom ToX method
 					if (provider.IsConvertToMethod(method, type, parameters, out fromValueParameter))
 					{
 						toMethods ??= new List<ConversionMethodInfo>(10);
-						toMethods.Add(new ConversionMethodInfo(method, parameters, fromValueParameter));
+						toMethods.Add(new ConversionMethodInfo(method, Array.IndexOf(parameters, fromValueParameter), parameters));
 					}
 				}
 
@@ -91,7 +91,7 @@ namespace deniszykov.TypeConversion
 					}
 
 					fromMethods ??= new List<ConversionMethodInfo>(10);
-					fromMethods.Add(new ConversionMethodInfo(constructor, parameters, parameters[0]));
+					fromMethods.Add(new ConversionMethodInfo(constructor, 0, parameters));
 				}
 
 				this.ConvertFromMethods = fromMethods ?? EmptyConversionMethods;
