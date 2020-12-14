@@ -11,10 +11,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using deniszykov.TypeConversion;
 using Xunit;
 
-namespace TypeConvert.Tests
+namespace deniszykov.TypeConversion.Tests
 {
 	public sealed class TypeConvertTests
 	{

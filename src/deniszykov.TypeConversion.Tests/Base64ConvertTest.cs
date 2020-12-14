@@ -12,7 +12,7 @@ using System;
 using System.Linq;
 using Xunit;
 
-namespace TypeConvert.Tests
+namespace deniszykov.TypeConversion.Tests
 {
 	public class Base64ConvertTest
 	{

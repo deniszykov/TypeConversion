@@ -12,10 +12,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using deniszykov.TypeConversion;
 using Xunit;
 
-namespace TypeConvert.Tests
+namespace deniszykov.TypeConversion.Tests
 {
 	public class EnumHelperTest
 	{
@@ -42,7 +41,7 @@ namespace TypeConvert.Tests
 		public void TestConstants(Type enumType, Type underlyingType)
 		{
 			var conversionProvider = new TypeConversionProvider();
-			var testMethodInfo = new Action<ITypeConversionProvider>(FromToMethodsTestImpl<ByteEnum, Byte>).Method.GetGenericMethodDefinition();
+			var testMethodInfo = new Action<ITypeConversionProvider>(this.FromToMethodsTestImpl<ByteEnum, Byte>).Method.GetGenericMethodDefinition();
 			var testMethod = (Action<ITypeConversionProvider>)Delegate.CreateDelegate(typeof(Action<ITypeConversionProvider>), this, testMethodInfo.MakeGenericMethod(enumType, underlyingType), throwOnBindFailure: true);
 			testMethod?.Invoke(conversionProvider);
 		}
