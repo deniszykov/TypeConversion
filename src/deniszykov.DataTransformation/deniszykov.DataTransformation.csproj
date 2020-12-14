@@ -2,4 +2,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Include="..\deniszykov.TypeConversion\AssemblyInfo.cs" Link="AssemblyInfo.cs" />
+	</ItemGroup>
 </Project>
