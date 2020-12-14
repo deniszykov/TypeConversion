@@ -98,7 +98,7 @@ namespace deniszykov.TypeConversion
 				yield return baseType.AsType();
 				foreach (var interfaceType in baseType.GetInterfaces())
 					yield return interfaceType;
-				baseType = baseType.BaseType.GetTypeInfo();
+				baseType = baseType.BaseType?.GetTypeInfo();
 			}
 		}
 	}

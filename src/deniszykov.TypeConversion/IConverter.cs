@@ -6,7 +6,7 @@ namespace deniszykov.TypeConversion
 	public interface IConverter
 	{
 		[NotNull]
-		ConversionInfo Info { get; }
+		ConversionDescriptor Descriptor { get; }
 		[NotNull]
 		Type FromType { get; }
 		[NotNull]

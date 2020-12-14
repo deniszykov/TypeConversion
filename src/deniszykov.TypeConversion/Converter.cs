@@ -6,8 +6,10 @@ namespace deniszykov.TypeConversion
 {
 	public sealed class Converter<FromType, ToType> : IConverter<FromType, ToType>
 	{
+		private readonly ConverterOptions converterOptions;
+
 		/// <inheritdoc />
-		public ConversionInfo Info { get; }
+		public ConversionDescriptor Descriptor { get; }
 		/// <inheritdoc />
 		Type IConverter.FromType => typeof(FromType);
 		/// <inheritdoc />
@@ -26,26 +28,45 @@ namespace deniszykov.TypeConversion
 			return success;
 		}
 
-		public Converter([NotNull]ConversionInfo conversion)
+		public Converter([NotNull]ConversionDescriptor conversion, ConverterOptions converterOptions)
 		{
 			if (conversion == null) throw new ArgumentNullException(nameof(conversion));
 
-			this.Info = conversion;
+			this.Descriptor = conversion;
+			this.converterOptions = converterOptions;
 		}
 
 		/// <inheritdoc />
 		public void Convert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
-			var convertFn = (Func<FromType, string, IFormatProvider, ToType>)this.Info.Conversion;
-			result = convertFn(value, format ?? this.Info.DefaultFormat, formatProvider);
+			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatIfNotSpecified) && format == null)
+			{
+				format = this.Descriptor.DefaultFormat;
+			}
+			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatProviderIfNotSpecified) && formatProvider == null)
+			{
+				formatProvider = this.Descriptor.DefaultFormatProvider;
+			}
+
+			var convertFn = (Func<FromType, string, IFormatProvider, ToType>)this.Descriptor.Conversion;
+			result = convertFn(value, format, formatProvider);
 		}
 		/// <inheritdoc />
 		public bool TryConvert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
-			var safeConvertFn = (Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>)this.Info.SafeConversion;
+			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatIfNotSpecified) && format == null)
+			{
+				format = this.Descriptor.DefaultFormat;
+			}
+			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatProviderIfNotSpecified) && formatProvider == null)
+			{
+				formatProvider = this.Descriptor.DefaultFormatProvider;
+			}
+
+			var safeConvertFn = (Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>)this.Descriptor.SafeConversion;
 			if (safeConvertFn != null)
 			{
-				var resultOrFail = safeConvertFn(value, format ?? this.Info.DefaultFormat, formatProvider);
+				var resultOrFail = safeConvertFn(value, format, formatProvider);
 				result = resultOrFail.Key;
 				return resultOrFail.Value;
 			}
@@ -54,7 +75,7 @@ namespace deniszykov.TypeConversion
 				result = default;
 				try
 				{
-					this.Convert(value, out result, format ?? this.Info.DefaultFormat, formatProvider);
+					this.Convert(value, out result, format ?? this.Descriptor.DefaultFormat, formatProvider?? this.Descriptor.DefaultFormatProvider);
 					return true;
 				}
 				catch (Exception e)

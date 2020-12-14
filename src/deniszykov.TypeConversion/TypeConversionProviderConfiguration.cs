@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Runtime.Serialization;
 
 namespace deniszykov.TypeConversion
 {
@@ -7,5 +8,13 @@ namespace deniszykov.TypeConversion
 	{
 		[DataMember]
 		public bool IsAotRuntime;
+		[DataMember]
+		public string DefaultFormatProviderCultureName;
+		[DataMember]
+		public ConverterOptions ConverterOptions;
+		[DataMember]
+		public ConversionMethodSelectionStrategy ConversionMethodSelectionStrategy;
+
+		public IFormatProvider DefaultFormatProvider;
 	}
 }

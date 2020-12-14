@@ -21,6 +21,10 @@ namespace deniszykov.TypeConversion
 			public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertFromMethods;
 			[NotNull]
 			public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertToMethods;
+#if !NETSTANDARD
+			[CanBeNull]
+			public readonly System.ComponentModel.TypeConverter TypeConverter;
+#endif
 
 			public ConversionTypeInfo([NotNull] ConversionMetadataProvider provider, [NotNull] Type type)
 			{
@@ -98,11 +102,22 @@ namespace deniszykov.TypeConversion
 				this.ConvertToMethods = toMethods ?? EmptyConversionMethods;
 
 				this.implementsAndExtends = new HashSet<Type>(ReflectionExtensions.EnumerateBaseTypesAndInterfaces(type));
+
+#if !NETSTANDARD
+				this.TypeConverter = System.ComponentModel.TypeDescriptor.GetConverter(type);
+				if (this.TypeConverter.GetType() == typeof(System.ComponentModel.TypeConverter))
+					this.TypeConverter = null;
+#endif
 			}
 
 			public bool IsAssignableFrom([NotNull] Type type)
 			{
 				if (type == null) throw new ArgumentNullException(nameof(type));
+
+				if (type == typeof(object))
+				{
+					return true;
+				}
 
 				return this.implementsAndExtends.Contains(type);
 			}
@@ -116,6 +131,8 @@ namespace deniszykov.TypeConversion
 		[NotNull]
 		private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
 
+		// TODO make From/To method names are configurable
+		// TODO make format/formatProvider parameter names are configurable
 		public ConversionMetadataProvider()
 		{
 			this.cachedConversionTypeInfos = new ConcurrentDictionary<Type, ConversionTypeInfo>();
@@ -133,14 +150,22 @@ namespace deniszykov.TypeConversion
 			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
 			return conversionTypeInfo.ConvertToMethods;
 		}
+#if !NETSTANDARD
+		/// <inheritdoc />
+		public System.ComponentModel.TypeConverter GetTypeConverter(Type type)
+		{
+			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
+			return conversionTypeInfo.TypeConverter;
+		}
+#endif
 		/// <inheritdoc />
 		public bool IsAssignableFrom(Type type, Type fromType)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
 
-			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(fromType, this.createConversionTypeInfo);
-			return conversionTypeInfo.IsAssignableFrom(type);
+			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
+			return conversionTypeInfo.IsAssignableFrom(fromType);
 		}
 		/// <inheritdoc />
 		public bool IsFormatParameter(ParameterInfo methodParameter)
