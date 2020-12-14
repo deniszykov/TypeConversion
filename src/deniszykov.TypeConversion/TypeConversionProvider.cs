@@ -36,7 +36,7 @@ namespace deniszykov.TypeConversion
 			// ReSharper restore StaticMemberInGenericType, UnusedTypeParameter
 
 		}
-		private enum ConversionClass
+		private enum KnownNativeConversion
 		{
 			Unknown = 0,
 			EnumToNumber,
@@ -209,17 +209,17 @@ namespace deniszykov.TypeConversion
 			var fallbackConversionFn = default(Func<FromType, string, IFormatProvider, ToType>);
 			var fallbackConversionMethodInfo = default(ConversionMethodInfo);
 
-			switch (this.GetConversionClass(fromType, toType))
+			switch (this.DetectNativeConversion(fromType, toType))
 			{
-				case ConversionClass.UpCasting:
+				case KnownNativeConversion.UpCasting:
 					conversionFn = UpCast<FromType, ToType>;
 					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
 					break;
-				case ConversionClass.DownCasting:
+				case KnownNativeConversion.DownCasting:
 					fallbackConversionFn = this.DownCast<FromType, ToType>;
 					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
 					goto default;
-				case ConversionClass.NullableToNullable:
+				case KnownNativeConversion.NullableToNullable:
 					if (this.isAotRuntime)
 					{
 						fallbackConversionFn = NullableToNullableAot<FromType, ToType>;
@@ -232,7 +232,7 @@ namespace deniszykov.TypeConversion
 					}
 					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
 					goto default;
-				case ConversionClass.NullableToAny:
+				case KnownNativeConversion.NullableToAny:
 					if (this.isAotRuntime)
 					{
 						fallbackConversionFn = NullableToAnyAot<FromType, ToType>;
@@ -245,7 +245,7 @@ namespace deniszykov.TypeConversion
 					}
 					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
 					goto default;
-				case ConversionClass.AnyToNullable:
+				case KnownNativeConversion.AnyToNullable:
 					if (this.isAotRuntime)
 					{
 						fallbackConversionFn = AnyToNullableAot<FromType, ToType>;
@@ -258,28 +258,28 @@ namespace deniszykov.TypeConversion
 					}
 					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
 					goto default;
-				case ConversionClass.EnumToNumber:
+				case KnownNativeConversion.EnumToNumber:
 					conversionFn = ConvertEnumToNumber<FromType, ToType>;
 					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
 					break;
-				case ConversionClass.EnumToEnum:
+				case KnownNativeConversion.EnumToEnum:
 					conversionFn = ConvertEnumToEnum<FromType, ToType>;
 					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
 					break;
-				case ConversionClass.NumberToEnum:
+				case KnownNativeConversion.NumberToEnum:
 					conversionFn = ConvertNumberToEnum<FromType, ToType>;
 					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
 					break;
-				case ConversionClass.EnumToString:
+				case KnownNativeConversion.EnumToString:
 					conversionFn = ConvertEnumToString<FromType, ToType>;
 					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
 					break;
-				case ConversionClass.StringToEnum:
+				case KnownNativeConversion.StringToEnum:
 					conversionFn = ConvertStringToEnum<FromType, ToType>;
 					safeConversionFn = ConvertStringToEnumSafe<FromType, ToType>;
 					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
 					break;
-				case ConversionClass.Unknown:
+				case KnownNativeConversion.Unknown:
 				default:
 					conversionMethods = this.FindConversionBetweenTypes(fromType, toType);
 					break;
@@ -349,7 +349,7 @@ namespace deniszykov.TypeConversion
 			return new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), defaultFormat, defaultFormatProvider, conversionFn, safeConversionFn);
 		}
 
-		private ConversionClass GetConversionClass([NotNull] Type fromType, [NotNull] Type toType)
+		private KnownNativeConversion DetectNativeConversion([NotNull] Type fromType, [NotNull] Type toType)
 		{
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
 			if (toType == null) throw new ArgumentNullException(nameof(toType));
@@ -362,47 +362,47 @@ namespace deniszykov.TypeConversion
 
 			if (this.metadataProvider.IsAssignableFrom(fromType, toType))
 			{
-				return ConversionClass.UpCasting;
+				return KnownNativeConversion.UpCasting;
 			}
 			else if (fromIsNullable && toIsNullable)
 			{
-				return ConversionClass.NullableToNullable;
+				return KnownNativeConversion.NullableToNullable;
 			}
 			else if (fromIsNullable)
 			{
-				return ConversionClass.NullableToAny;
+				return KnownNativeConversion.NullableToAny;
 			}
 			else if (toIsNullable)
 			{
-				return ConversionClass.AnyToNullable;
+				return KnownNativeConversion.AnyToNullable;
 			}
 			else if (this.metadataProvider.IsAssignableFrom(toType, fromType))
 			{
-				return ConversionClass.DownCasting;
+				return KnownNativeConversion.DownCasting;
 			}
 			else if (fromTypeInfo.IsEnum && toTypeInfo.IsEnum)
 			{
-				return ConversionClass.EnumToEnum;
+				return KnownNativeConversion.EnumToEnum;
 			}
 			else if (fromTypeInfo.IsEnum && IsNumber(toType))
 			{
-				return ConversionClass.EnumToNumber;
+				return KnownNativeConversion.EnumToNumber;
 			}
 			else if (toTypeInfo.IsEnum && IsNumber(fromType))
 			{
-				return ConversionClass.NumberToEnum;
+				return KnownNativeConversion.NumberToEnum;
 			}
 			else if (fromTypeInfo.IsEnum && toType == typeof(string))
 			{
-				return ConversionClass.EnumToString;
+				return KnownNativeConversion.EnumToString;
 			}
 			else if (toTypeInfo.IsEnum && fromType == typeof(string))
 			{
-				return ConversionClass.StringToEnum;
+				return KnownNativeConversion.StringToEnum;
 			}
 			else
 			{
-				return ConversionClass.Unknown;
+				return KnownNativeConversion.Unknown;
 			}
 		}
 
