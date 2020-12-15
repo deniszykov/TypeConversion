@@ -11,6 +11,9 @@ using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
+	/// <summary>
+	/// Class providing <see cref="IConverter"/> and <see cref="IConverter{FromType,ToType}"/> instances on demand.
+	/// </summary>
 	public partial class TypeConversionProvider : ITypeConversionProvider
 	{
 		private static readonly int ConverterArrayIncrementCount = 20;
@@ -82,6 +85,14 @@ namespace deniszykov.TypeConversion
 		private readonly ConverterOptions converterOptions;
 		private readonly ConversionMethodSelectionStrategy conversionMethodSelectionStrategy;
 
+#pragma warning disable 1572
+		/// <summary>
+		/// Constructor of <see cref="TypeConversionProvider"/>.
+		/// </summary>
+		/// <param name="configuration">Configuration options.</param>
+		/// <param name="configurationOptions">Configuration options.</param>
+		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
+#pragma warning restore 1572
 		public TypeConversionProvider(
 #if NETFRAMEWORK
 			[CanBeNull] TypeConversionProviderConfiguration configuration = null,
@@ -117,6 +128,7 @@ namespace deniszykov.TypeConversion
 			this.InitializeCustomConversion();
 		}
 
+		/// <inheritdoc />
 		public IConverter<FromType, ToType> GetConverter<FromType, ToType>()
 		{
 			var fromTypeIndex = ConversionLookupIndex.FromType<FromType>.FromIndex;
@@ -142,6 +154,7 @@ namespace deniszykov.TypeConversion
 			}
 		}
 
+		/// <inheritdoc />
 		public IConverter GetConverter(Type fromType, Type toType)
 		{
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
@@ -949,29 +962,34 @@ namespace deniszykov.TypeConversion
 		}
 		//
 
+		/// <summary>
+		/// Prepare conversion between <typeparamref name="FromType"/> and <typeparamref name="ToType"/> for AOR runtime and expose all internal generic method to static analyzer.
+		/// </summary>
 		public static void PrepareTypesForAotRuntime<FromType, ToType>()
 		{
 			// this block of code is never executed but visible to static analyzer
 			// ReSharper disable All
-
-			var instance = new TypeConversionProvider();
-			var x = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
-			var y = new Converter<FromType, ToType>(default, default);
-			instance.CreateConversionDescriptor<FromType, ToType>();
-			instance.RegisterConverter<FromType, ToType>(default, default);
-			instance.PrepareConvertFunc<FromType, ToType>(default);
-			instance.NullableToNullableAot<FromType, ToType>(default, default, default);
-			instance.NullableToAnyAot<FromType, ToType>(default, default, default);
-			instance.AnyToNullableAot<FromType, ToType>(default, default, default);
-			instance.DownCast<FromType, ToType>(default, default, default);
-			UpCast<FromType, ToType>(default, default, default);
-			ConvertEnumToNumber<FromType, ToType>(default, default, default);
-			ConvertNumberToEnum<FromType, ToType>(default, default, default);
-			ConvertEnumToEnum<FromType, ToType>(default, default, default);
-			ConvertEnumToString<FromType, ToType>(default, default, default);
-			ConvertStringToEnum<FromType, ToType>(default, default, default);
-			ConvertStringToEnumSafe<FromType, ToType>(default, default, default);
-			ThrowNoConversionBetweenTypes<FromType, ToType>(default, default, default);
+			if (typeof(TypeConversionProvider).FullName == string.Empty)
+			{
+				var instance = new TypeConversionProvider();
+				var x = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
+				var y = new Converter<FromType, ToType>(default, default);
+				instance.CreateConversionDescriptor<FromType, ToType>();
+				instance.RegisterConverter<FromType, ToType>(default, default);
+				instance.PrepareConvertFunc<FromType, ToType>(default);
+				instance.NullableToNullableAot<FromType, ToType>(default, default, default);
+				instance.NullableToAnyAot<FromType, ToType>(default, default, default);
+				instance.AnyToNullableAot<FromType, ToType>(default, default, default);
+				instance.DownCast<FromType, ToType>(default, default, default);
+				UpCast<FromType, ToType>(default, default, default);
+				ConvertEnumToNumber<FromType, ToType>(default, default, default);
+				ConvertNumberToEnum<FromType, ToType>(default, default, default);
+				ConvertEnumToEnum<FromType, ToType>(default, default, default);
+				ConvertEnumToString<FromType, ToType>(default, default, default);
+				ConvertStringToEnum<FromType, ToType>(default, default, default);
+				ConvertStringToEnumSafe<FromType, ToType>(default, default, default);
+				ThrowNoConversionBetweenTypes<FromType, ToType>(default, default, default);
+			}
 			// ReSharper enable All
 		}
 

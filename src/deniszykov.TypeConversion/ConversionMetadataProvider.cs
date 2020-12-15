@@ -7,6 +7,9 @@ using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
+	/// <summary>
+	/// Conversion metadata provider used by <see cref="ITypeConversionProvider"/> to discover conversion methods on types. 
+	/// </summary>
 	public class ConversionMetadataProvider : IConversionMetadataProvider
 	{
 		private class ConversionTypeInfo
@@ -133,6 +136,9 @@ namespace deniszykov.TypeConversion
 
 		// TODO make From/To method names are configurable
 		// TODO make format/formatProvider parameter names are configurable
+		/// <summary>
+		/// Constructor of <see cref="ConversionMetadataProvider"/>.
+		/// </summary>
 		public ConversionMetadataProvider()
 		{
 			this.cachedConversionTypeInfos = new ConcurrentDictionary<Type, ConversionTypeInfo>();

@@ -1,5 +1,9 @@
 ﻿namespace deniszykov.TypeConversion
 {
+	/// <summary>
+	/// Quality of conversion method. Quality is defined by purpose and performance.
+	/// Therefore, the explicit/implicit cast operators are the highest quality way of type conversion, second only to the native conversion (type casting and boxing).
+	/// </summary>
 	public enum ConversionQuality
 	{
 		/// <summary>
