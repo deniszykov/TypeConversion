@@ -25,16 +25,21 @@ namespace deniszykov.TypeConversion.Tests
 		}
 
 		private static long IntToLong(int value) => value;
+		private static ConversionMethodInfo IntToLongMethodInfo = new ConversionMethodInfo(
+			new Func<int, long>(IntToLong).GetMethodInfo(),
+			new Func<int, long>(IntToLong).GetMethodInfo().GetParameters(),
+			new[] { ConversionParameterType.Value },
+			ConversionQuality.Native
+		);
 
 		[Theory]
 		[MemberData(nameof(ConstructorTestData))]
 		public void ConstructorTest(string defaultFormat, IFormatProvider defaultFormatProvider, bool withSafeConversion)
 		{
-
-			var conversionMethodInfo = new ConversionMethodInfo(new Func<int, long>(IntToLong).GetMethodInfo(), 0);
+			var conversionMethodInfo = IntToLongMethodInfo;
 			var conversionFn = new Func<int, string, IFormatProvider, long>((value, format, formatProvider) => value);
 			var safeConversionFn = withSafeConversion ? new Func<int, string, IFormatProvider, KeyValuePair<long, bool>>((value, format, formatProvider) => new KeyValuePair<long, bool>(value, true)) : null;
-			var conversionInfo = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(new[]{  conversionMethodInfo }), defaultFormat, defaultFormatProvider, conversionFn, safeConversionFn);
+			var conversionInfo = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(new[] { conversionMethodInfo }), defaultFormat, defaultFormatProvider, conversionFn, safeConversionFn);
 
 			Assert.NotNull(conversionInfo);
 			Assert.NotNull(conversionInfo.Methods);
@@ -47,12 +52,12 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void ConstructorConverterFnCheckTest()
 		{
-			var conversionMethodInfo = new ConversionMethodInfo(new Func<int, long>(IntToLong).GetMethodInfo(), 0);
+			var conversionMethodInfo = IntToLongMethodInfo;
 			var conversionFn = new Func<long, string, IFormatProvider, long>((value, format, formatProvider) => value);
 
 			Assert.ThrowsAny<ArgumentException>(() =>
 			{
-				var conversionInfo = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(new[]{  conversionMethodInfo }), null, null, conversionFn, null);
+				var conversionInfo = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(new[] { conversionMethodInfo }), null, null, conversionFn, null);
 				Assert.NotNull(conversionInfo);
 			});
 		}
@@ -60,13 +65,13 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void ConstructorSafeConverterFnCheckTest()
 		{
-			var conversionMethodInfo = new ConversionMethodInfo(new Func<int, long>(IntToLong).GetMethodInfo(), 0);
+			var conversionMethodInfo = IntToLongMethodInfo;
 			var conversionFn = new Func<int, string, IFormatProvider, long>((value, format, formatProvider) => value);
 			var safeConversionFn = new Func<long, string, IFormatProvider, KeyValuePair<long, bool>>((value, format, formatProvider) => new KeyValuePair<long, bool>(value, true));
 
 			Assert.ThrowsAny<ArgumentException>(() =>
 			{
-				var conversionInfo = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(new[]{  conversionMethodInfo }), null, null, conversionFn, safeConversionFn);
+				var conversionInfo = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(new[] { conversionMethodInfo }), null, null, conversionFn, safeConversionFn);
 				Assert.NotNull(conversionInfo);
 			});
 		}

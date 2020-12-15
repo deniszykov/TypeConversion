@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -11,7 +11,9 @@ namespace deniszykov.TypeConversion
 		[NotNull]
 		public readonly MethodBase Method;
 		[NotNull, ItemNotNull]
-		internal readonly ParameterInfo[] Parameters;
+		public readonly ReadOnlyCollection<ParameterInfo> Parameters;
+		[NotNull]
+		public readonly ReadOnlyCollection<ConversionParameterType> ConversionParameterTypes;
 		[NotNull]
 		internal readonly Type FromType;
 		[NotNull]
@@ -21,17 +23,22 @@ namespace deniszykov.TypeConversion
 
 		public ConversionMethodInfo(
 			[NotNull] MethodBase methodBase,
-			int fromValueParameterIndex,
-			[CanBeNull] ParameterInfo[] methodParameters = null,
+			[NotNull] ParameterInfo[] parameters,
+			[NotNull] ConversionParameterType[] conversionParameterTypes,
 			[CanBeNull] ConversionQuality? conversionQualityOverride = null)
 		{
 			if (methodBase == null) throw new ArgumentNullException(nameof(methodBase));
+			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+			if (conversionParameterTypes == null) throw new ArgumentNullException(nameof(conversionParameterTypes));
 
-			this.Parameters = methodParameters ?? methodBase.GetParameters();
+			this.Parameters = new ReadOnlyCollection<ParameterInfo>(parameters);
+			this.ConversionParameterTypes = new ReadOnlyCollection<ConversionParameterType>(conversionParameterTypes);
 			this.Method = methodBase;
+
+			var fromValueParameterIndex = this.ConversionParameterTypes.IndexOf(ConversionParameterType.Value);
 			if (methodBase.IsStatic)
 			{
-				if (fromValueParameterIndex < 0 || fromValueParameterIndex >= this.Parameters.Length)
+				if (fromValueParameterIndex < 0)
 				{
 					throw new ArgumentOutOfRangeException(nameof(fromValueParameterIndex));
 				}
@@ -42,7 +49,7 @@ namespace deniszykov.TypeConversion
 			}
 			else
 			{
-				if (fromValueParameterIndex < 0 || fromValueParameterIndex >= this.Parameters.Length)
+				if (fromValueParameterIndex < 0)
 				{
 					this.FromType = methodBase.DeclaringType ?? typeof(object);
 				}
@@ -85,13 +92,31 @@ namespace deniszykov.TypeConversion
 				return cmp;
 			}
 
-			cmp = this.Parameters.Length.CompareTo(other.Parameters.Length); // more parameters (format, formatProvider) = better
+			cmp = this.Parameters.Count.CompareTo(other.Parameters.Count); // more parameters (format, formatProvider) = better
 			if (cmp != 0)
 			{
 				return cmp;
 			}
 
 			return other.Method.Name.Length.CompareTo(this.Method.Name.Length); // shorter name = better 
+		}
+
+		internal static ConversionMethodInfo FromNativeConversion(Delegate conversionFn, [CanBeNull] ConversionQuality? conversionQualityOverride = null)
+		{
+			if (conversionFn == null) throw new ArgumentNullException(nameof(conversionFn));
+
+			var methodInfo = conversionFn.GetMethodInfo();
+			var parameters = methodInfo.GetParameters();
+			var parameterTypes = new[] { ConversionParameterType.Value, ConversionParameterType.Format, ConversionParameterType.FormatProvider };
+
+			if (parameters.Length != 3 ||
+				parameters[1].ParameterType != typeof(string) ||
+				parameters[2].ParameterType != typeof(IFormatProvider))
+			{
+				throw new InvalidOperationException("Invalid native conversion method's signature. Should be fn(value, format, formatProvider).");
+			}
+
+			return new ConversionMethodInfo(methodInfo, parameters, parameterTypes, conversionQualityOverride ?? ConversionQuality.Native);
 		}
 
 		/// <inheritdoc />

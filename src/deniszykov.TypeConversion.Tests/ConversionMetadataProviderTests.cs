@@ -8,7 +8,7 @@ namespace deniszykov.TypeConversion.Tests
 {
 	public class ConversionMetadataProviderTests
 	{
-		private  const string DEFAULT_FORMAT = "defaultFormat";
+		private const string DEFAULT_FORMAT = "defaultFormat";
 		private static long IntToLong(int value, string format = DEFAULT_FORMAT) => value;
 
 #if NETFRAMEWORK
@@ -282,7 +282,8 @@ namespace deniszykov.TypeConversion.Tests
 		{
 
 			var metadataProvider = new ConversionMetadataProvider();
-			var conversionMethodInfo = new ConversionMethodInfo(new Func<int, string, long>(IntToLong).GetMethodInfo(), 0);
+			var intToLongMethodInfo = new Func<int, string, long>(IntToLong).GetMethodInfo();
+			var conversionMethodInfo = new ConversionMethodInfo(intToLongMethodInfo, intToLongMethodInfo.GetParameters(), new[] { ConversionParameterType.Value }, ConversionQuality.Native);
 
 			var actual = metadataProvider.GetDefaultFormat(conversionMethodInfo);
 

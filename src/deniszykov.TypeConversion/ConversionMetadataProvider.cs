@@ -59,12 +59,12 @@ namespace deniszykov.TypeConversion
 						if (parameters.Length == 1 && parameters[0].ParameterType == type)
 						{
 							toMethods ??= new List<ConversionMethodInfo>(10);
-							toMethods.Add(new ConversionMethodInfo(method, 0, parameters));
+							toMethods.Add(new ConversionMethodInfo(method, parameters, provider.MapParameters(parameters, type)));
 						}
 						else if (parameters.Length == 1 && method.ReturnType == type)
 						{
 							fromMethods ??= new List<ConversionMethodInfo>(10);
-							fromMethods.Add(new ConversionMethodInfo(method, 0, parameters));
+							fromMethods.Add(new ConversionMethodInfo(method, parameters, provider.MapParameters(parameters, null)));
 						}
 					}
 
@@ -72,14 +72,14 @@ namespace deniszykov.TypeConversion
 					if (provider.IsConvertFromMethod(method, type, parameters, out var fromValueParameter))
 					{
 						fromMethods ??= new List<ConversionMethodInfo>(10);
-						fromMethods.Add(new ConversionMethodInfo(method, Array.IndexOf(parameters, fromValueParameter), parameters));
+						fromMethods.Add(new ConversionMethodInfo(method, parameters, provider.MapParameters(parameters, fromValueParameter?.ParameterType)));
 					}
 
 					// custom ToX method
 					if (provider.IsConvertToMethod(method, type, parameters, out fromValueParameter))
 					{
 						toMethods ??= new List<ConversionMethodInfo>(10);
-						toMethods.Add(new ConversionMethodInfo(method, Array.IndexOf(parameters, fromValueParameter), parameters));
+						toMethods.Add(new ConversionMethodInfo(method, parameters, provider.MapParameters(parameters, fromValueParameter?.ParameterType)));
 					}
 				}
 
@@ -95,7 +95,7 @@ namespace deniszykov.TypeConversion
 					}
 
 					fromMethods ??= new List<ConversionMethodInfo>(10);
-					fromMethods.Add(new ConversionMethodInfo(constructor, 0, parameters));
+					fromMethods.Add(new ConversionMethodInfo(constructor, parameters, provider.MapParameters(parameters, null)));
 				}
 
 				this.ConvertFromMethods = fromMethods ?? EmptyConversionMethods;
@@ -296,6 +296,24 @@ namespace deniszykov.TypeConversion
 				parameterInfo.ParameterType.IsByRef == false &&
 				parameterInfo.ParameterType.IsPointer == false &&
 				parameterInfo.ParameterType.IsGenericParameter == false;
+		}
+		
+		[NotNull]
+		private ConversionParameterType[] MapParameters([NotNull, ItemNotNull] ParameterInfo[] parameters, [CanBeNull]Type valueType)
+		{
+			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+
+			var parameterTypes = new ConversionParameterType[parameters.Length];
+			for (var p = 0; p < parameters.Length; p++)
+			{
+				parameterTypes[p] = this.IsFormatParameter(parameters[p]) ? ConversionParameterType.Format :
+					this.IsFormatProviderParameter(parameters[p]) ? ConversionParameterType.FormatProvider :
+					valueType == null || parameters[p].ParameterType == valueType ? ConversionParameterType.Value :
+					throw new InvalidOperationException("Unknown parameter in conversion method.");
+
+			}
+
+			return parameterTypes;
 		}
 
 		private static bool IsByRefLike([NotNull] ParameterInfo parameterInfo)

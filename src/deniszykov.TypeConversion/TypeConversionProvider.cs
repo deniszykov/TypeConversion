@@ -213,11 +213,11 @@ namespace deniszykov.TypeConversion
 			{
 				case KnownNativeConversion.UpCasting:
 					conversionFn = UpCast<FromType, ToType>;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.DownCasting:
 					fallbackConversionFn = this.DownCast<FromType, ToType>;
-					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
+					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToNullable:
 					if (this.isAotRuntime)
@@ -230,7 +230,7 @@ namespace deniszykov.TypeConversion
 							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType), Nullable.GetUnderlyingType(toType));
 						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromType, string, IFormatProvider, ToType>>(this, nullableToNullableMethod);
 					}
-					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
+					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToAny:
 					if (this.isAotRuntime)
@@ -243,7 +243,7 @@ namespace deniszykov.TypeConversion
 							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType), toType);
 						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromType, string, IFormatProvider, ToType>>(this, nullableToNullableMethod);
 					}
-					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
+					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.AnyToNullable:
 					if (this.isAotRuntime)
@@ -256,28 +256,28 @@ namespace deniszykov.TypeConversion
 							.MakeGenericMethod(fromType, Nullable.GetUnderlyingType(toType));
 						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromType, string, IFormatProvider, ToType>>(this, nullableToNullableMethod);
 					}
-					fallbackConversionMethodInfo = new ConversionMethodInfo(fallbackConversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native);
+					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.EnumToNumber:
 					conversionFn = ConvertEnumToNumber<FromType, ToType>;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.EnumToEnum:
 					conversionFn = ConvertEnumToEnum<FromType, ToType>;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.NumberToEnum:
 					conversionFn = ConvertNumberToEnum<FromType, ToType>;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.EnumToString:
 					conversionFn = ConvertEnumToString<FromType, ToType>;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.StringToEnum:
 					conversionFn = ConvertStringToEnum<FromType, ToType>;
 					safeConversionFn = ConvertStringToEnumSafe<FromType, ToType>;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.Native) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.Unknown:
 				default:
@@ -293,7 +293,7 @@ namespace deniszykov.TypeConversion
 				{
 					var adapter = new TypeConverterAdapter<FromType, ToType>(toTypeConverter);
 					conversionFn = adapter.ConvertFrom;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.TypeConverter) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
 				}
 
 				var fromTypeConverter = this.metadataProvider.GetTypeConverter(fromType);
@@ -301,7 +301,7 @@ namespace deniszykov.TypeConversion
 				{
 					var adapter = new TypeConverterAdapter<FromType, ToType>(fromTypeConverter);
 					conversionFn = adapter.ConvertTo;
-					conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.TypeConverter) };
+					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
 				}
 			}
 #endif
@@ -314,7 +314,7 @@ namespace deniszykov.TypeConversion
 			if (conversionMethods.Length == 0)
 			{
 				conversionFn = ThrowNoConversionBetweenTypes<FromType, ToType>;
-				conversionMethods = new[] { new ConversionMethodInfo(conversionFn.GetMethodInfo(), 0, conversionQualityOverride: ConversionQuality.None) };
+				conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.None) };
 				safeConversionFn = (fromValue, format, formatProvider) => new KeyValuePair<ToType, bool>(default, false);
 			}
 			else if (conversionFn == null)
@@ -454,8 +454,8 @@ namespace deniszykov.TypeConversion
 			for (var m = 0; m < conversionMethods.Count; m++)
 			{
 				var conversionMethod = conversionMethods[m];
-				var methodQualityClass = (conversionMethods[m].Parameters.Any(this.metadataProvider.IsFormatParameter) ? FORMAT_PARAM : 0) |
-					(conversionMethods[m].Parameters.Any(this.metadataProvider.IsFormatProviderParameter) ? FORMAT_PROVIDER_PARAM : 0);
+				var methodQualityClass = (conversionMethods[m].ConversionParameterTypes.IndexOf(ConversionParameterType.Format) >= 0 ? FORMAT_PARAM : 0) |
+					(conversionMethods[m].ConversionParameterTypes.IndexOf(ConversionParameterType.FormatProvider) >= 0 ? FORMAT_PROVIDER_PARAM : 0);
 				if (lastMethodQualityClass != methodQualityClass)
 				{
 					conversionMethods[lastReplaceIndex++] = conversionMethod;
@@ -472,8 +472,7 @@ namespace deniszykov.TypeConversion
 
 		private void RegisterConverter<FromType, ToType>([NotNull] Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality)
 		{
-			var conversionMethod = conversionFunc.GetMethodInfo();
-			var conversionMethods = new[] { new ConversionMethodInfo(conversionMethod, 0, conversionQualityOverride: quality) };
+			var conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFunc, quality) };
 			var fromTypeIndex = ConversionLookupIndex.FromType<FromType>.FromIndex;
 			var toTypeIndex = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
@@ -525,8 +524,8 @@ namespace deniszykov.TypeConversion
 			);
 			foreach (var method in methods.Reverse())
 			{
-				var hasFormatParameter = method.Parameters.Any(this.metadataProvider.IsFormatParameter);
-				var hasFormatProviderParameter = method.Parameters.Any(this.metadataProvider.IsFormatProviderParameter);
+				var hasFormatParameter = method.ConversionParameterTypes.IndexOf(ConversionParameterType.Format) >= 0;
+				var hasFormatProviderParameter = method.ConversionParameterTypes.IndexOf(ConversionParameterType.FormatProvider) >= 0;
 
 				var convertViaMethodExpression = CreateConvertExpression(method);
 				if (!hasFormatParameter && !hasFormatProviderParameter)
@@ -581,15 +580,16 @@ namespace deniszykov.TypeConversion
 			Expression CreateConvertExpression(ConversionMethodInfo conversionMethodInfo)
 			{
 				var methodParameters = conversionMethodInfo.Parameters;
-				var arguments = new Expression[methodParameters.Length];
+				var methodParameterTypes = conversionMethodInfo.ConversionParameterTypes;
+				var arguments = new Expression[methodParameters.Count];
 
-				for (var i = 0; i < methodParameters.Length; i++)
+				for (var i = 0; i < methodParameters.Count; i++)
 				{
-					if (this.metadataProvider.IsFormatParameter(methodParameters[i]))
+					if (methodParameterTypes[i] == ConversionParameterType.Format)
 					{
 						arguments[i] = formatParameter;
 					}
-					else if (this.metadataProvider.IsFormatProviderParameter(methodParameters[i]))
+					else if (methodParameterTypes[i] == ConversionParameterType.FormatProvider)
 					{
 						arguments[i] = formatProviderParameter;
 					}
@@ -652,16 +652,16 @@ namespace deniszykov.TypeConversion
 
 			for (var m = 0; m < methods.Length; m++)
 			{
-				var methodParameters = methods[m].Parameters;
+				var parameterTypes = methods[m].ConversionParameterTypes;
 				methodParametersMap[m] = new[] { -1, -1, -1 };
 
-				for (var p = 0; p < methodParameters.Length; p++)
+				for (var p = 0; p < parameterTypes.Count; p++)
 				{
-					if (this.metadataProvider.IsFormatParameter(methodParameters[p]))
+					if (parameterTypes[p] == ConversionParameterType.Format)
 					{
 						methodParametersMap[m][FORMAT_PARAMETER] = p;
 					}
-					else if (this.metadataProvider.IsFormatProviderParameter(methodParameters[p]))
+					else if (parameterTypes[p] == ConversionParameterType.FormatProvider)
 					{
 						methodParametersMap[m][FORMAT_PROVIDER_PARAMETER] = p;
 					}
@@ -690,7 +690,7 @@ namespace deniszykov.TypeConversion
 					}
 
 					// prepare arguments
-					var arguments = new object[methodParameters.Length];
+					var arguments = new object[methodParameters.Count];
 					if (fromValueParameterIndex >= 0)
 					{
 						arguments[fromValueParameterIndex] = fromValue;
