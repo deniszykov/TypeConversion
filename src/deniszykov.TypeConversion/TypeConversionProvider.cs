@@ -14,7 +14,7 @@ namespace deniszykov.TypeConversion
 	/// <summary>
 	/// Class providing <see cref="IConverter"/> and <see cref="IConverter{FromType,ToType}"/> instances on demand.
 	/// </summary>
-	public partial class TypeConversionProvider : ITypeConversionProvider
+	public partial class TypeConversionProvider : ITypeConversionProvider, ICustomConversionRegistry
 	{
 		private static readonly int ConverterArrayIncrementCount = 20;
 
@@ -126,6 +126,7 @@ namespace deniszykov.TypeConversion
 
 			this.InitializeNativeConversions();
 			this.InitializeCustomConversion();
+			configuration?.CustomConversionRegistrationCallback?.Invoke(this);
 		}
 
 		/// <inheritdoc />
@@ -182,6 +183,19 @@ namespace deniszykov.TypeConversion
 			}
 
 			return getConverterFunc();
+		}
+
+		/// <inheritdoc />
+		public void RegisterConversion<FromType, ToType>([NotNull] Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality)
+		{
+			var conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFunc, quality) };
+			var fromTypeIndex = ConversionLookupIndex.FromType<FromType>.FromIndex;
+			var toTypeIndex = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
+			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
+
+			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default(Delegate));
+			var converter = new Converter<FromType, ToType>(conversionDescriptor, converterOptions);
+			toConverters[toTypeIndex] = converter;
 		}
 
 		private IConverter[] GetToConverters(int fromTypeIndex, int toTypeIndex)
@@ -482,30 +496,18 @@ namespace deniszykov.TypeConversion
 
 			return conversionMethods.ToArray();
 		}
-
-		private void RegisterConverter<FromType, ToType>([NotNull] Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality)
-		{
-			var conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFunc, quality) };
-			var fromTypeIndex = ConversionLookupIndex.FromType<FromType>.FromIndex;
-			var toTypeIndex = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
-			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
-
-			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default(Delegate));
-			var converter = new Converter<FromType, ToType>(conversionDescriptor, converterOptions);
-			toConverters[toTypeIndex] = converter;
-		}
-
+		
 		private void InitializeCustomConversion()
 		{
-			this.RegisterConverter<string, Uri>((value, format, fp) =>
+			this.RegisterConversion<string, Uri>((value, format, fp) =>
 			{
 				var kind = string.IsNullOrEmpty(format) ? UriKind.RelativeOrAbsolute : (UriKind)Enum.Parse(typeof(UriKind), format, ignoreCase: true);
 				return new Uri(value, kind);
 			}, ConversionQuality.Custom);
 
-			this.RegisterConverter<Uri, string>((value, format, fp) => value.OriginalString, ConversionQuality.Custom);
+			this.RegisterConversion<Uri, string>((value, format, fp) => value.OriginalString, ConversionQuality.Custom);
 
-			this.RegisterConverter<string, DateTime>((str, f, fp) =>
+			this.RegisterConversion<string, DateTime>((str, f, fp) =>
 			{
 				if (f == null || string.Equals(f, "o", StringComparison.OrdinalIgnoreCase))
 				{
@@ -975,7 +977,7 @@ namespace deniszykov.TypeConversion
 				var x = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
 				var y = new Converter<FromType, ToType>(default, default);
 				instance.CreateConversionDescriptor<FromType, ToType>();
-				instance.RegisterConverter<FromType, ToType>(default, default);
+				instance.RegisterConversion<FromType, ToType>(default, default);
 				instance.PrepareConvertFunc<FromType, ToType>(default);
 				instance.NullableToNullableAot<FromType, ToType>(default, default, default);
 				instance.NullableToAnyAot<FromType, ToType>(default, default, default);

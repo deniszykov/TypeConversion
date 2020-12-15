@@ -20,7 +20,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="toType">Convert to type.</param>
 		/// <param name="fromValue">Value to convert. Value should be assignable from <paramref name="fromType"/> type.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static object Convert([NotNull] this ITypeConversionProvider typeConversionProvider, [NotNull] Type fromType, [NotNull] Type toType, [CanBeNull] object fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -40,7 +40,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <paramref name="fromType"/> type.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static object Convert([NotNull] this ITypeConversionProvider typeConversionProvider, [NotNull] Type fromType, [NotNull] Type toType, [CanBeNull] object fromValue, [CanBeNull] string format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -60,7 +60,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <paramref name="fromType"/> type.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static object Convert([NotNull] this ITypeConversionProvider typeConversionProvider, [NotNull] Type fromType, [NotNull] Type toType, [CanBeNull] object fromValue, [CanBeNull] IFormatProvider formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -81,7 +81,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static object Convert([NotNull] this ITypeConversionProvider typeConversionProvider, [NotNull] Type fromType, [NotNull] Type toType, [CanBeNull] object fromValue, [CanBeNull] string format, [CanBeNull] IFormatProvider formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -174,7 +174,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static ToType Convert<FromType, ToType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -192,7 +192,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static ToType Convert<FromType, ToType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue, [CanBeNull] string format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -210,7 +210,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static ToType Convert<FromType, ToType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue, [CanBeNull] IFormatProvider formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -229,7 +229,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
-		[CanBeNull]
+		[CanBeNull, MustUseReturnValue, Pure]
 		public static ToType Convert<FromType, ToType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue, [CanBeNull] string format, [CanBeNull] IFormatProvider formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -319,7 +319,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
-		[NotNull]
+		[NotNull, MustUseReturnValue, Pure]
 		public static string ConvertToString<FromType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -336,7 +336,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
-		[NotNull]
+		[NotNull, MustUseReturnValue, Pure]
 		public static string ConvertToString<FromType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue, [CanBeNull] string format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -353,7 +353,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
-		[NotNull]
+		[NotNull, MustUseReturnValue, Pure]
 		public static string ConvertToString<FromType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue, [CanBeNull] IFormatProvider formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -371,7 +371,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
-		[NotNull]
+		[NotNull, MustUseReturnValue, Pure]
 		public static string ConvertToString<FromType>([NotNull] this ITypeConversionProvider typeConversionProvider, [CanBeNull] FromType fromValue, [CanBeNull] string format, [CanBeNull] IFormatProvider formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));

@@ -7,6 +7,7 @@ namespace deniszykov.TypeConversion
 	/// <summary>
 	/// Converter used to transform value of type <see cref="FromType"/> to value of <see cref="ToType"/>.
 	/// </summary>
+	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 	public interface IConverter
 	{
 		/// <summary>
@@ -32,7 +33,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="result">A converted value.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
-		void Convert(object value, out object result, string format = null, IFormatProvider formatProvider = null);
+		void Convert([CanBeNull] object value, [CanBeNull] out object result, [CanBeNull] string format = null, [CanBeNull] IFormatProvider formatProvider = null);
 
 		/// <summary>
 		/// Tries to covert <paramref name="value"/> from <see cref="FromType"/> to <see cref="ToType"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
@@ -43,9 +44,13 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		bool TryConvert(object value, out object result, string format = null, IFormatProvider formatProvider = null);
+		bool TryConvert([CanBeNull] object value, [CanBeNull] out object result, [CanBeNull] string format = null, [CanBeNull] IFormatProvider formatProvider = null);
 	}
 
+	/// <summary>
+	/// Converter used to transform value of type <typeparamref name="FromType"/> to value of <typeparamref name="ToType"/>.
+	/// </summary>
+	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 	public interface IConverter<in FromType, ToType> : IConverter
 	{
 
@@ -56,7 +61,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="result">A converted value.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
-		void Convert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null);
+		void Convert([CanBeNull] FromType value, [CanBeNull] out ToType result, [CanBeNull] string format = null, [CanBeNull] IFormatProvider formatProvider = null);
 
 		/// <summary>
 		/// Tries to covert <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
@@ -67,6 +72,6 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		bool TryConvert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null);
+		bool TryConvert([CanBeNull] FromType value, [CanBeNull] out ToType result, [CanBeNull] string format = null, [CanBeNull] IFormatProvider formatProvider = null);
 	}
 }
