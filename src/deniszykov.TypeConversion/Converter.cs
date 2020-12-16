@@ -17,12 +17,24 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		void IConverter.Convert(object value, out object result, string format, IFormatProvider formatProvider)
 		{
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType)
+			{
+				result = value;
+				return;
+			}
+
 			this.Convert((FromType)value, out var resultTyped, format, formatProvider);
 			result = resultTyped;
 		}
 		/// <inheritdoc />
 		bool IConverter.TryConvert(object value, out object result, string format, IFormatProvider formatProvider)
 		{
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType)
+			{
+				result = value;
+				return true;
+			}
+
 			var success = this.TryConvert((FromType)value, out var resultTyped, format, formatProvider);
 			result = resultTyped;
 			return success;
@@ -48,6 +60,12 @@ namespace deniszykov.TypeConversion
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
 
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType valueOfType)
+			{
+				result = valueOfType;
+				return;
+			}
+
 			var convertFn = (Func<FromType, string, IFormatProvider, ToType>)this.Descriptor.Conversion;
 			result = convertFn(value, format, formatProvider);
 		}
@@ -62,6 +80,11 @@ namespace deniszykov.TypeConversion
 			{
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType valueOfType)
+			{
+				result = valueOfType;
+				return true;
+			}
 
 			var safeConvertFn = (Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>)this.Descriptor.SafeConversion;
 			if (safeConvertFn != null)
@@ -75,7 +98,7 @@ namespace deniszykov.TypeConversion
 				result = default;
 				try
 				{
-					this.Convert(value, out result, format ?? this.Descriptor.DefaultFormat, formatProvider?? this.Descriptor.DefaultFormatProvider);
+					this.Convert(value, out result, format ?? this.Descriptor.DefaultFormat, formatProvider ?? this.Descriptor.DefaultFormatProvider);
 					return true;
 				}
 				catch (Exception e)
