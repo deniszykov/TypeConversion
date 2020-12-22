@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
 
@@ -11,11 +12,6 @@ namespace deniszykov.TypeConversion
 	public class TypeConversionProviderConfiguration : ICustomConversionRegistry
 	{
 		/// <summary>
-		/// Set to true if runtime doesn't support dynamic code execution like dynamic method and LINQ expressions. For example on Unity's WebGL, Playstation, or Mono with --aot flag.
-		/// </summary>
-		[DataMember]
-		public bool IsAotRuntime;
-		/// <summary>
 		/// Name of default format provider to set <see cref="ConversionDescriptor.DefaultFormatProvider"/>.
 		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="ConverterOptions"/> configuration parameter.
 		/// If both <see cref="DefaultFormatProvider"/> and <see cref="DefaultFormatProviderCultureName"/> are set then <see cref="DefaultFormatProvider"/> is used.
@@ -23,7 +19,7 @@ namespace deniszykov.TypeConversion
 		[DataMember, CanBeNull]
 		public string DefaultFormatProviderCultureName;
 		/// <summary>
-		/// Option to set on created <see cref="Converter{FromType,ToType}"/> instances.
+		/// Options used by <see cref="Converter{FromType,ToType}"/> and <see cref="TypeConversionProvider"/> types.
 		/// </summary>
 		[DataMember]
 		public ConverterOptions ConverterOptions;
@@ -34,7 +30,7 @@ namespace deniszykov.TypeConversion
 		public ConversionMethodSelectionStrategy ConversionMethodSelectionStrategy;
 
 		/// <summary>
-		/// Default format provider to set <see cref="ConversionDescriptor.DefaultFormatProvider"/>.
+		/// Default format provider to set <see cref="ConversionDescriptor.DefaultFormatProvider"/>. Default to <see cref="CultureInfo.InvariantCulture"/>.
 		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="ConverterOptions"/> configuration parameter.
 		/// If both <see cref="DefaultFormatProvider"/> and <see cref="DefaultFormatProviderCultureName"/> are set then <see cref="DefaultFormatProvider"/> is used.
 		/// </summary>

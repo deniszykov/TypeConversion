@@ -89,7 +89,6 @@ namespace deniszykov.TypeConversion
 		private readonly ConcurrentDictionary<long, Func<IConverter>> getConverterByTypes;
 		private readonly IConversionMetadataProvider metadataProvider;
 		private readonly IFormatProvider defaultFormatProvider;
-		private readonly ConversionOptimizations optimizations;
 		private readonly ConverterOptions converterOptions;
 		private readonly ConversionMethodSelectionStrategy conversionMethodSelectionStrategy;
 
@@ -119,7 +118,6 @@ namespace deniszykov.TypeConversion
 			this.getConverterByTypes = new ConcurrentDictionary<long, Func<IConverter>>();
 			this.getConverterDefinition = new Func<IConverter>(this.GetConverter<object, object>).GetMethodInfo().GetGenericMethodDefinition();
 			this.metadataProvider = metadataProvider ?? new ConversionMetadataProvider();
-			this.optimizations = configuration?.Optimizations ?? ConversionOptimizations.Default;
 			this.defaultFormatProvider = configuration?.DefaultFormatProvider;
 			if (string.IsNullOrEmpty(configuration?.DefaultFormatProviderCultureName) == false)
 			{
@@ -158,7 +156,7 @@ namespace deniszykov.TypeConversion
 			else
 			{
 				var conversionDescriptor = this.CreateConversionDescriptor<FromType, ToType>();
-				converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions, this.optimizations);
+				converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions);
 				toConverters[toTypeIndex] = converter;
 				return converter;
 			}
@@ -195,7 +193,7 @@ namespace deniszykov.TypeConversion
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
 
 			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default(Delegate));
-			var converter = new Converter<FromType, ToType>(conversionDescriptor, converterOptions, this.optimizations);
+			var converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions );
 			toConverters[toTypeIndex] = converter;
 		}
 
@@ -248,7 +246,7 @@ namespace deniszykov.TypeConversion
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToNullable:
-					if ((this.optimizations & ConversionOptimizations.InstantiateNewGenericTypes) == 0)
+					if ((this.converterOptions & ConverterOptions.InstantiateNewGenericTypes) == 0)
 					{
 						fallbackConversionFn = NullableToNullableAot<FromType, ToType>;
 					}
@@ -261,7 +259,7 @@ namespace deniszykov.TypeConversion
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToAny:
-					if ((this.optimizations & ConversionOptimizations.InstantiateNewGenericTypes) == 0)
+					if ((this.converterOptions & ConverterOptions.InstantiateNewGenericTypes) == 0)
 					{
 						fallbackConversionFn = NullableToAnyAot<FromType, ToType>;
 					}
@@ -274,7 +272,7 @@ namespace deniszykov.TypeConversion
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.AnyToNullable:
-					if ((this.optimizations & ConversionOptimizations.InstantiateNewGenericTypes) == 0)
+					if ((this.converterOptions & ConverterOptions.InstantiateNewGenericTypes) == 0)
 					{
 						fallbackConversionFn = AnyToNullableAot<FromType, ToType>;
 					}
@@ -365,7 +363,7 @@ namespace deniszykov.TypeConversion
 					defaultFormat ??= "c";
 				}
 
-				if ((this.optimizations & ConversionOptimizations.UseDynamicMethods) == 0)
+				if ((this.converterOptions & ConverterOptions.UseDynamicMethods) == 0)
 				{
 					conversionFn = this.PrepareConvertFunc<FromType, ToType>(conversionMethods);
 				}
@@ -759,7 +757,7 @@ namespace deniszykov.TypeConversion
 			var enumConversionInfo = (EnumConversionInfo<EnumT>)this.enumConversionInfos[enumIndex];
 			if (enumConversionInfo == null)
 			{
-				var useDynamicMethods = (this.optimizations & ConversionOptimizations.UseDynamicMethods) != 0;
+				var useDynamicMethods = (this.converterOptions & ConverterOptions.UseDynamicMethods) != 0;
 				Interlocked.Exchange(ref this.enumConversionInfos[enumIndex], enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods));
 			}
 			return enumConversionInfo;
@@ -1005,7 +1003,7 @@ namespace deniszykov.TypeConversion
 			{
 				var instance = new TypeConversionProvider();
 				var x = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
-				var y = new Converter<FromType, ToType>(default, default, default);
+				var y = new Converter<FromType, ToType>(default, default);
 				instance.CreateConversionDescriptor<FromType, ToType>();
 				instance.RegisterConversion<FromType, ToType>(default, default);
 				instance.PrepareConvertFunc<FromType, ToType>(default);

@@ -10,7 +10,6 @@ namespace deniszykov.TypeConversion
 	public sealed class Converter<FromType, ToType> : IConverter<FromType, ToType>
 	{
 		private readonly ConverterOptions converterOptions;
-		private readonly ConversionOptimizations optimizations;
 
 		/// <inheritdoc />
 		public ConversionDescriptor Descriptor { get; }
@@ -21,7 +20,7 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		void IConverter.Convert(object value, out object result, string format, IFormatProvider formatProvider)
 		{
-			if (this.optimizations.HasFlag(ConversionOptimizations.FastCast) && value is ToType)
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType)
 			{
 				result = value;
 				return;
@@ -33,7 +32,7 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		bool IConverter.TryConvert(object value, out object result, string format, IFormatProvider formatProvider)
 		{
-			if (this.optimizations.HasFlag(ConversionOptimizations.FastCast) && value is ToType)
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType)
 			{
 				result = value;
 				return true;
@@ -44,13 +43,13 @@ namespace deniszykov.TypeConversion
 			return success;
 		}
 
-		public Converter([NotNull]ConversionDescriptor conversion, ConverterOptions converterOptions, ConversionOptimizations optimizations)
+		public Converter([NotNull]ConversionDescriptor conversion, ConverterOptions converterOptions)
 		{
 			if (conversion == null) throw new ArgumentNullException(nameof(conversion));
 
 			this.Descriptor = conversion;
 			this.converterOptions = converterOptions;
-			this.optimizations = optimizations;
+			this.converterOptions = converterOptions;
 		}
 
 		/// <inheritdoc />
@@ -65,7 +64,7 @@ namespace deniszykov.TypeConversion
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
 
-			if (this.optimizations.HasFlag(ConversionOptimizations.FastCast) && value is ToType valueOfType)
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType valueOfType)
 			{
 				result = valueOfType;
 				return;
@@ -85,7 +84,7 @@ namespace deniszykov.TypeConversion
 			{
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
-			if (this.optimizations.HasFlag(ConversionOptimizations.FastCast) && value is ToType valueOfType)
+			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType valueOfType)
 			{
 				result = valueOfType;
 				return true;
