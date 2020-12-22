@@ -39,9 +39,11 @@ namespace deniszykov.TypeConversion
 				var fromMethods = default(List<ConversionMethodInfo>);
 				var toMethods = default(List<ConversionMethodInfo>);
 
-				foreach (var method in ReflectionExtensions.GetPublicMethods(type, declaredOnly: true))
+				foreach (var method in ReflectionExtensions.GetPublicMethods(type, declaredOnly: true).Concat(provider.additionalConversionMethods))
 				{
-					if (provider.IsPossibleConvertMethod(method) == false)
+					if (provider.IsPossibleConvertMethod(method) == false ||
+						provider.forbiddenConversionMethods.Contains(method) ||
+						(provider.methodFilter?.Invoke(method) ?? false))
 					{
 						continue;
 					}
@@ -88,6 +90,12 @@ namespace deniszykov.TypeConversion
 
 				foreach (var constructor in ReflectionExtensions.GetPublicConstructors(type))
 				{
+					if (provider.forbiddenConversionMethods.Contains(constructor) ||
+						(provider.methodFilter?.Invoke(constructor) ?? false))
+					{
+						continue;
+					}
+
 					var parameters = constructor.GetParameters();
 
 					if (parameters.Length != 1 ||
@@ -133,16 +141,46 @@ namespace deniszykov.TypeConversion
 		private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
 		[NotNull]
 		private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
-
-		// TODO make From/To method names are configurable
-		// TODO make format/formatProvider parameter names are configurable
+		[NotNull, ItemNotNull]
+		private readonly HashSet<string> convertFromMethodNames;
+		[NotNull, ItemNotNull]
+		private readonly HashSet<string> convertToMethodNames;
+		[NotNull, ItemNotNull]
+		private readonly HashSet<string> formatParameterNames;
+		[NotNull, ItemNotNull]
+		private readonly HashSet<string> formatProviderParameterNames;
+		[NotNull, ItemNotNull]
+		private readonly MethodInfo[] additionalConversionMethods;
+		[NotNull, ItemNotNull]
+		private readonly HashSet<MethodBase> forbiddenConversionMethods;
+		[CanBeNull]
+		private readonly Func<MethodBase, bool> methodFilter;
 		/// <summary>
 		/// Constructor of <see cref="ConversionMetadataProvider"/>.
 		/// </summary>
-		public ConversionMetadataProvider()
+		public ConversionMetadataProvider(
+#if NETFRAMEWORK
+			[CanBeNull] ConversionMetadataProviderConfiguration configuration = null
+#else
+			[CanBeNull] Microsoft.Extensions.Options.IOptions<ConversionMetadataProviderConfiguration> configurationOptions = null
+
+#endif
+		)
 		{
+#if !NETFRAMEWORK
+			var configuration = configurationOptions?.Value;
+#endif
+
+
 			this.cachedConversionTypeInfos = new ConcurrentDictionary<Type, ConversionTypeInfo>();
 			this.createConversionTypeInfo = type => new ConversionTypeInfo(this, type);
+			this.convertFromMethodNames = new HashSet<string>(configuration?.ConvertFromMethodNames ?? new[] { "Parse", "Create" }, StringComparer.OrdinalIgnoreCase);
+			this.convertToMethodNames = new HashSet<string>(configuration?.ConvertToMethodNames ?? new[] { "ToString" }, StringComparer.OrdinalIgnoreCase);
+			this.formatParameterNames = new HashSet<string>(configuration?.FormatParameterNames ?? new[] { "format" });
+			this.formatProviderParameterNames = new HashSet<string>(configuration?.FormatProviderParameterNames ?? new string[0]);
+			this.additionalConversionMethods = configuration?.AdditionalConversionMethods ?? new MethodInfo[0];
+			this.forbiddenConversionMethods = new HashSet<MethodBase>(configuration?.ForbiddenConversionMethods ?? new MethodBase[0]);
+			this.methodFilter = configuration?.MethodFilter;
 		}
 		/// <inheritdoc />
 		public IReadOnlyCollection<ConversionMethodInfo> GetConvertFromMethods(Type type)
@@ -178,7 +216,7 @@ namespace deniszykov.TypeConversion
 		{
 			if (methodParameter == null) throw new ArgumentNullException(nameof(methodParameter));
 
-			return string.Equals("format", methodParameter.Name, StringComparison.OrdinalIgnoreCase) &&
+			return this.formatParameterNames.Contains(methodParameter.Name) &&
 				methodParameter.ParameterType == typeof(string) &&
 				(methodParameter.Attributes & (ParameterAttributes.In | ParameterAttributes.Out | ParameterAttributes.Retval)) == 0;
 		}
@@ -187,7 +225,8 @@ namespace deniszykov.TypeConversion
 		{
 			if (methodParameter == null) throw new ArgumentNullException(nameof(methodParameter));
 
-			return methodParameter.ParameterType == typeof(IFormatProvider) &&
+			return (this.formatProviderParameterNames.Count == 0 || this.formatProviderParameterNames.Contains(methodParameter.Name)) &&
+				methodParameter.ParameterType == typeof(IFormatProvider) &&
 				(methodParameter.Attributes & (ParameterAttributes.In | ParameterAttributes.Out | ParameterAttributes.Retval)) == 0;
 		}
 		/// <inheritdoc />
@@ -211,10 +250,11 @@ namespace deniszykov.TypeConversion
 			var name = method.Name;
 			return string.Equals(name, "op_Explicit", StringComparison.Ordinal) ||
 				string.Equals(name, "op_Implicit", StringComparison.Ordinal) ||
-				name.StartsWith("Parse", StringComparison.OrdinalIgnoreCase) ||
 				name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
 				name.StartsWith("From", StringComparison.OrdinalIgnoreCase) ||
-				name.StartsWith("To", StringComparison.OrdinalIgnoreCase);
+				name.StartsWith("To", StringComparison.OrdinalIgnoreCase) ||
+				this.convertFromMethodNames.Contains(name) ||
+				this.convertToMethodNames.Contains(name);
 
 		}
 		private bool IsConvertFromMethod([NotNull] MethodInfo method, [NotNull] Type resultType, [NotNull] ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
@@ -232,9 +272,9 @@ namespace deniszykov.TypeConversion
 			return
 				this.IsValidConversionParameters(parameters, fromValueParameter) &&
 				method.IsStatic &&
-				(method.Name.StartsWith("Parse", StringComparison.OrdinalIgnoreCase) ||
-					method.Name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
-					method.Name.StartsWith("From", StringComparison.OrdinalIgnoreCase)) &&
+				(method.Name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
+					method.Name.StartsWith("From", StringComparison.OrdinalIgnoreCase) ||
+					this.convertFromMethodNames.Contains(method.Name)) &&
 				method.ReturnType == resultType &&
 				method.DeclaringType == resultType;
 		}
@@ -251,7 +291,8 @@ namespace deniszykov.TypeConversion
 			}
 
 			return this.IsValidConversionParameters(parameters, method.IsStatic ? fromValueParameter : null) &&
-				method.Name.StartsWith("To", StringComparison.OrdinalIgnoreCase) &&
+				(method.Name.StartsWith("To", StringComparison.OrdinalIgnoreCase) ||
+					this.convertToMethodNames.Contains(method.Name)) &&
 				method.DeclaringType == sourceType;
 		}
 		private bool IsValidConversionParameters([NotNull] ParameterInfo[] parameters, [CanBeNull] ParameterInfo fromValueParameter)
@@ -303,7 +344,7 @@ namespace deniszykov.TypeConversion
 				parameterInfo.ParameterType.IsPointer == false &&
 				parameterInfo.ParameterType.IsGenericParameter == false;
 		}
-		
+
 		[NotNull]
 		private ConversionParameterType[] MapParameters([NotNull, ItemNotNull] ParameterInfo[] parameters, [CanBeNull]Type valueType)
 		{
