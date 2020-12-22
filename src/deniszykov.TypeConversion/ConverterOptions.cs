@@ -22,12 +22,6 @@ namespace deniszykov.TypeConversion
 		UseDefaultFormatProviderIfNotSpecified = 0x1 << 1,
 
 		/// <summary>
-		/// Converter tries to cast value to desired type skipping conversion function.
-		/// This optimization could give some performance gain in exchange for possible errors due not calling conversion function.
-		/// </summary>
-		FastCast = 0x1 << 2,
-
-		/// <summary>
 		/// Default option. Set to <see cref="UseDefaultFormatProviderIfNotSpecified"/> because this will lead to predictable conversion on different platforms and locales.
 		/// </summary>
 		Default = UseDefaultFormatProviderIfNotSpecified

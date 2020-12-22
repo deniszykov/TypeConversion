@@ -49,8 +49,9 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void TestParse()
 		{
+			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
 			var expected = ByteEnum.One;
-			var actual = EnumHelper<ByteEnum>.Parse(expected.ToString());
+			var actual = enumConversionInfo.Parse(expected.ToString());
 
 			Assert.Equal(expected, actual);
 		}
@@ -58,8 +59,9 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void TestParseCaseInsensitie()
 		{
+			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
 			var expected = ByteEnum.One;
-			var actual = EnumHelper<ByteEnum>.Parse(expected.ToString().ToLowerInvariant(), ignoreCase: true);
+			var actual = enumConversionInfo.Parse(expected.ToString().ToLowerInvariant(), ignoreCase: true);
 
 			Assert.Equal(expected, actual);
 		}
@@ -67,8 +69,9 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void TestTryParse()
 		{
+			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
 			var expected = ByteEnum.One;
-			var parsed = EnumHelper<ByteEnum>.TryParse(expected.ToString(), out var actual);
+			var parsed = enumConversionInfo.TryParse(expected.ToString(), out var actual);
 
 			Assert.True(parsed);
 			Assert.Equal(expected, actual);
@@ -77,8 +80,9 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void TestTryParseIgnoreCase()
 		{
+			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
 			var expected = ByteEnum.One;
-			var parsed = EnumHelper<ByteEnum>.TryParse(expected.ToString().ToLowerInvariant(), out var actual, ignoreCase: true);
+			var parsed = enumConversionInfo.TryParse(expected.ToString().ToLowerInvariant(), out var actual, ignoreCase: true);
 
 			Assert.True(parsed);
 			Assert.Equal(expected, actual);
@@ -87,8 +91,9 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void TestTryParseFailCase()
 		{
+			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
 			var expected = ByteEnum.One;
-			var parsed = EnumHelper<ByteEnum>.TryParse(expected.ToString().ToLowerInvariant(), out var actual);
+			var parsed = enumConversionInfo.TryParse(expected.ToString().ToLowerInvariant(), out var actual);
 
 			Assert.False(parsed);
 		}
@@ -96,28 +101,31 @@ namespace deniszykov.TypeConversion.Tests
 		[Fact]
 		public void TestTryParseFailValue()
 		{
-			var parsed = EnumHelper<ByteEnum>.TryParse("WRONG", out var _);
+			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
+			var parsed = enumConversionInfo.TryParse("WRONG", out var _);
 
 			Assert.False(parsed);
 		}
 
 		private void FromToMethodsTestImpl<EnumT, UnderlyingT>(ITypeConversionProvider provider)
 		{
-			Assert.IsType<Func<EnumT, UnderlyingT>>(EnumHelper<EnumT>.ToNumber);
-			Assert.IsType<Func<UnderlyingT, EnumT>>(EnumHelper<EnumT>.FromNumber);
-			Assert.NotNull(EnumHelper<EnumT>.Comparer);
-			Assert.Equal(Type.GetTypeCode(typeof(UnderlyingT)), EnumHelper<EnumT>.TypeCode);
-			Assert.Equal(typeof(UnderlyingT), EnumHelper<EnumT>.UnderlyingType);
-			Assert.Equal(typeof(EnumT).GetCustomAttribute<FlagsAttribute>() != null, EnumHelper<EnumT>.IsFlags);
+			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
+
+			Assert.IsType<Func<EnumT, UnderlyingT>>(enumConversionInfo.ToNumber);
+			Assert.IsType<Func<UnderlyingT, EnumT>>(enumConversionInfo.FromNumber);
+			Assert.NotNull(enumConversionInfo.Comparer);
+			Assert.Equal(Type.GetTypeCode(typeof(UnderlyingT)), enumConversionInfo.UnderlyingTypeCode);
+			Assert.Equal(typeof(UnderlyingT), enumConversionInfo.UnderlyingType);
+			Assert.Equal(typeof(EnumT).GetCustomAttribute<FlagsAttribute>() != null, enumConversionInfo.IsFlags);
 			Assert.Equal(typeof(UnderlyingT) == typeof(sbyte) ||
 				typeof(UnderlyingT) == typeof(short) ||
 				typeof(UnderlyingT) == typeof(int) ||
-				typeof(UnderlyingT) == typeof(long), EnumHelper<EnumT>.IsSigned);
-			Assert.Equal(default(EnumT), EnumHelper<EnumT>.DefaultValue);
-			Assert.Equal(provider.Convert<int, EnumT>(1), EnumHelper<EnumT>.MinValue);
-			Assert.Equal(provider.Convert<int, EnumT>(2), EnumHelper<EnumT>.MaxValue);
-			Assert.Equal(new[] { nameof(SByteEnum.One), nameof(SByteEnum.Two) }, EnumHelper<EnumT>.Names);
-			Assert.Equal(new[] { provider.Convert<int, EnumT>(1), provider.Convert<int, EnumT>(2) }, EnumHelper<EnumT>.Values);
+				typeof(UnderlyingT) == typeof(long), enumConversionInfo.IsSigned);
+			Assert.Equal(default(EnumT), enumConversionInfo.DefaultValue);
+			Assert.Equal(provider.Convert<int, EnumT>(1), enumConversionInfo.MinValue);
+			Assert.Equal(provider.Convert<int, EnumT>(2), enumConversionInfo.MaxValue);
+			Assert.Equal(new[] { nameof(SByteEnum.One), nameof(SByteEnum.Two) }, enumConversionInfo.Names);
+			Assert.Equal(new[] { provider.Convert<int, EnumT>(1), provider.Convert<int, EnumT>(2) }, enumConversionInfo.Values);
 		}
 	}
 }

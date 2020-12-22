@@ -6,21 +6,48 @@ using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
+	/// <summary>
+	/// Information about .NET Method used to perform conversion.
+	/// </summary>
 	public class ConversionMethodInfo : IComparable<ConversionMethodInfo>
 	{
+		/// <summary>
+		/// Method used to create conversion delegate.
+		/// </summary>
 		[NotNull]
 		public readonly MethodBase Method;
+		/// <summary>
+		/// List of <see cref="Method"/>'s parameters.
+		/// </summary>
 		[NotNull, ItemNotNull]
 		public readonly ReadOnlyCollection<ParameterInfo> Parameters;
+		/// <summary>
+		/// List of <see cref="Parameters"/>'s roles in conversion.
+		/// </summary>
 		[NotNull]
 		public readonly ReadOnlyCollection<ConversionParameterType> ConversionParameterTypes;
+		/// <summary>
+		/// Conversion source type.
+		/// </summary>
 		[NotNull]
 		internal readonly Type FromType;
+		/// <summary>
+		/// Conversion destination type.
+		/// </summary>
 		[NotNull]
 		internal readonly Type ToType;
-
+		/// <summary>
+		/// Conversion quality with specified <see cref="Method"/>.
+		/// </summary>
 		public readonly ConversionQuality Quality;
 
+		/// <summary>
+		/// Constructor of <see cref="ConversionMethodInfo"/>.
+		/// </summary>
+		/// <param name="methodBase">Value for <see cref="Method"/>.</param>
+		/// <param name="parameters">Value for <see cref="Parameters"/>..</param>
+		/// <param name="conversionParameterTypes">Value for <see cref="ConversionParameterTypes"/>.</param>
+		/// <param name="conversionQualityOverride">Override value for <see cref="Quality"/>. If not set then quality is determinate by signature.</param>
 		public ConversionMethodInfo(
 			[NotNull] MethodBase methodBase,
 			[NotNull] ParameterInfo[] parameters,

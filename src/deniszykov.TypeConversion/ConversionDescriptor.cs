@@ -1,30 +1,68 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
+	/// <summary>
+	/// Describes how conversion from <see cref="FromType"/> to <see cref="ToType"/> will be performed.
+	/// </summary>
 	public class ConversionDescriptor
 	{
-		[NotNull]
+		/// <summary>
+		/// List of conversion methods. From most preferred to least preferred. Collection not empty.
+		/// </summary>
+		[NotNull, ItemNotNull]
 		public readonly ReadOnlyCollection<ConversionMethodInfo> Methods;
+		/// <summary>
+		/// Default format used for conversion. Usage of this parameter by <see cref="IConverter{FromType,ToType}"/> depends on <see cref="ConverterOptions"/>.
+		/// </summary>
 		[CanBeNull]
 		public readonly string DefaultFormat;
+		/// <summary>
+		/// Default format provider used for conversion. Usage of this parameter by <see cref="IConverter{FromType,ToType}"/> depends on <see cref="ConverterOptions"/>.
+		/// </summary>
 		[NotNull]
 		public readonly IFormatProvider DefaultFormatProvider;
+		/// <summary>
+		/// Conversion function.
+		/// </summary>
 		[NotNull]
 		public readonly Delegate Conversion; // Func<FromType, string, IFormatProvider, ToType>
+											 /// <summary>
+											 /// Safe conversion function. If null then <see cref="Conversion"/> function is used inside try/catch block.
+											 /// </summary>
 		[CanBeNull]
 		public readonly Delegate SafeConversion; // Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>
 
+		/// <summary>
+		/// Conversion source type.
+		/// </summary>
 		[NotNull]
 		public Type FromType => this.Methods[0].FromType;
+		/// <summary>
+		/// Conversion destination type.
+		/// </summary>
 		[NotNull]
 		public Type ToType => this.Methods[0].ToType;
 
-		public ConversionDescriptor([NotNull, ItemNotNull] ReadOnlyCollection<ConversionMethodInfo> methods, [CanBeNull] string defaultFormat, IFormatProvider defaultFormatProvider, [NotNull] Delegate conversion, [CanBeNull] Delegate safeConversion)
+		/// <summary>
+		/// Constructor for <see cref="ConversionDescriptor"/>.
+		/// </summary>
+		/// <param name="methods">One or more methods. Value for <see cref="Methods"/>.</param>
+		/// <param name="defaultFormat">Value for <see cref="DefaultFormat"/>.</param>
+		/// <param name="defaultFormatProvider">Value for <see cref="DefaultFormatProvider"/>. If value is null then <see cref="CultureInfo.InvariantCulture"/> is used.</param>
+		/// <param name="conversion">Value for <see cref="Conversion"/>.</param>
+		/// <param name="safeConversion">Value for <see cref="SafeConversion"/>.</param>
+		public ConversionDescriptor(
+			[NotNull, ItemNotNull] ReadOnlyCollection<ConversionMethodInfo> methods,
+			[CanBeNull] string defaultFormat,
+			[CanBeNull] IFormatProvider defaultFormatProvider,
+			[NotNull] Delegate conversion,
+			[CanBeNull] Delegate safeConversion)
 		{
 			if (methods == null) throw new ArgumentNullException(nameof(methods));
 			if (conversion == null) throw new ArgumentNullException(nameof(conversion));
@@ -39,7 +77,7 @@ namespace deniszykov.TypeConversion
 
 			this.Methods = methods;
 			this.DefaultFormat = defaultFormat;
-			this.DefaultFormatProvider = defaultFormatProvider;
+			this.DefaultFormatProvider = defaultFormatProvider ?? CultureInfo.InvariantCulture;
 			this.Conversion = conversion;
 			this.SafeConversion = safeConversion;
 		}
@@ -65,7 +103,7 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => $"Preferred Method: ({this.Methods[0]}), Default Format: {this.DefaultFormat}, Default Format Provider: {this.DefaultFormatProvider}";
+		public override string ToString() => $"From: {this.FromType.Name}, To: {this.ToType.Name}, Preferred Method: ({this.Methods[0]}), Default Format: {this.DefaultFormat}, Default Format Provider: {this.DefaultFormatProvider}";
 	}
 
 }

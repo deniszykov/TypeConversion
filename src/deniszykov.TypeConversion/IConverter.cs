@@ -48,7 +48,7 @@ namespace deniszykov.TypeConversion
 	}
 
 	/// <summary>
-	/// Converter used to transform value of type <typeparamref name="FromType"/> to value of <typeparamref name="ToType"/>.
+	/// Provides type conversion methods from <typeparamref name="FromType"/> to <typeparamref name="ToType"/>.
 	/// </summary>
 	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 	public interface IConverter<in FromType, ToType> : IConverter
