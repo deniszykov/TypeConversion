@@ -18,12 +18,12 @@ namespace deniszykov.TypeConversion
 		[NotNull, ItemNotNull]
 		public readonly ReadOnlyCollection<ConversionMethodInfo> Methods;
 		/// <summary>
-		/// Default format used for conversion. Usage of this parameter by <see cref="IConverter{FromType,ToType}"/> depends on <see cref="ConverterOptions"/>.
+		/// Default format used for conversion. Usage of this parameter by <see cref="IConverter{FromType,ToType}"/> depends on <see cref="ConversionOptions"/>.
 		/// </summary>
 		[CanBeNull]
 		public readonly string DefaultFormat;
 		/// <summary>
-		/// Default format provider used for conversion. Usage of this parameter by <see cref="IConverter{FromType,ToType}"/> depends on <see cref="ConverterOptions"/>.
+		/// Default format provider used for conversion. Usage of this parameter by <see cref="IConverter{FromType,ToType}"/> depends on <see cref="ConversionOptions"/>.
 		/// </summary>
 		[NotNull]
 		public readonly IFormatProvider DefaultFormatProvider;

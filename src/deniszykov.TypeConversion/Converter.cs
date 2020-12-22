@@ -9,7 +9,7 @@ namespace deniszykov.TypeConversion
 	/// </summary>
 	public sealed class Converter<FromType, ToType> : IConverter<FromType, ToType>
 	{
-		private readonly ConverterOptions converterOptions;
+		private readonly ConversionOptions converterOptions;
 
 		/// <inheritdoc />
 		public ConversionDescriptor Descriptor { get; }
@@ -20,7 +20,7 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		void IConverter.Convert(object value, out object result, string format, IFormatProvider formatProvider)
 		{
-			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType)
 			{
 				result = value;
 				return;
@@ -32,7 +32,7 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		bool IConverter.TryConvert(object value, out object result, string format, IFormatProvider formatProvider)
 		{
-			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType)
 			{
 				result = value;
 				return true;
@@ -43,7 +43,7 @@ namespace deniszykov.TypeConversion
 			return success;
 		}
 
-		public Converter([NotNull]ConversionDescriptor conversion, ConverterOptions converterOptions)
+		public Converter([NotNull]ConversionDescriptor conversion, ConversionOptions converterOptions)
 		{
 			if (conversion == null) throw new ArgumentNullException(nameof(conversion));
 
@@ -55,16 +55,16 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		public void Convert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
-			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatIfNotSpecified) && format == null)
+			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatIfNotSpecified) && format == null)
 			{
 				format = this.Descriptor.DefaultFormat;
 			}
-			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatProviderIfNotSpecified) && formatProvider == null)
+			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatProviderIfNotSpecified) && formatProvider == null)
 			{
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
 
-			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType valueOfType)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType valueOfType)
 			{
 				result = valueOfType;
 				return;
@@ -76,15 +76,15 @@ namespace deniszykov.TypeConversion
 		/// <inheritdoc />
 		public bool TryConvert(FromType value, out ToType result, string format = null, IFormatProvider formatProvider = null)
 		{
-			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatIfNotSpecified) && format == null)
+			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatIfNotSpecified) && format == null)
 			{
 				format = this.Descriptor.DefaultFormat;
 			}
-			if (this.converterOptions.HasFlag(ConverterOptions.UseDefaultFormatProviderIfNotSpecified) && formatProvider == null)
+			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatProviderIfNotSpecified) && formatProvider == null)
 			{
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
-			if (this.converterOptions.HasFlag(ConverterOptions.FastCast) && value is ToType valueOfType)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType valueOfType)
 			{
 				result = valueOfType;
 				return true;

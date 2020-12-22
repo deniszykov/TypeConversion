@@ -89,7 +89,7 @@ namespace deniszykov.TypeConversion
 		private readonly ConcurrentDictionary<long, Func<IConverter>> getConverterByTypes;
 		private readonly IConversionMetadataProvider metadataProvider;
 		private readonly IFormatProvider defaultFormatProvider;
-		private readonly ConverterOptions converterOptions;
+		private readonly ConversionOptions converterOptions;
 		private readonly ConversionMethodSelectionStrategy conversionMethodSelectionStrategy;
 
 #pragma warning disable 1572
@@ -128,7 +128,7 @@ namespace deniszykov.TypeConversion
 #endif
 			}
 			this.defaultFormatProvider ??= CultureInfo.InvariantCulture;
-			this.converterOptions = configuration?.ConverterOptions ?? ConverterOptions.Default;
+			this.converterOptions = configuration?.Options ?? ConversionOptions.Default;
 			this.conversionMethodSelectionStrategy = configuration?.ConversionMethodSelectionStrategy ?? ConversionMethodSelectionStrategy.MostFittingMethod;
 
 			this.InitializeNativeConversions();
@@ -246,7 +246,7 @@ namespace deniszykov.TypeConversion
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToNullable:
-					if ((this.converterOptions & ConverterOptions.InstantiateNewGenericTypes) == 0)
+					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
 						fallbackConversionFn = NullableToNullableAot<FromType, ToType>;
 					}
@@ -259,7 +259,7 @@ namespace deniszykov.TypeConversion
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToAny:
-					if ((this.converterOptions & ConverterOptions.InstantiateNewGenericTypes) == 0)
+					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
 						fallbackConversionFn = NullableToAnyAot<FromType, ToType>;
 					}
@@ -272,7 +272,7 @@ namespace deniszykov.TypeConversion
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.AnyToNullable:
-					if ((this.converterOptions & ConverterOptions.InstantiateNewGenericTypes) == 0)
+					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
 						fallbackConversionFn = AnyToNullableAot<FromType, ToType>;
 					}
@@ -363,7 +363,7 @@ namespace deniszykov.TypeConversion
 					defaultFormat ??= "c";
 				}
 
-				if ((this.converterOptions & ConverterOptions.UseDynamicMethods) == 0)
+				if ((this.converterOptions & ConversionOptions.OptimizeWithExpressions) == 0)
 				{
 					conversionFn = this.PrepareConvertFunc<FromType, ToType>(conversionMethods);
 				}
@@ -757,7 +757,7 @@ namespace deniszykov.TypeConversion
 			var enumConversionInfo = (EnumConversionInfo<EnumT>)this.enumConversionInfos[enumIndex];
 			if (enumConversionInfo == null)
 			{
-				var useDynamicMethods = (this.converterOptions & ConverterOptions.UseDynamicMethods) != 0;
+				var useDynamicMethods = (this.converterOptions & ConversionOptions.OptimizeWithExpressions) != 0;
 				Interlocked.Exchange(ref this.enumConversionInfos[enumIndex], enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods));
 			}
 			return enumConversionInfo;

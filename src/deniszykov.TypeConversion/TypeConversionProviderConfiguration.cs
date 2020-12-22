@@ -13,7 +13,7 @@ namespace deniszykov.TypeConversion
 	{
 		/// <summary>
 		/// Name of default format provider to set <see cref="ConversionDescriptor.DefaultFormatProvider"/>.
-		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="ConverterOptions"/> configuration parameter.
+		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="Options"/> configuration parameter.
 		/// If both <see cref="DefaultFormatProvider"/> and <see cref="DefaultFormatProviderCultureName"/> are set then <see cref="DefaultFormatProvider"/> is used.
 		/// </summary>
 		[DataMember, CanBeNull]
@@ -22,7 +22,7 @@ namespace deniszykov.TypeConversion
 		/// Options used by <see cref="Converter{FromType,ToType}"/> and <see cref="TypeConversionProvider"/> types.
 		/// </summary>
 		[DataMember]
-		public ConverterOptions ConverterOptions;
+		public ConversionOptions Options;
 		/// <summary>
 		/// Conversion method selection strategy determines which method to choose when multiple are available.
 		/// </summary>
@@ -31,7 +31,7 @@ namespace deniszykov.TypeConversion
 
 		/// <summary>
 		/// Default format provider to set <see cref="ConversionDescriptor.DefaultFormatProvider"/>. Default to <see cref="CultureInfo.InvariantCulture"/>.
-		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="ConverterOptions"/> configuration parameter.
+		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="Options"/> configuration parameter.
 		/// If both <see cref="DefaultFormatProvider"/> and <see cref="DefaultFormatProviderCultureName"/> are set then <see cref="DefaultFormatProvider"/> is used.
 		/// </summary>
 		[IgnoreDataMember, CanBeNull]
