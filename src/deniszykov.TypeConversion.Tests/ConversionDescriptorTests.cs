@@ -47,6 +47,7 @@ namespace deniszykov.TypeConversion.Tests
 			Assert.Same(conversionFn, conversionInfo.Conversion);
 			Assert.NotNull(conversionInfo.FromType);
 			Assert.NotNull(conversionInfo.ToType);
+			Assert.NotNull(conversionInfo.ToString());
 		}
 
 		[Fact]

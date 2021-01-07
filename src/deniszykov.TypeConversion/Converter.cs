@@ -102,7 +102,7 @@ namespace deniszykov.TypeConversion
 				result = default;
 				try
 				{
-					this.Convert(value, out result, format ?? this.Descriptor.DefaultFormat, formatProvider ?? this.Descriptor.DefaultFormatProvider);
+					this.Convert(value, out result, format, formatProvider);
 					return true;
 				}
 				catch (Exception e)

@@ -16,17 +16,12 @@ namespace deniszykov.TypeConversion
 		{
 			private static readonly IReadOnlyCollection<ConversionMethodInfo> EmptyConversionMethods = new ConversionMethodInfo[0];
 
-			[NotNull]
-			private readonly Type type;
-			[NotNull]
-			private readonly HashSet<Type> implementsAndExtends;
-			[NotNull]
-			public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertFromMethods;
-			[NotNull]
-			public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertToMethods;
+			[NotNull] private readonly Type type;
+			[NotNull] private readonly HashSet<Type> implementsAndExtends;
+			[NotNull] public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertFromMethods;
+			[NotNull] public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertToMethods;
 #if !NETSTANDARD
-			[CanBeNull]
-			public readonly System.ComponentModel.TypeConverter TypeConverter;
+			[CanBeNull] public readonly System.ComponentModel.TypeConverter TypeConverter;
 #endif
 
 			public ConversionTypeInfo([NotNull] ConversionMetadataProvider provider, [NotNull] Type type)
@@ -137,24 +132,15 @@ namespace deniszykov.TypeConversion
 			public override string ToString() => this.type.ToString();
 		}
 
-		[NotNull]
-		private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
-		[NotNull]
-		private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
-		[NotNull, ItemNotNull]
-		private readonly HashSet<string> convertFromMethodNames;
-		[NotNull, ItemNotNull]
-		private readonly HashSet<string> convertToMethodNames;
-		[NotNull, ItemNotNull]
-		private readonly HashSet<string> formatParameterNames;
-		[NotNull, ItemNotNull]
-		private readonly HashSet<string> formatProviderParameterNames;
-		[NotNull, ItemNotNull]
-		private readonly MethodInfo[] additionalConversionMethods;
-		[NotNull, ItemNotNull]
-		private readonly HashSet<MethodBase> forbiddenConversionMethods;
-		[CanBeNull]
-		private readonly Func<MethodBase, bool> methodFilter;
+		[NotNull] private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
+		[NotNull] private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
+		[NotNull, ItemNotNull] private readonly HashSet<string> convertFromMethodNames;
+		[NotNull, ItemNotNull] private readonly HashSet<string> convertToMethodNames;
+		[NotNull, ItemNotNull] private readonly HashSet<string> formatParameterNames;
+		[NotNull, ItemNotNull] private readonly HashSet<string> formatProviderParameterNames;
+		[NotNull, ItemNotNull] private readonly MethodInfo[] additionalConversionMethods;
+		[NotNull, ItemNotNull] private readonly HashSet<MethodBase> forbiddenConversionMethods;
+		[CanBeNull] private readonly Func<MethodBase, bool> methodFilter;
 		/// <summary>
 		/// Constructor of <see cref="ConversionMetadataProvider"/>.
 		/// </summary>

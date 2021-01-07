@@ -15,6 +15,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using JetBrains.Annotations;
 
 // ReSharper disable RedundantCast
 namespace deniszykov.TypeConversion
@@ -25,25 +26,25 @@ namespace deniszykov.TypeConversion
 	/// <typeparam name="EnumT">Enum type.</typeparam>
 	public class EnumConversionInfo<EnumT> : IEnumConversionInfo
 	{
-		private readonly SortedDictionary<EnumT, string> namesByValue;
-		private readonly SortedDictionary<string, EnumT> valueByName;
-		private readonly SortedDictionary<string, EnumT> valueByNameCaseInsensitive;
+		[NotNull] private readonly SortedDictionary<EnumT, string> namesByValue;
+		[NotNull] private readonly SortedDictionary<string, EnumT> valueByName;
+		[NotNull] private readonly SortedDictionary<string, EnumT> valueByNameCaseInsensitive;
 
 		/// <inheritdoc />
-		public Type Type { get; }
+		[NotNull] public Type Type { get; }
 		// ReSharper disable StaticMemberInGenericType
 		/// <summary>
 		/// <typeparamref name="EnumT"/> to Number(SByte,Byte,Int16...) conversion function. Instance of <see cref="Func{T1, TResult}"/> where T1 is <typeparamref name="EnumT"/> and TResult is number type.
 		/// </summary>
-		public Delegate ToNumber { get; }
+		[NotNull] public Delegate ToNumber { get; }
 		/// <summary>
 		///  Number(SByte,Byte,Int16...) to <typeparamref name="EnumT"/> conversion function. Instance of <see cref="Func{T1, TResult}"/> where T1 is number type and TResult is <typeparamref name="EnumT"/> type.
 		/// </summary>
-		public Delegate FromNumber { get; set; }
+		[NotNull] public Delegate FromNumber { get; set; }
 		/// <summary>
 		/// Comparer for <typeparamref name="EnumT"/> values.
 		/// </summary>
-		public Comparer<EnumT> Comparer { get; }
+		[NotNull] public Comparer<EnumT> Comparer { get; }
 		/// <summary>
 		/// Type code of enum underlying type.
 		/// </summary>
@@ -51,7 +52,7 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Type of enum underlying type.
 		/// </summary>
-		public Type UnderlyingType { get; }
+		[NotNull] public Type UnderlyingType { get; }
 		/// <summary>
 		/// Flag indicating what enum has <see cref="FlagsAttribute"/>.
 		/// </summary>
@@ -75,11 +76,11 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Names of all enumeration values. Order is corresponding to <see cref="Values"/>.
 		/// </summary>
-		public ReadOnlyCollection<string> Names { get; }
+		[NotNull, ItemNotNull] public ReadOnlyCollection<string> Names { get; }
 		/// <summary>
 		/// All declared enumeration values. Order is corresponding to <see cref="Names"/>. 
 		/// </summary>
-		public ReadOnlyCollection<EnumT> Values { get; }
+		[NotNull] public ReadOnlyCollection<EnumT> Values { get; }
 		// ReSharper restore StaticMemberInGenericType
 
 		public EnumConversionInfo(bool useDynamicMethods)

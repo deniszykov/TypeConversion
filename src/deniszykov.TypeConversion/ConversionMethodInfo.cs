@@ -14,28 +14,23 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Method used to create conversion delegate.
 		/// </summary>
-		[NotNull]
-		public readonly MethodBase Method;
+		[NotNull] public readonly MethodBase Method;
 		/// <summary>
 		/// List of <see cref="Method"/>'s parameters.
 		/// </summary>
-		[NotNull, ItemNotNull]
-		public readonly ReadOnlyCollection<ParameterInfo> Parameters;
+		[NotNull, ItemNotNull] public readonly ReadOnlyCollection<ParameterInfo> Parameters;
 		/// <summary>
 		/// List of <see cref="Parameters"/>'s roles in conversion.
 		/// </summary>
-		[NotNull]
-		public readonly ReadOnlyCollection<ConversionParameterType> ConversionParameterTypes;
+		[NotNull] public readonly ReadOnlyCollection<ConversionParameterType> ConversionParameterTypes;
 		/// <summary>
 		/// Conversion source type.
 		/// </summary>
-		[NotNull]
-		internal readonly Type FromType;
+		[NotNull] internal readonly Type FromType;
 		/// <summary>
 		/// Conversion destination type.
 		/// </summary>
-		[NotNull]
-		internal readonly Type ToType;
+		[NotNull] internal readonly Type ToType;
 		/// <summary>
 		/// Conversion quality with specified <see cref="Method"/>.
 		/// </summary>
@@ -50,7 +45,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="conversionQualityOverride">Override value for <see cref="Quality"/>. If not set then quality is determinate by signature.</param>
 		public ConversionMethodInfo(
 			[NotNull] MethodBase methodBase,
-			[NotNull] ParameterInfo[] parameters,
+			[NotNull, ItemNotNull] ParameterInfo[] parameters,
 			[NotNull] ConversionParameterType[] conversionParameterTypes,
 			[CanBeNull] ConversionQuality? conversionQualityOverride = null)
 		{

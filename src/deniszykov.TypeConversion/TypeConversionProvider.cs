@@ -83,12 +83,12 @@ namespace deniszykov.TypeConversion
 		}
 #endif
 
-		private IConverter[][] converters;
-		private IEnumConversionInfo[] enumConversionInfos;
-		private readonly MethodInfo getConverterDefinition;
-		private readonly ConcurrentDictionary<long, Func<IConverter>> getConverterByTypes;
-		private readonly IConversionMetadataProvider metadataProvider;
-		private readonly IFormatProvider defaultFormatProvider;
+		[NotNull] private IConverter[][] converters;
+		[NotNull] private IEnumConversionInfo[] enumConversionInfos;
+		[NotNull] private readonly MethodInfo getConverterDefinition;
+		[NotNull] private readonly ConcurrentDictionary<long, Func<IConverter>> getConverterByTypes;
+		[NotNull] private readonly IConversionMetadataProvider metadataProvider;
+		[NotNull] private readonly IFormatProvider defaultFormatProvider;
 		private readonly ConversionOptions converterOptions;
 		private readonly ConversionMethodSelectionStrategy conversionMethodSelectionStrategy;
 
@@ -193,7 +193,7 @@ namespace deniszykov.TypeConversion
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
 
 			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default(Delegate));
-			var converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions );
+			var converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions);
 			toConverters[toTypeIndex] = converter;
 		}
 
@@ -698,7 +698,7 @@ namespace deniszykov.TypeConversion
 
 					if ((formatParameterIndex >= 0 && format == null ||
 						formatProviderParameterIndex >= 0 && formatProvider == null) &&
-						m < methods.Length) // is not last
+						m < methods.Length - 1) // is not last
 					{
 						continue; // fallback to method with less parameters
 					}

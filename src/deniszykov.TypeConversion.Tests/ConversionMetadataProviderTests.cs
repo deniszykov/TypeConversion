@@ -123,6 +123,24 @@ namespace deniszykov.TypeConversion.Tests
 		}
 
 		[Fact]
+		public void ConstructorTest()
+		{
+			var conversionMetadataProvider = new ConversionMetadataProvider();
+			Assert.NotNull(conversionMetadataProvider.ToString());
+		}
+		
+		[Fact]
+		public void ConversionMethodInfoToStrinTest()
+		{
+			var metadataProvider = new ConversionMetadataProvider();
+			var fromMethods = metadataProvider.GetConvertFromMethods(typeof(MyConvertibleType));
+			var method = fromMethods.FirstOrDefault();
+
+			Assert.NotNull(method);
+			Assert.NotNull(method.ToString());
+		}
+
+		[Fact]
 		public void GetConvertFromConstructorTest()
 		{
 			var metadataProvider = new ConversionMetadataProvider();

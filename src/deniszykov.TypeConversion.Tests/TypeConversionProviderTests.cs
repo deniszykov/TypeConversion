@@ -49,10 +49,12 @@ namespace deniszykov.TypeConversion.Tests
 #endif
 
 		[Fact]
-		public void DefaultConstructorTest()
+		public void ConstructorTest()
 		{
 			var typeConversionProvider = new TypeConversionProvider(null, null);
+
 			Assert.NotNull(typeConversionProvider);
+			Assert.NotNull(typeConversionProvider.ToString());
 		}
 
 		[Fact]
@@ -81,11 +83,14 @@ namespace deniszykov.TypeConversion.Tests
 		public void GetConverterGenericTest()
 		{
 			var typeConversionProvider = new TypeConversionProvider();
-			var converter = typeConversionProvider.GetConverter<int, int>();
+			var converter = typeConversionProvider.GetConverter<int, string>();
 
 			Assert.NotNull(converter);
 			Assert.NotNull(converter.Descriptor);
-			Assert.Equal(ConversionQuality.Native, converter.Descriptor.Methods[0].Quality);
+			Assert.Equal(typeof(int), converter.FromType);
+			Assert.Equal(typeof(string), converter.ToType);
+			Assert.NotNull(converter.ToString());
+			Assert.Equal(ConversionQuality.Method, converter.Descriptor.Methods[0].Quality);
 		}
 
 		[Theory]
@@ -108,6 +113,171 @@ namespace deniszykov.TypeConversion.Tests
 			Assert.NotNull(converter);
 			Assert.NotNull(converter.Descriptor);
 			Assert.Equal(quality, converter.Descriptor.Methods[0].Quality);
+		}
+
+		[Fact]
+		public void ConfigurationCustomConversionTest()
+		{
+			var url = new Uri("http://example.com/");
+			var expected = "expected";
+			var configuration = new TypeConversionProviderConfiguration();
+			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((uri, _, __) => expected));
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+			var actual = typeConversionProvider.Convert<Uri, string>(url);
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void ConfigurationDefaultFormatProviderTest()
+		{
+			var value = new Uri("http://example.com/");
+			var defaultFormatProvider = CultureInfo.CurrentUICulture;
+			var expected = defaultFormatProvider.Name;
+			var configuration = new TypeConversionProviderConfiguration
+			{
+				DefaultFormatProvider = defaultFormatProvider,
+				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
+			};
+			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((_, __, formatProvider) => ((CultureInfo)formatProvider).Name));
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+
+			var actual = typeConversionProvider.Convert<Uri, string>(value);
+			Assert.Equal(expected, actual);
+
+			var success = typeConversionProvider.TryConvert<Uri, string>(value, out actual);
+
+			Assert.True(success);
+			Assert.NotNull(actual);
+		}
+
+		[Fact]
+		public void ConfigurationDefaultFormatProviderCultureNameTest()
+		{
+			var value = new Uri("http://example.com/");
+			var defaultFormatProvider = CultureInfo.CurrentUICulture;
+			var expected = defaultFormatProvider.Name;
+			var configuration = new TypeConversionProviderConfiguration
+			{
+				DefaultFormatProviderCultureName = defaultFormatProvider.Name,
+				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
+			};
+			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((_, __, formatProvider) => ((CultureInfo)formatProvider).Name));
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+
+			var actual = typeConversionProvider.Convert<Uri, string>(value);
+			Assert.Equal(expected, actual);
+
+			var success = typeConversionProvider.TryConvert<Uri, string>(value, out actual);
+
+			Assert.True(success);
+			Assert.NotNull(actual);
+		}
+
+		[Fact]
+		public void ConfigurationConversionMethodSelectionStrategyTest()
+		{
+			var value = DateTime.UtcNow;
+			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
+			var expected = value.ToString(null, CultureInfo.InvariantCulture);
+			var configuration = new TypeConversionProviderConfiguration
+			{
+				ConversionMethodSelectionStrategy = ConversionMethodSelectionStrategy.MostSpecificMethod,
+				Options = ConversionOptions.None
+			};
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+
+			var actual = typeConversionProvider.Convert<DateTime, string>(value, null, CultureInfo.InvariantCulture);
+			Assert.Equal(expected, actual);
+
+			var success = typeConversionProvider.TryConvert<DateTime, string>(value, out actual);
+
+			Assert.True(success);
+			Assert.NotNull(actual);
+		}
+
+		[Fact]
+		public void ConfigurationNoOptimizationsTest()
+		{
+			var value = DateTime.UtcNow;
+			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
+			var configuration = new TypeConversionProviderConfiguration
+			{
+				Options = ConversionOptions.None
+			};
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+
+			var actual = typeConversionProvider.Convert<DateTime, string>(value);
+			Assert.NotNull(actual);
+		}
+
+		[Fact]
+		public void ConfigurationFastCallOptimizationTest()
+		{
+			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
+			var configuration = new TypeConversionProviderConfiguration
+			{
+				Options = ConversionOptions.FastCast
+			};
+			configuration.RegisterConversion(new Func<TypeConversionProvider, string, IFormatProvider, ITypeConversionProvider>((___, _, __) => throw new Exception("Shouldn't be executed.")));
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+
+			var actual = typeConversionProvider.Convert<TypeConversionProvider, ITypeConversionProvider>(typeConversionProvider);
+
+			Assert.NotNull(actual);
+
+			var success = typeConversionProvider.TryConvert<TypeConversionProvider, ITypeConversionProvider>(typeConversionProvider, out actual);
+
+			Assert.True(success);
+			Assert.NotNull(actual);
+		}
+
+		[Fact]
+		public void ConfigurationUseDefaultFormatIfNotSpecifiedTest()
+		{
+			var value = DateTime.UtcNow;
+			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
+			var expected = value.ToString("o", CultureInfo.InvariantCulture);
+			var configuration = new TypeConversionProviderConfiguration
+			{
+				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
+			};
+#if NETFRAMEWORK
+			var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
+#endif
+
+			var actual = typeConversionProvider.Convert<DateTime, string>(value);
+			Assert.Equal(expected, actual);
+
+			var success = typeConversionProvider.TryConvert<DateTime, string>(value, out actual);
+
+			Assert.True(success);
+			Assert.NotNull(actual);
 		}
 	}
 }

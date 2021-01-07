@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 using System;
-// ReSharper disable InheritdocConsiderUsage
 
 #pragma warning disable 1591
 // ReSharper disable UnusedMember.Global
@@ -30,7 +29,7 @@ using System;
 // ReSharper disable IntroduceOptionalParameters.Global
 // ReSharper disable MemberCanBeProtected.Global
 // ReSharper disable InconsistentNaming
-
+// ReSharper disable InheritdocConsiderUsage
 // ReSharper disable once CheckNamespace
 namespace JetBrains.Annotations
 {
