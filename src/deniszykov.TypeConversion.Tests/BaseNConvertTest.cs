@@ -110,6 +110,25 @@ namespace deniszykov.TypeConversion.Tests
 			};
 		}
 
+		public static IEnumerable<object[]> DifferentSizeTestData()
+		{
+			var random = new Random(1121384721);
+			var getRandomData = new Func<int, byte[]>(size =>
+			{
+				var data = new byte[size];
+				random.NextBytes(data);
+				return data;
+			});
+			var sizes = Enumerable.Range(0, 16);
+			var alphabets = new[] {BaseNConvert.Base32Alphabet, BaseNConvert.Base16LowerCaseAlphabet, BaseNConvert.Base64Alphabet};
+			return (
+				from size in sizes
+				from alphabet in alphabets
+				let plainTextData = getRandomData(size)
+				select new object[] { alphabet, plainTextData, BaseNConvert.ToString(plainTextData, alphabet) }
+			);
+		}
+
 		[Theory]
 		[MemberData(nameof(Base32TestData))]
 		[MemberData(nameof(Base64TestData))]
@@ -117,6 +136,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void EncodeBytesToCharsTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var input = new ArraySegment<byte>(plainTextData, 0, plainTextData.Length);
@@ -137,6 +157,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void EncodeBytesToBytesTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var input = new ArraySegment<byte>(plainTextData, 0, plainTextData.Length);
@@ -179,6 +200,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void EncodeSpanToSpanTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var outputBuffer = new byte[encodedData.Length];
@@ -200,6 +222,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void DecodeCharsToBytesTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var input = new ArraySegment<char>(encodedData.ToCharArray(), 0, encodedData.Length);
@@ -220,6 +243,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void DecodeBytesToBytesTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var inputBuffer = new byte[encodedData.Length];
@@ -275,6 +299,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void DecodeSpanToSpanTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var inputBuffer = new byte[encodedData.Length];
@@ -301,6 +326,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToStringTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var actual = BaseNConvert.ToString(plainTextData, alphabet);
@@ -315,6 +341,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToStringPartTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var random = new Random(9375220);
@@ -331,6 +358,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToCharArrayTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var actual = BaseNConvert.ToCharArray(plainTextData, alphabet);
@@ -345,6 +373,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToCharArrayPartTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var random = new Random(9375220);
@@ -361,6 +390,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToBytesFromStringTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var actual = BaseNConvert.ToBytes(encodedData, alphabet);
@@ -375,6 +405,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToBytesFromStringPartTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var random = new Random(9375220);
@@ -391,6 +422,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToBytesFromCharArrayTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var actual = BaseNConvert.ToBytes(encodedData.ToCharArray(), alphabet);
@@ -405,6 +437,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16UpperTestData))]
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
 		public void ToBytesFromCharArrayPartTest(BaseNAlphabet alphabet, byte[] plainTextData, string encodedData)
 		{
 			var random = new Random(9375220);
