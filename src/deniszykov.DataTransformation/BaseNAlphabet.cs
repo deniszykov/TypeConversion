@@ -8,30 +8,56 @@
 	License: https://opensource.org/licenses/MIT
 */
 
-// ReSharper disable once CheckNamespace
-namespace System
+using System;
+using JetBrains.Annotations;
+
+namespace deniszykov.DataTransformation
 {
 	/// <summary>
 	/// Base64 encoding/decoding alphabet.
 	/// </summary>
-	public sealed class Base64Alphabet
+	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+	public sealed class BaseNAlphabet
 	{
 		internal const byte NOT_IN_ALPHABET = 255;
 		internal readonly char[] Alphabet;
 		internal readonly byte[] AlphabetInverse;
 		internal readonly char Padding;
 
-		internal bool HasPadding { get { return this.Padding != '\u00ff'; } }
+		internal bool HasPadding => this.Padding != '\u00ff';
+		public readonly int EncodingBits;
+		public readonly int EncodingBlockSize;
+		public readonly int DecodingBlockSize;
 
 		/// <summary>
 		/// Create baseX alphabet with passed character set and padding. If padding is set to '\u00ff' then no padding is used.
 		/// </summary>
 		/// <param name="alphabet">Character set which used as base alphabet for encoding/decoding. Characters should be between '\u0000' and '\u007f' and not <paramref name="padding"/>.</param>
 		/// <param name="padding">Padding character which used to pad data. '\u00ff' character indicates that no padding is used. Padding should be between '\u0000' and '\u007f'.</param>
-		public Base64Alphabet(char[] alphabet, char padding = '\u00ff')
+		public BaseNAlphabet(char[] alphabet, char padding = '\u00ff')
 		{
-			if (alphabet == null) throw new ArgumentNullException("alphabet");
-			if (alphabet.Length != 64) throw new ArgumentOutOfRangeException("alphabet");
+			if (alphabet == null) throw new ArgumentNullException(nameof(alphabet));
+
+			switch (alphabet.Length)
+			{
+				case 64:
+					this.EncodingBlockSize = 3;
+					this.DecodingBlockSize = 4;
+					this.EncodingBits = 6;
+					break;
+				case 32:
+					this.EncodingBlockSize = 5;
+					this.DecodingBlockSize = 8;
+					this.EncodingBits = 5;
+					break;
+				case 16:
+					this.EncodingBits = 4;
+					this.EncodingBlockSize = 1;
+					this.DecodingBlockSize = 2;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(alphabet));
+			}
 
 			this.Alphabet = alphabet;
 			this.Padding = padding;
@@ -44,10 +70,13 @@ namespace System
 			for (var i = 0; i < this.Alphabet.Length; i++)
 			{
 				var charNum = (int)alphabet[i];
-				if (charNum < 0 || charNum > 127 || charNum == padding) throw new ArgumentOutOfRangeException("alphabet");
+				if (charNum < 0 || charNum > 127 || charNum == padding) throw new ArgumentOutOfRangeException(nameof(alphabet));
 
 				this.AlphabetInverse[charNum] = (byte)i;
 			}
 		}
+
+		/// <inheritdoc />
+		public override string ToString() => $"Base{this.Alphabet.Length}, Padding: '{this.Padding}'({(this.HasPadding ? "y" : "n")})";
 	}
 }
