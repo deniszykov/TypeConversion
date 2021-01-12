@@ -7,13 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "deniszykov.TypeConversion",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "deniszykov.TypeConversion.Tests", "deniszykov.TypeConversion.Tests\deniszykov.TypeConversion.Tests.csproj", "{50256EB8-4039-4C45-963F-3849A7B59122}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "deniszykov.DataTransformation", "deniszykov.DataTransformation\deniszykov.DataTransformation.csproj", "{73A6232F-C69E-4C8E-8722-75A42B3C1FBC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "deniszykov.BaseN", "deniszykov.DataTransformation\deniszykov.BaseN.csproj", "{73A6232F-C69E-4C8E-8722-75A42B3C1FBC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6CE55E09-61D3-4DAA-BCC6-A2CF3A8E8E22}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
 		sign.snk = sign.snk
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "deniszykov.BaseN.Benchmark", "deniszykov.BaseN.Benchmark\deniszykov.BaseN.Benchmark.csproj", "{F2089C2C-7630-47A8-B9D4-02985B3624B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{73A6232F-C69E-4C8E-8722-75A42B3C1FBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{73A6232F-C69E-4C8E-8722-75A42B3C1FBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{73A6232F-C69E-4C8E-8722-75A42B3C1FBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
