@@ -11,7 +11,7 @@
 using System;
 using JetBrains.Annotations;
 
-namespace deniszykov.DataTransformation
+namespace deniszykov.BaseN
 {
 	/// <summary>
 	/// Base64 encoding/decoding alphabet.
@@ -19,6 +19,33 @@ namespace deniszykov.DataTransformation
 	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 	public sealed class BaseNAlphabet
 	{
+		// ReSharper disable StringLiteralTypo
+		/// <summary>
+		/// Default Base16 (Hex) alphabet. Upper case.
+		/// </summary>
+		public static readonly BaseNAlphabet Base16UpperCaseAlphabet = new BaseNAlphabet("0123456789ABCDEF".ToCharArray());
+		/// <summary>
+		/// Default Base16 (Hex) alphabet. Lower case.
+		/// </summary>
+		public static readonly BaseNAlphabet Base16LowerCaseAlphabet = new BaseNAlphabet("0123456789abcdef".ToCharArray());
+		/// <summary>
+		/// Default Base32 alphabet.
+		/// </summary>
+		public static readonly BaseNAlphabet Base32Alphabet = new BaseNAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".ToCharArray(), padding: '=');
+		/// <summary>
+		/// Alternative ZBase32 alphabet.
+		/// </summary>
+		public static readonly BaseNAlphabet ZBase32Alphabet = new BaseNAlphabet("ybndrfg8ejkmcpqxot1uwisza345h769".ToCharArray());
+		/// <summary>
+		/// Default Base64 alphabet.
+		/// </summary>
+		public static readonly BaseNAlphabet Base64Alphabet = new BaseNAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".ToCharArray(), padding: '=');
+		/// <summary>
+		/// Url-safe Base64 alphabet. Where (+) is replaced with (-) and (/) is replaced with (_).
+		/// </summary>
+		public static readonly BaseNAlphabet Base64UrlAlphabet = new BaseNAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".ToCharArray(), padding: '=');
+		// ReSharper restore StringLiteralTypo
+
 		internal const byte NOT_IN_ALPHABET = 255;
 		internal readonly char[] Alphabet;
 		internal readonly byte[] AlphabetInverse;
