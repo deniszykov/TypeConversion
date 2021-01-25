@@ -4,6 +4,9 @@ using System.Text;
 
 namespace deniszykov.BaseN
 {
+	using CharSafePtr = UIntPtr;
+	using ByteSafePtr = IntPtr;
+
 	/// <summary>
 	/// Base-(Alphabet Length) binary data encoder (!) based on specified <see cref="baseNAlphabet"/>.
 	/// Class named "Decoder" because it is based on <see cref="Decoder"/>, but it is effectively encoder.
@@ -85,109 +88,22 @@ namespace deniszykov.BaseN
 		/// </summary>
 		public void Convert(byte[] bytes, int byteIndex, int byteCount, byte[] chars, int charIndex, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
+#if NETCOREAPP
+			this.EncodeInternal<byte, byte>(bytes.AsSpan(byteIndex, byteCount), chars.AsSpan(charIndex, charCount), flush, out bytesUsed, out charsUsed, out completed);
+#else
 			this.EncodeInternal(bytes, byteIndex, byteCount, chars, charIndex, charCount, flush, out bytesUsed, out charsUsed, out completed);
+#endif
 		}
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
 		public unsafe void Convert(byte* bytes, int byteCount, byte* chars, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
-			bytesUsed = charsUsed = 0;
-			if (byteCount == 0)
-			{
-				completed = true;
-			}
-
-			var i = 0;
-			var alphabetChars = this.baseNAlphabet.Alphabet;
-			var inputBlockSize = this.baseNAlphabet.EncodingBlockSize;
-			var outputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingMask = (ulong)alphabetChars.Length - 1;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-
-			// #2: encoding whole blocks
-
-			var wholeBlocksToProcess = Math.Min(byteCount / inputBlockSize, charCount / outputBlockSize);
-			var inputBlock = 0UL; // 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-			var outputBlock = 0UL; // 2 bytes for Base16, 8 bytes for Base32 and 4 bytes for Base64
-			while (wholeBlocksToProcess-- > 0)
-			{
-				// filling input
-				for (i = 0; i < inputBlockSize; i++)
-				{
-					inputBlock <<= 8;
-					inputBlock |= bytes[bytesUsed++];
-				}
-				// encoding
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					outputBlock <<= 8;
-					outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-					inputBlock >>= encodingBits;
-				}
-				// flush output
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					chars[charsUsed++] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-
-				charCount -= outputBlockSize;
-				byteCount -= inputBlockSize;
-			}
-
-			// #3: encoding partial blocks
-			outputBlock = 0;
-			inputBlock = 0;
-			var finalOutputBlockSize = (int)Math.Ceiling(Math.Min(byteCount, inputBlockSize) * 8.0 / encodingBits);
-
-			// filling input for final block
-			for (i = 0; i < inputBlockSize && i < byteCount; i++)
-			{
-				inputBlock <<= 8;
-				inputBlock |= bytes[bytesUsed++];
-			}
-			// align with encodingBits
-			inputBlock <<= encodingBits - Math.Min(inputBlockSize, byteCount) * 8 % encodingBits;
-
-			// fill output with paddings
-			for (i = 0; i < outputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= (byte)this.baseNAlphabet.Padding;
-			}
-
-			// encode final block
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-				inputBlock >>= encodingBits;
-			}
-
-			if (this.baseNAlphabet.HasPadding && byteCount > 0)
-			{
-				finalOutputBlockSize = outputBlockSize;
-			}
-
-			// flush final block
-			if (finalOutputBlockSize > charCount || !flush)
-			{
-				finalOutputBlockSize = 0; // cancel flushing output
-				bytesUsed -= Math.Min(inputBlockSize, byteCount); // rewind input
-			}
-			else
-			{
-				byteCount -= Math.Min(inputBlockSize, byteCount);
-			}
-
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				chars[charsUsed++] = (byte)(outputBlock & 0xFF);
-				outputBlock >>= 8;
-			}
-
-			completed = byteCount == 0; // true if all input is used
+#if NETCOREAPP
+			this.EncodeInternal(new ReadOnlySpan<byte>(bytes, byteCount), new Span<byte>(chars, charCount), flush, out bytesUsed, out charsUsed, out completed);
+#else
+			this.EncodeInternal((ByteSafePtr)bytes, 0, byteCount, (ByteSafePtr)chars, 0, charCount, flush, out bytesUsed, out charsUsed, out completed);
+#endif
 		}
 #if NETSTANDARD1_6
 		/// <summary>
@@ -199,317 +115,34 @@ namespace deniszykov.BaseN
 		public override unsafe void Convert(byte* bytes, int byteCount, char* chars, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 #endif
 		{
-			bytesUsed = charsUsed = 0;
-
-			var i = 0;
-			var alphabetChars = this.baseNAlphabet.Alphabet;
-			var inputBlockSize = this.baseNAlphabet.EncodingBlockSize;
-			var outputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingMask = (ulong)alphabetChars.Length - 1;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-
-			bytesUsed = 0;
-			charsUsed = 0;
-
-			// #2: encoding whole blocks
-
-			var wholeBlocksToProcess = Math.Min(byteCount / inputBlockSize, charCount / outputBlockSize);
-			var inputBlock = 0UL; // 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-			var outputBlock = 0UL; // 2 bytes for Base16, 8 bytes for Base32 and 4 bytes for Base64
-			while (wholeBlocksToProcess-- > 0)
-			{
-				// filling input
-				for (i = 0; i < inputBlockSize; i++)
-				{
-					inputBlock <<= 8;
-					inputBlock |= bytes[bytesUsed++];
-				}
-				// encoding
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					outputBlock <<= 8;
-					outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-					inputBlock >>= encodingBits;
-				}
-				// flush output
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					chars[charsUsed++] = (char)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-
-				charCount -= outputBlockSize;
-				byteCount -= inputBlockSize;
-			}
-
-			// #3: encoding partial blocks
-			outputBlock = 0;
-			inputBlock = 0;
-			var finalOutputBlockSize = (int)Math.Ceiling(Math.Min(byteCount, inputBlockSize) * 8.0 / encodingBits);
-
-			// filling input for final block
-			for (i = 0; i < inputBlockSize && i < byteCount; i++)
-			{
-				inputBlock <<= 8;
-				inputBlock |= bytes[bytesUsed++];
-			}
-			// align with encodingBits
-			inputBlock <<= encodingBits - Math.Min(inputBlockSize, byteCount) * 8 % encodingBits;
-
-			// fill output with paddings
-			for (i = 0; i < outputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= (byte)this.baseNAlphabet.Padding;
-			}
-
-			// encode final block
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-				inputBlock >>= encodingBits;
-			}
-
-			if (this.baseNAlphabet.HasPadding && byteCount > 0)
-			{
-				finalOutputBlockSize = outputBlockSize;
-			}
-
-			// flush final block
-			if (finalOutputBlockSize > charCount || !flush)
-			{
-				finalOutputBlockSize = 0; // cancel flushing output
-				bytesUsed -= Math.Min(inputBlockSize, byteCount); // rewind input
-			}
-			else
-			{
-				byteCount -= Math.Min(inputBlockSize, byteCount);
-			}
-
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				chars[charsUsed++] = (char)(outputBlock & 0xFF);
-				outputBlock >>= 8;
-			}
-
-			completed = byteCount == 0; // true if all input is used
+#if NETCOREAPP
+			this.EncodeInternal(new ReadOnlySpan<byte>(bytes, byteCount), new Span<char>(chars, charCount), flush, out bytesUsed, out charsUsed, out completed);
+#else
+			this.EncodeInternal((ByteSafePtr)bytes, 0, byteCount, (CharSafePtr)chars, 0, charCount, flush, out bytesUsed, out charsUsed, out completed);
+#endif
 		}
 		/// <inheritdoc />
 		public override void Convert(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
+#if NETCOREAPP
+			this.EncodeInternal<byte, char>(bytes.AsSpan(byteIndex, byteCount), chars.AsSpan(charIndex, charCount), flush, out bytesUsed, out charsUsed, out completed);
+#else
 			this.EncodeInternal(bytes, byteIndex, byteCount, chars, charIndex, charCount, flush, out bytesUsed, out charsUsed, out completed);
+#endif
 		}
 
 #if NETCOREAPP
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
-		public void Convert(ReadOnlySpan<byte> bytes, Span<byte> chars, bool flush, out int bytesUsed, out int charCount, out bool completed)
+		public void Convert(ReadOnlySpan<byte> bytes, Span<byte> chars, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
-			completed = true;
-			bytesUsed = charCount = 0;
-
-			if (bytes.Length == 0 || chars.Length == 0)
-			{
-				return;
-			}
-
-			var i = 0;
-			var alphabetChars = this.baseNAlphabet.Alphabet;
-			var inputBlockSize = this.baseNAlphabet.EncodingBlockSize;
-			var outputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingMask = (ulong)alphabetChars.Length - 1;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-			var outputCapacity = chars.Length;
-			var inputLeft = bytes.Length;
-
-			// #2: encoding whole blocks
-
-			var wholeBlocksToProcess = Math.Min(bytes.Length / inputBlockSize, outputCapacity / outputBlockSize);
-			var inputBlock = 0UL; // 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-			var outputBlock = 0UL; // 2 bytes for Base16, 8 bytes for Base32 and 4 bytes for Base64
-			while (wholeBlocksToProcess-- > 0)
-			{
-				// filling input
-				for (i = 0; i < inputBlockSize; i++)
-				{
-					inputBlock <<= 8;
-					inputBlock |= bytes[bytesUsed++];
-				}
-				// encoding
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					outputBlock <<= 8;
-					outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-					inputBlock >>= encodingBits;
-				}
-				// flush output
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					chars[charCount++] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-
-				outputCapacity -= outputBlockSize;
-				inputLeft -= inputBlockSize;
-			}
-
-			// #3: encoding partial blocks
-			outputBlock = 0;
-			inputBlock = 0;
-			var finalOutputBlockSize = (int)Math.Ceiling(Math.Min(inputLeft, inputBlockSize) * 8.0 / encodingBits);
-
-			// filling input for final block
-			for (i = 0; i < inputBlockSize && i < inputLeft; i++)
-			{
-				inputBlock <<= 8;
-				inputBlock |= bytes[bytesUsed++];
-			}
-			// align with encodingBits
-			inputBlock <<= encodingBits - Math.Min(inputBlockSize, inputLeft) * 8 % encodingBits;
-
-			// fill output with paddings
-			for (i = 0; i < outputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= (byte)this.baseNAlphabet.Padding;
-			}
-
-			// encode final block
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-				inputBlock >>= encodingBits;
-			}
-
-			if (this.baseNAlphabet.HasPadding && inputLeft > 0)
-			{
-				finalOutputBlockSize = outputBlockSize;
-			}
-
-			// flush final block
-			if (finalOutputBlockSize > outputCapacity || !flush)
-			{
-				finalOutputBlockSize = 0; // cancel flushing output
-				bytesUsed -= Math.Min(inputBlockSize, inputLeft); // rewind input
-			}
-			else
-			{
-				inputLeft -= Math.Min(inputBlockSize, inputLeft);
-			}
-
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				chars[charCount++] = (byte)(outputBlock & 0xFF);
-				outputBlock >>= 8;
-			}
-			completed = inputLeft == 0; // true if all input is used
+			this.EncodeInternal(bytes, chars, flush, out bytesUsed, out charsUsed, out completed);
 		}
 		/// <inheritdoc />
-		public override void Convert(ReadOnlySpan<byte> bytes, Span<char> chars, bool flush, out int bytesUsed, out int charCount, out bool completed)
+		public override void Convert(ReadOnlySpan<byte> bytes, Span<char> chars, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
-			completed = true;
-			bytesUsed = charCount = 0;
-
-			if (bytes.Length == 0 || chars.Length == 0)
-			{
-				return;
-			}
-
-			var i = 0;
-			var alphabetChars = this.baseNAlphabet.Alphabet;
-			var inputBlockSize = this.baseNAlphabet.EncodingBlockSize;
-			var outputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingMask = (ulong)alphabetChars.Length - 1;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-			var outputCapacity = chars.Length;
-			var inputLeft = bytes.Length;
-
-			// #2: encoding whole blocks
-
-			var wholeBlocksToProcess = Math.Min(bytes.Length / inputBlockSize, outputCapacity / outputBlockSize);
-			var inputBlock = 0UL; // 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-			var outputBlock = 0UL; // 2 bytes for Base16, 8 bytes for Base32 and 4 bytes for Base64
-			while (wholeBlocksToProcess-- > 0)
-			{
-				// filling input
-				for (i = 0; i < inputBlockSize; i++)
-				{
-					inputBlock <<= 8;
-					inputBlock |= bytes[bytesUsed++];
-				}
-				// encoding
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					outputBlock <<= 8;
-					outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-					inputBlock >>= encodingBits;
-				}
-				// flush output
-				for (i = 0; i < outputBlockSize; i++)
-				{
-					chars[charCount++] = (char)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-
-				outputCapacity -= outputBlockSize;
-				inputLeft -= inputBlockSize;
-			}
-
-			// #3: encoding partial blocks
-			outputBlock = 0;
-			inputBlock = 0;
-			var finalOutputBlockSize = (int)Math.Ceiling(Math.Min(inputLeft, inputBlockSize) * 8.0 / encodingBits);
-
-			// filling input for final block
-			for (i = 0; i < inputBlockSize && i < inputLeft; i++)
-			{
-				inputBlock <<= 8;
-				inputBlock |= bytes[bytesUsed++];
-			}
-			// align with encodingBits
-			inputBlock <<= encodingBits - Math.Min(inputBlockSize, inputLeft) * 8 % encodingBits;
-
-			// fill output with paddings
-			for (i = 0; i < outputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= (byte)this.baseNAlphabet.Padding;
-			}
-
-			// encode final block
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				outputBlock <<= 8;
-				outputBlock |= alphabetChars[(int)(inputBlock & encodingMask)];
-				inputBlock >>= encodingBits;
-			}
-
-			if (this.baseNAlphabet.HasPadding && inputLeft > 0)
-			{
-				finalOutputBlockSize = outputBlockSize;
-			}
-
-			// flush final block
-			if (finalOutputBlockSize > outputCapacity || !flush)
-			{
-				finalOutputBlockSize = 0; // cancel flushing output
-				bytesUsed -= Math.Min(inputBlockSize, inputLeft); // rewind input
-			}
-			else
-			{
-				inputLeft -= Math.Min(inputBlockSize, inputLeft);
-			}
-
-			for (i = 0; i < finalOutputBlockSize; i++)
-			{
-				chars[charCount++] = (char)(outputBlock & 0xFF);
-				outputBlock >>= 8;
-			}
-
-			completed = inputLeft == 0; // true if all input is used
+			this.EncodeInternal(bytes, chars, flush, out bytesUsed, out charsUsed, out completed);
 		}
 		/// <inheritdoc />
 		public override int GetCharCount(ReadOnlySpan<byte> bytes, bool flush)
@@ -524,40 +157,94 @@ namespace deniszykov.BaseN
 		}
 #endif
 
-		private void EncodeInternal<BufferT>(byte[] input, int inputOffset, int inputCount, BufferT output, int outputIndex, int outputCount, bool flush, out int inputUsed, out int outputUsed, out bool completed)
+#if NETCOREAPP
+		private void EncodeInternal<InputT, OutputT>(ReadOnlySpan<InputT> input, Span<OutputT> output, bool flush, out int inputUsed, out int outputUsed, out bool completed) where InputT : unmanaged where OutputT : unmanaged
 		{
-			if (inputCount == 0 || input == null)
+			if (input.IsEmpty || output.IsEmpty)
 			{
 				inputUsed = outputUsed = 0;
 				completed = true;
 				return;
 			}
+#else
+		private unsafe void EncodeInternal<InputT, OutputT>(InputT input, int inputOffset, int inputCount, OutputT output, int outputOffset, int outputCount, bool flush, out int inputUsed, out int outputUsed, out bool completed)
+		{
+			if (inputCount == 0 || outputCount == 0)
+			{
+				inputUsed = outputUsed = 0;
+				completed = true;
+				return;
+			}
+#endif
 
-			// #1: preparing
+		// #1: preparing
 			var i = 0;
 			var alphabetChars = this.baseNAlphabet.Alphabet;
 			var inputBlockSize = this.baseNAlphabet.EncodingBlockSize;
 			var outputBlockSize = this.baseNAlphabet.DecodingBlockSize;
 			var encodingMask = (ulong)alphabetChars.Length - 1;
 			var encodingBits = this.baseNAlphabet.EncodingBits;
+#if NETCOREAPP
+			var originalInputOffset = 0;
+			var inputOffset = 0;
+			var inputCount = input.Length;
+			var originalOutputOffset = 0;
+			var outputOffset = 0;
+			var outputCount = output.Length;
+#else
 			var originalInputOffset = inputOffset;
-			var originalOutputOffset = outputIndex;
+			var originalOutputOffset = outputOffset;
 			var outputBytes = default(byte[]);
 			var outputChars = default(char[]);
+			var outputBytePtr = default(byte*);
+			var outputCharPtr = default(char*);
+			var inputBytes = default(byte[]);
+			var inputChars = default(char[]);
+			var inputBytePtr = default(byte*);
+			var inputCharPtr = default(char*);
 
-			if (output is byte[])
+			if (typeof(OutputT) == typeof(byte[]))
 			{
 				outputBytes = (byte[])(object)output;
 			}
-			else if (output is char[])
+			else if (typeof(OutputT) == typeof(char[]))
 			{
 				outputChars = (char[])(object)output;
 			}
+			else if (typeof(OutputT) == typeof(ByteSafePtr))
+			{
+				outputBytePtr = (byte*)(ByteSafePtr)(object)output;
+			}
+			else if (typeof(OutputT) == typeof(CharSafePtr))
+			{
+				outputCharPtr = (char*)(CharSafePtr)(object)output;
+			}
 			else
 			{
-				throw new InvalidOperationException("Unknown type of output buffer: " + typeof(BufferT));
+				throw new InvalidOperationException("Unknown type of output buffer: " + typeof(OutputT));
 			}
 
+			if (typeof(InputT) == typeof(byte[]))
+			{
+				inputBytes = (byte[])(object)input;
+			}
+			else if (typeof(InputT) == typeof(char[]))
+			{
+				inputChars = (char[])(object)input;
+			}
+			else if (typeof(InputT) == typeof(ByteSafePtr))
+			{
+				inputBytePtr = (byte*)(ByteSafePtr)(object)input;
+			}
+			else if (typeof(InputT) == typeof(CharSafePtr))
+			{
+				inputCharPtr = (char*)(CharSafePtr)(object)input;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown type of input buffer: " + typeof(InputT));
+			}
+#endif
 			// #2: encoding whole blocks
 
 			var wholeBlocksToProcess = Math.Min(inputCount / inputBlockSize, outputCount / outputBlockSize);
@@ -566,11 +253,58 @@ namespace deniszykov.BaseN
 			while (wholeBlocksToProcess-- > 0)
 			{
 				// filling input
-				for (i = 0; i < inputBlockSize; i++)
+#if NETCOREAPP
+				if (typeof(InputT) == typeof(byte))
 				{
-					inputBlock <<= 8;
-					inputBlock |= input[inputOffset++];
+					for (i = 0; i < inputBlockSize; i++)
+					{
+						inputBlock <<= 8;
+						inputBlock |= (byte)(object)input[inputOffset++];
+					}
 				}
+				if (typeof(InputT) == typeof(char))
+				{
+					for (i = 0; i < inputBlockSize; i++)
+					{
+						inputBlock <<= 8;
+						inputBlock |= (char)(object)input[inputOffset++];
+					}
+				}
+#else
+				if (typeof(InputT) == typeof(byte[]))
+				{
+					for (i = 0; i < inputBlockSize; i++)
+					{
+						inputBlock <<= 8;
+						inputBlock |= inputBytes[inputOffset++];
+					}
+				}
+				if (typeof(InputT) == typeof(char[]))
+				{
+					for (i = 0; i < inputBlockSize; i++)
+					{
+						inputBlock <<= 8;
+						inputBlock |= inputChars[inputOffset++];
+					}
+				}
+				if (typeof(InputT) == typeof(ByteSafePtr))
+				{
+					for (i = 0; i < inputBlockSize; i++)
+					{
+						inputBlock <<= 8;
+						inputBlock |= inputBytePtr[inputOffset++];
+					}
+				}
+				if (typeof(InputT) == typeof(CharSafePtr))
+				{
+					for (i = 0; i < inputBlockSize; i++)
+					{
+						inputBlock <<= 8;
+						inputBlock |= inputCharPtr[inputOffset++];
+					}
+				}
+#endif
+
 				// encoding
 				for (i = 0; i < outputBlockSize; i++)
 				{
@@ -579,26 +313,66 @@ namespace deniszykov.BaseN
 					inputBlock >>= encodingBits;
 				}
 				// flush output
-				if (output is byte[])
+#if NETCOREAPP
+				if (typeof(OutputT) == typeof(byte))
+				{
+					for (i = 0; i < outputBlockSize; i++)
+					{
+						output[outputOffset++] = (OutputT)(object)(byte)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+				if (typeof(OutputT) == typeof(char))
+				{
+					for (i = 0; i < outputBlockSize; i++)
+					{
+						output[outputOffset++] = (OutputT)(object)(char)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+#else
+				if (typeof(OutputT) == typeof(byte[]))
 				{
 					Debug.Assert(outputBytes != null, "byteSegment.Array != null");
 
 					for (i = 0; i < outputBlockSize; i++)
 					{
-						outputBytes[outputIndex++] = (byte)(outputBlock & 0xFF);
+						outputBytes[outputOffset++] = (byte)(outputBlock & 0xFF);
 						outputBlock >>= 8;
 					}
 				}
-				else
+				if (typeof(OutputT) == typeof(char[]))
 				{
 					Debug.Assert(outputChars != null, "charSegment.Array != null");
 
 					for (i = 0; i < outputBlockSize; i++)
 					{
-						outputChars[outputIndex++] = (char)(outputBlock & 0xFF);
+						outputChars[outputOffset++] = (char)(outputBlock & 0xFF);
 						outputBlock >>= 8;
 					}
 				}
+				if (typeof(OutputT) == typeof(ByteSafePtr))
+				{
+					Debug.Assert(outputBytePtr != default(byte*), "outputBytePtr != default(byte*)");
+
+					for (i = 0; i < outputBlockSize; i++)
+					{
+						outputBytePtr[outputOffset++] = (byte)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+				if (typeof(OutputT) == typeof(CharSafePtr))
+				{
+					Debug.Assert(outputCharPtr != default(char*), "outputCharPtr != default(char*)");
+
+					for (i = 0; i < outputBlockSize; i++)
+					{
+						outputCharPtr[outputOffset++] = (char)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+#endif
+
 
 				outputCount -= outputBlockSize;
 				inputCount -= inputBlockSize;
@@ -610,11 +384,57 @@ namespace deniszykov.BaseN
 			var finalOutputBlockSize = (int)Math.Ceiling(Math.Min(inputCount, inputBlockSize) * 8.0 / encodingBits);
 
 			// filling input for final block
-			for (i = 0; i < inputBlockSize && i < inputCount; i++)
+#if NETCOREAPP
+			if (typeof(InputT) == typeof(byte))
 			{
-				inputBlock <<= 8;
-				inputBlock |= input[inputOffset++];
+				for (i = 0; i < inputBlockSize && i < inputCount; i++)
+				{
+					inputBlock <<= 8;
+					inputBlock |= (byte)(object)input[inputOffset++];
+				}
 			}
+			if (typeof(InputT) == typeof(char))
+			{
+				for (i = 0; i < inputBlockSize; i++)
+				{
+					inputBlock <<= 8;
+					inputBlock |= (char)(object)input[inputOffset++];
+				}
+			}
+#else
+			if (typeof(InputT) == typeof(byte[]))
+			{
+				for (i = 0; i < inputBlockSize && i < inputCount; i++)
+				{
+					inputBlock <<= 8;
+					inputBlock |= inputBytes[inputOffset++];
+				}
+			}
+			if (typeof(InputT) == typeof(char[]))
+			{
+				for (i = 0; i < inputBlockSize && i < inputCount; i++)
+				{
+					inputBlock <<= 8;
+					inputBlock |= inputChars[inputOffset++];
+				}
+			}
+			if (typeof(InputT) == typeof(ByteSafePtr))
+			{
+				for (i = 0; i < inputBlockSize && i < inputCount; i++)
+				{
+					inputBlock <<= 8;
+					inputBlock |= inputBytePtr[inputOffset++];
+				}
+			}
+			if (typeof(InputT) == typeof(CharSafePtr))
+			{
+				for (i = 0; i < inputBlockSize && i < inputCount; i++)
+				{
+					inputBlock <<= 8;
+					inputBlock |= inputCharPtr[inputOffset++];
+				}
+			}
+#endif
 			// align with encodingBits
 			inputBlock <<= encodingBits - Math.Min(inputBlockSize, inputCount) * 8 % encodingBits;
 
@@ -649,31 +469,71 @@ namespace deniszykov.BaseN
 				inputCount -= Math.Min(inputBlockSize, inputCount);
 			}
 
-			if (output is byte[])
+#if NETCOREAPP
+			if (typeof(OutputT) == typeof(byte))
+			{
+				for (i = 0; i < finalOutputBlockSize; i++)
+				{
+					output[outputOffset++] = (OutputT)(object)(byte)(outputBlock & 0xFF);
+					outputBlock >>= 8;
+				}
+			}
+			if (typeof(OutputT) == typeof(char))
+			{
+				for (i = 0; i < finalOutputBlockSize; i++)
+				{
+					output[outputOffset++] = (OutputT)(object)(char)(outputBlock & 0xFF);
+					outputBlock >>= 8;
+				}
+			}
+#else
+			if (typeof(OutputT) == typeof(byte[]))
 			{
 				Debug.Assert(outputBytes != null, "byteSegment.Array != null");
 
 				for (i = 0; i < finalOutputBlockSize; i++)
 				{
-					outputBytes[outputIndex++] = (byte)(outputBlock & 0xFF);
+					outputBytes[outputOffset++] = (byte)(outputBlock & 0xFF);
 					outputBlock >>= 8;
 				}
 			}
-			else
+			if (typeof(OutputT) == typeof(char[]))
 			{
 				Debug.Assert(outputChars != null, "charSegment.Array != null");
 
 				for (i = 0; i < finalOutputBlockSize; i++)
 				{
-					outputChars[outputIndex++] = (char)(outputBlock & 0xFF);
+					outputChars[outputOffset++] = (char)(outputBlock & 0xFF);
 					outputBlock >>= 8;
 				}
 			}
+			if (typeof(OutputT) == typeof(ByteSafePtr))
+			{
+				Debug.Assert(outputBytePtr != default(byte*), "outputBytePtr != default(byte*)");
+
+				for (i = 0; i < finalOutputBlockSize; i++)
+				{
+					outputBytePtr[outputOffset++] = (byte)(outputBlock & 0xFF);
+					outputBlock >>= 8;
+				}
+			}
+			if (typeof(OutputT) == typeof(CharSafePtr))
+			{
+				Debug.Assert(outputCharPtr != default(char*), "outputCharPtr != default(char*)");
+
+				for (i = 0; i < finalOutputBlockSize; i++)
+				{
+					outputCharPtr[outputOffset++] = (char)(outputBlock & 0xFF);
+					outputBlock >>= 8;
+				}
+			}
+#endif
 
 			inputUsed = inputOffset - originalInputOffset;
-			outputUsed = outputIndex - originalOutputOffset;
+			outputUsed = outputOffset - originalOutputOffset;
 			completed = inputCount == 0; // true if all input is used
 		}
+
 		private int GetCharCount(int count, bool flush)
 		{
 			if (count == 0)

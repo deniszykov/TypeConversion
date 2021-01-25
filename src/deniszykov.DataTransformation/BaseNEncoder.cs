@@ -3,6 +3,9 @@ using System.Text;
 
 namespace deniszykov.BaseN
 {
+	using CharSafePtr = UIntPtr;
+	using ByteSafePtr = IntPtr;
+
 	/// <summary>
 	/// Base-(Alphabet Length) binary data decoder (!) based on specified <see cref="baseNAlphabet"/>.
 	/// Class named "Encoder" because it is based on <see cref="Encoder"/>, but it is effectively decoder.
@@ -175,62 +178,11 @@ namespace deniszykov.BaseN
 		/// </summary>
 		public unsafe void Convert(byte* chars, int charCount, byte* bytes, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
-			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
-			if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
-
-			charsUsed = bytesUsed = 0;
-			completed = true;
-
-			if (charCount == 0)
-				return;
-
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var inputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-
-			while (byteCount > 0)
-			{
-				// filling input & decoding
-				var outputBlock = 0UL;// 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-				var originalInputUsed = charsUsed;
-				var i = 0;
-				for (i = 0; i < inputBlockSize && charCount > 0; i++)
-				{
-
-					var baseNCode = chars[charsUsed++];
-					charCount--;
-
-					if (baseNCode > 127 || alphabetInverse[baseNCode] == BaseNAlphabet.NOT_IN_ALPHABET)
-					{
-						i--;
-						continue;
-					}
-
-					outputBlock <<= encodingBits;
-					outputBlock |= alphabetInverse[baseNCode];
-				}
-
-				var outputSize = i * encodingBits / 8;
-				outputBlock >>= i * encodingBits % 8; // align
-
-				// flushing output
-				if (outputSize > byteCount ||
-					outputSize == 0 ||
-					(i != inputBlockSize && !flush))
-				{
-					charsUsed = originalInputUsed; // unwind inputUsed
-					break;
-				}
-
-				for (i = 0; i < outputSize; i++)
-				{
-					bytes[bytesUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-				bytesUsed += outputSize;
-				byteCount -= outputSize;
-			}
-			completed = charCount == 0;
+#if NETCOREAPP
+			this.DecodeInternal(new ReadOnlySpan<byte>(chars, charCount), new Span<byte>(bytes, byteCount), flush, out charsUsed, out bytesUsed, out completed);
+#else
+			this.DecodeInternal((ByteSafePtr)chars, 0, charCount, (ByteSafePtr)bytes, 0, byteCount, flush, out charsUsed, out bytesUsed, out completed);
+#endif
 		}
 #if NETSTANDARD1_6
 		/// <summary>
@@ -250,81 +202,43 @@ namespace deniszykov.BaseN
 		public override unsafe void Convert(char* chars, int charCount, byte* bytes, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 #endif
 		{
-			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
-			if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
-
-			charsUsed = bytesUsed = 0;
-			completed = true;
-
-			if (charCount == 0)
-				return;
-
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var inputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-
-			while (byteCount > 0)
-			{
-				// filling input & decoding
-				var outputBlock = 0UL;// 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-				var originalInputUsed = charsUsed;
-				var i = 0;
-				for (i = 0; i < inputBlockSize && charCount > 0; i++)
-				{
-
-					var baseNCode = chars[charsUsed++];
-					charCount--;
-
-					if (baseNCode > 127 || alphabetInverse[baseNCode] == BaseNAlphabet.NOT_IN_ALPHABET)
-					{
-						i--;
-						continue;
-					}
-
-					outputBlock <<= encodingBits;
-					outputBlock |= alphabetInverse[baseNCode];
-				}
-
-				var outputSize = i * encodingBits / 8;
-				outputBlock >>= i * encodingBits % 8; // align
-
-				// flushing output
-				if (outputSize > byteCount ||
-					outputSize == 0 ||
-					(i != inputBlockSize && !flush))
-				{
-					charsUsed = originalInputUsed; // unwind inputUsed
-					break;
-				}
-
-				for (i = 0; i < outputSize; i++)
-				{
-					bytes[bytesUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-				bytesUsed += outputSize;
-				byteCount -= outputSize;
-			}
-			completed = charCount == 0;
+#if NETCOREAPP
+			this.DecodeInternal(new ReadOnlySpan<char>(chars, charCount), new Span<byte>(bytes, byteCount), flush, out charsUsed, out bytesUsed, out completed);
+#else
+			this.DecodeInternal((CharSafePtr)chars, 0, charCount, (ByteSafePtr)bytes, 0, byteCount, flush, out charsUsed, out bytesUsed, out completed);
+#endif
 		}
 		/// <inheritdoc />
 		public override void Convert(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+#if NETCOREAPP
+			this.DecodeInternal<char, byte>(chars.AsSpan(charIndex, charCount), bytes.AsSpan(byteIndex, byteCount), flush, out charsUsed, out bytesUsed, out completed);
+#else
 			this.DecodeInternal(chars, charIndex, charCount, bytes, byteIndex, byteCount, flush, out charsUsed, out bytesUsed, out completed);
+#endif
 		}
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
 		public void Convert(byte[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+#if NETCOREAPP
+			this.DecodeInternal<byte, byte>(chars.AsSpan(charIndex, charCount), bytes.AsSpan(byteIndex, byteCount), flush, out charsUsed, out bytesUsed, out completed);
+#else
 			this.DecodeInternal(chars, charIndex, charCount, bytes, byteIndex, byteCount, flush, out charsUsed, out bytesUsed, out completed);
+#endif
+
 		}
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
 		public void Convert(string chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+#if NETCOREAPP
+			this.DecodeInternal(chars.AsSpan(charIndex, charCount), bytes.AsSpan(byteIndex, byteCount), flush, out charsUsed, out bytesUsed, out completed);
+#else
 			this.DecodeInternal(chars, charIndex, charCount, bytes, byteIndex, byteCount, flush, out charsUsed, out bytesUsed, out completed);
+#endif
 		}
 #if NETCOREAPP
 		/// <inheritdoc />
@@ -338,126 +252,12 @@ namespace deniszykov.BaseN
 		/// </summary>
 		public void Convert(ReadOnlySpan<byte> chars, Span<byte> bytes, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
-			charsUsed = bytesUsed = 0;
-			completed = true;
-
-			if (chars.Length == 0 || bytes.Length == 0)
-			{
-				return;
-			}
-
-			var inputLeft = chars.Length;
-			var outputCapacity = bytes.Length;
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var inputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-
-			while (outputCapacity > 0)
-			{
-				// filling input & decoding
-				var outputBlock = 0UL;// 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-				var originalInputUsed = charsUsed;
-				var i = 0;
-				for (i = 0; i < inputBlockSize && inputLeft > 0; i++)
-				{
-
-					var baseNCode = chars[charsUsed++];
-					inputLeft--;
-
-					if (baseNCode > 127 || alphabetInverse[baseNCode] == BaseNAlphabet.NOT_IN_ALPHABET)
-					{
-						i--;
-						continue;
-					}
-
-					outputBlock <<= encodingBits;
-					outputBlock |= alphabetInverse[baseNCode];
-				}
-
-				var outputSize = i * encodingBits / 8;
-				outputBlock >>= i * encodingBits % 8; // align
-
-				// flushing output
-				if (outputSize > outputCapacity ||
-					outputSize == 0 ||
-					(i != inputBlockSize && !flush))
-				{
-					charsUsed = originalInputUsed; // unwind inputUsed
-					break;
-				}
-
-				for (i = 0; i < outputSize; i++)
-				{
-					bytes[bytesUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-				bytesUsed += outputSize;
-				outputCapacity -= outputSize;
-			}
-
-			completed = inputLeft == 0;
+			this.DecodeInternal(chars, bytes, flush, out charsUsed, out bytesUsed, out completed);
 		}
 		/// <inheritdoc />
 		public override void Convert(ReadOnlySpan<char> chars, Span<byte> bytes, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
-			charsUsed = bytesUsed = 0;
-			completed = true;
-
-			if (chars.Length == 0 || bytes.Length == 0)
-			{
-				return;
-			}
-
-			var inputLeft = chars.Length;
-			var outputCapacity = bytes.Length;
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var inputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
-
-			while (outputCapacity > 0)
-			{
-				// filling input & decoding
-				var outputBlock = 0UL;// 1 byte for Base16, 5 bytes for Base32 and 3 bytes for Base64
-				var originalInputUsed = charsUsed;
-				var i = 0;
-				for (i = 0; i < inputBlockSize && inputLeft > 0; i++)
-				{
-
-					var baseNCode = chars[charsUsed++];
-					inputLeft--;
-
-					if (baseNCode > 127 || alphabetInverse[baseNCode] == BaseNAlphabet.NOT_IN_ALPHABET)
-					{
-						i--;
-						continue;
-					}
-
-					outputBlock <<= encodingBits;
-					outputBlock |= alphabetInverse[baseNCode];
-				}
-
-				var outputSize = i * encodingBits / 8;
-				outputBlock >>= i * encodingBits % 8; // align
-
-				// flushing output
-				if (outputSize > outputCapacity ||
-					outputSize == 0 ||
-					(i != inputBlockSize && !flush))
-				{
-					charsUsed = originalInputUsed; // unwind inputUsed
-					break;
-				}
-
-				for (i = 0; i < outputSize; i++)
-				{
-					bytes[bytesUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
-				}
-				bytesUsed += outputSize;
-				outputCapacity -= outputSize;
-			}
-
-			completed = inputLeft == 0;
+			this.DecodeInternal(chars, bytes, flush, out charsUsed, out bytesUsed, out completed);
 		}
 		/// <inheritdoc />
 		public override int GetByteCount(ReadOnlySpan<char> chars, bool flush)
@@ -479,39 +279,94 @@ namespace deniszykov.BaseN
 			return bytesCount;
 		}
 #endif
-		private void DecodeInternal<BufferT>(BufferT input, int inputIndex, int inputCount, byte[] output, int outputIndex, int outputCount, bool flush, out int inputUsed, out int outputUsed, out bool completed)
+
+#if NETCOREAPP
+		private void DecodeInternal<InputT, OutputT>(ReadOnlySpan<InputT> input, Span<OutputT> output, bool flush, out int inputUsed, out int outputUsed, out bool completed) where InputT : unmanaged where OutputT : unmanaged
 		{
 			inputUsed = outputUsed = 0;
 			completed = true;
 
-			if (inputCount == 0)
+			if (input.IsEmpty || output.IsEmpty)
 			{
 				return;
 			}
+#else
+		private unsafe void DecodeInternal<InputT, OutputT>(InputT input, int inputOffset, int inputCount, OutputT output, int outputOffset, int outputCount, bool flush, out int inputUsed, out int outputUsed, out bool completed)
+		{
+			inputUsed = outputUsed = 0;
+			completed = true;
+
+			if (inputCount == 0 || outputCount == 0)
+			{
+				return;
+			}
+#endif
 
 			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
 			var inputBlockSize = this.baseNAlphabet.DecodingBlockSize;
 			var encodingBits = this.baseNAlphabet.EncodingBits;
+#if NETCOREAPP
+			var inputOffset = 0;
+			var inputCount = input.Length;
+			var outputOffset = 0;
+			var outputCount = output.Length;
+#else
 			var inputBytes = default(byte[]);
 			var inputChars = default(char[]);
 			var inputString = default(string);
+			var inputBytePtr = default(byte*);
+			var inputCharPtr = default(char*);
 
-			if (input is byte[])
+			var outputBytes = default(byte[]);
+			var outputChars = default(char[]);
+			var outputBytePtr = default(byte*);
+			var outputCharPtr = default(char*);
+			if (typeof(InputT) == typeof(byte[]))
 			{
 				inputBytes = input as byte[];
 			}
-			else if (input is char[])
+			else if (typeof(InputT) == typeof(char[]))
 			{
 				inputChars = input as char[];
 			}
-			else if (input is string)
+			else if (typeof(InputT) == typeof(string))
 			{
 				inputString = input as string;
 			}
+			else if (typeof(InputT) == typeof(ByteSafePtr))
+			{
+				inputBytePtr = (byte*)(ByteSafePtr)(object)input;
+			}
+			else if (typeof(InputT) == typeof(ByteSafePtr))
+			{
+				inputCharPtr = (char*)(CharSafePtr)(object)input;
+			}
 			else
 			{
-				throw new InvalidOperationException("Unknown input buffer type: " + typeof(BufferT));
+				throw new InvalidOperationException("Unknown input buffer type: " + typeof(InputT));
 			}
+
+			if (typeof(OutputT) == typeof(byte[]))
+			{
+				outputBytes = output as byte[];
+			}
+			else if (typeof(OutputT) == typeof(char[]))
+			{
+				outputChars = output as char[];
+			}
+			else if (typeof(OutputT) == typeof(ByteSafePtr))
+			{
+				outputBytePtr = (byte*)(ByteSafePtr)(object)output;
+			}
+			else if (typeof(OutputT) == typeof(ByteSafePtr))
+			{
+				outputCharPtr = (char*)(CharSafePtr)(object)output;
+			}
+			else
+			{
+				throw new InvalidOperationException("Unknown output buffer type: " + typeof(OutputT));
+			}
+#endif
 
 			while (outputCount > 0)
 			{
@@ -522,19 +377,38 @@ namespace deniszykov.BaseN
 				for (i = 0; i < inputBlockSize && inputCount > 0; i++)
 				{
 
-					uint baseNCode;
-					if (input is byte[])
+					uint baseNCode = 0;
+#if NETCOREAPP
+					if (typeof(InputT) == typeof(byte))
 					{
-						baseNCode = inputBytes[inputIndex + (inputUsed++)];
+						baseNCode = (byte)(object)input[inputOffset + inputUsed++];
 					}
-					else if (input is char[])
+					if (typeof(InputT) == typeof(char))
 					{
-						baseNCode = inputChars[inputIndex + (inputUsed++)];
+						baseNCode = (char)(object)input[inputOffset + inputUsed++];
 					}
-					else
+#else
+					if (typeof(InputT) == typeof(byte[]))
 					{
-						baseNCode = inputString[inputIndex + (inputUsed++)];
+						baseNCode = inputBytes[inputOffset + inputUsed++];
 					}
+					if (typeof(InputT) == typeof(char[]))
+					{
+						baseNCode = inputChars[inputOffset + inputUsed++];
+					}
+					if (typeof(InputT) == typeof(string))
+					{
+						baseNCode = inputString[inputOffset + inputUsed++];
+					}
+					if (typeof(InputT) == typeof(ByteSafePtr))
+					{
+						baseNCode = inputBytePtr[inputOffset + inputUsed++];
+					}
+					if (typeof(InputT) == typeof(CharSafePtr))
+					{
+						baseNCode = inputCharPtr[inputOffset + inputUsed++];
+					}
+#endif
 					inputCount--;
 
 					if (baseNCode > 127 || alphabetInverse[baseNCode] == BaseNAlphabet.NOT_IN_ALPHABET)
@@ -553,17 +427,62 @@ namespace deniszykov.BaseN
 				// flushing output
 				if (outputSize > outputCount ||
 					outputSize == 0 ||
-					(i != inputBlockSize && !flush))
+					i != inputBlockSize && !flush)
 				{
 					inputUsed = originalInputUsed; // unwind inputUsed
 					break;
 				}
-
-				for (i = 0; i < outputSize; i++)
+#if NETCOREAPP
+				if (typeof(OutputT) == typeof(byte))
 				{
-					output[outputIndex + outputUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
-					outputBlock >>= 8;
+					for (i = 0; i < outputSize; i++)
+					{
+						output[outputOffset + outputUsed + (outputSize - 1 - i)] = (OutputT)(object)(byte)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
 				}
+				if (typeof(OutputT) == typeof(char))
+				{
+					for (i = 0; i < outputSize; i++)
+					{
+						output[outputOffset + outputUsed + (outputSize - 1 - i)] = (OutputT)(object)(char)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+#else
+				if (typeof(OutputT) == typeof(byte[]))
+				{
+					for (i = 0; i < outputSize; i++)
+					{
+						outputBytes[outputOffset + outputUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+				if (typeof(OutputT) == typeof(char[]))
+				{
+					for (i = 0; i < outputSize; i++)
+					{
+						outputChars[outputOffset + outputUsed + (outputSize - 1 - i)] = (char)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+				if (typeof(OutputT) == typeof(ByteSafePtr))
+				{
+					for (i = 0; i < outputSize; i++)
+					{
+						outputBytePtr[outputOffset + outputUsed + (outputSize - 1 - i)] = (byte)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+				if (typeof(OutputT) == typeof(CharSafePtr))
+				{
+					for (i = 0; i < outputSize; i++)
+					{
+						outputCharPtr[outputOffset + outputUsed + (outputSize - 1 - i)] = (char)(outputBlock & 0xFF);
+						outputBlock >>= 8;
+					}
+				}
+#endif
 				outputUsed += outputSize;
 				outputCount -= outputSize;
 			}

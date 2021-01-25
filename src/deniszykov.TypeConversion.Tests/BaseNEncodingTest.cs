@@ -146,8 +146,8 @@ namespace deniszykov.TypeConversion.Tests
 			var decoder = (BaseNDecoder)encoding.GetDecoder();
 			decoder.Convert(input.Array, input.Offset, input.Count, output.Array, output.Offset, output.Count, true, out var inputUsed, out var outputUsed, out var completed);
 
-			Assert.Equal(inputUsed, input.Count);
-			Assert.Equal(outputUsed, output.Count);
+			Assert.Equal(input.Count, inputUsed);
+			Assert.Equal(output.Count, outputUsed);
 			Assert.Equal(encodedData, new string(outputBuffer, 0, output.Count));
 			Assert.True(completed);
 		}
@@ -169,8 +169,8 @@ namespace deniszykov.TypeConversion.Tests
 			var decoder = (BaseNDecoder)encoding.GetDecoder();
 			decoder.Convert(input.Array, input.Offset, input.Count, output.Array, output.Offset, output.Count, true, out var inputUsed, out var outputUsed, out var completed);
 
-			Assert.Equal(inputUsed, input.Count);
-			Assert.Equal(outputUsed, output.Count);
+			Assert.Equal(input.Count, inputUsed);
+			Assert.Equal(output.Count, outputUsed);
 			Assert.Equal(encodedData, new string(outputBuffer.Select(b => (char)b).ToArray(), 0, output.Count));
 			Assert.True(completed);
 		}
@@ -195,8 +195,8 @@ namespace deniszykov.TypeConversion.Tests
 				Assert.True(completed);
 			}
 
-			Assert.Equal(inputUsed, plainTextData.Length);
-			Assert.Equal(outputUsed, outputBuffer.Length);
+			Assert.Equal(plainTextData.Length, inputUsed);
+			Assert.Equal(outputBuffer.Length, outputUsed);
 			Assert.Equal(encodedData, new string(outputBuffer.Select(b => (char)b).ToArray(), 0, outputBuffer.Length));
 		}
 
@@ -218,8 +218,8 @@ namespace deniszykov.TypeConversion.Tests
 
 			decoder.Convert(input,  output, true, out var inputUsed, out var outputUsed, out var completed);
 
-			Assert.Equal(inputUsed, plainTextData.Length);
-			Assert.Equal(outputUsed, outputBuffer.Length);
+			Assert.Equal(plainTextData.Length, inputUsed);
+			Assert.Equal(outputBuffer.Length, outputUsed);
 			Assert.Equal(encodedData, new string(outputBuffer.Select(b => (char)b).ToArray(), 0, outputBuffer.Length));
 			Assert.True(completed);
 		}
@@ -242,8 +242,8 @@ namespace deniszykov.TypeConversion.Tests
 			var encoder = (BaseNEncoder)encoding.GetEncoder();
 			encoder.Convert(input.Array, input.Offset, input.Count, output.Array, output.Offset, output.Count, true, out var inputUsed, out var outputUsed, out var completed);
 
-			Assert.Equal(inputUsed, input.Count);
-			Assert.Equal(outputUsed, output.Count);
+			Assert.Equal(input.Count, inputUsed);
+			Assert.Equal(output.Count, outputUsed);
 			Assert.Equal(plainTextData, outputBuffer);
 			Assert.True(completed);
 		}
@@ -304,8 +304,8 @@ namespace deniszykov.TypeConversion.Tests
 				Assert.True(completed);
 			}
 
-			Assert.Equal(inputUsed, input.Count);
-			Assert.Equal(outputUsed, output.Count);
+			Assert.Equal(input.Count, inputUsed);
+			Assert.Equal(output.Count, outputUsed);
 			Assert.Equal(plainTextData, outputBuffer);
 		}
 
@@ -332,8 +332,8 @@ namespace deniszykov.TypeConversion.Tests
 
 			encoder.Convert(input, output, true, out var inputUsed, out var outputUsed, out var completed);
 
-			Assert.Equal(inputUsed, inputBuffer.Length);
-			Assert.Equal(outputUsed, outputBuffer.Length);
+			Assert.Equal(inputBuffer.Length, inputUsed);
+			Assert.Equal(outputBuffer.Length, outputUsed);
 			Assert.Equal(plainTextData, outputBuffer);
 			Assert.True(completed);
 		}
