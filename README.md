@@ -26,6 +26,7 @@ Usage
 ToType Convert<FromType, ToType>(fromValue, [format], [formatProvider]);
 bool TryConvert<FromType, ToType>(fromValue, out result, [format], [formatProvider])
 string ConvertToString<FromType>(fromValue, [format], [formatProvider]);
+
 // non-generic
 object Convert(fromValue, toType, fromValue, [format], [formatProvider]);
 bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvider]);
@@ -35,7 +36,9 @@ bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvi
 ```csharp
   var conversionProvider = new TypeConversionProvider();
   var timeSpanString = "00:00:01";
+  
   var timeSpan = conversionProvider.Convert<string, TimeSpan>(timeSpanString);
+  // with default settings TimeSpan.Parse(value, format, formatProvider) is called inside Convert<string, TimeSpan>()
 ```
 
 ## Configuration
