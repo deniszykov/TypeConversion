@@ -15,7 +15,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		sign.snk = sign.snk
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "deniszykov.BaseN.Benchmark", "deniszykov.BaseN.Benchmark\deniszykov.BaseN.Benchmark.csproj", "{F2089C2C-7630-47A8-B9D4-02985B3624B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "deniszykov.BaseN.Benchmark", "deniszykov.BaseN.Benchmark\deniszykov.BaseN.Benchmark.csproj", "{F2089C2C-7630-47A8-B9D4-02985B3624B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "deniszykov.BaseN.Tests", "deniszykov.BaseN.Test\deniszykov.BaseN.Tests.csproj", "{3E6D22E8-D888-4BA3-BDFD-AB78FCC1CE43}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{A1673162-1B35-4873-873C-D27F2C329155}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,9 +43,18 @@ Global
 		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F2089C2C-7630-47A8-B9D4-02985B3624B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E6D22E8-D888-4BA3-BDFD-AB78FCC1CE43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E6D22E8-D888-4BA3-BDFD-AB78FCC1CE43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E6D22E8-D888-4BA3-BDFD-AB78FCC1CE43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E6D22E8-D888-4BA3-BDFD-AB78FCC1CE43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{50256EB8-4039-4C45-963F-3849A7B59122} = {A1673162-1B35-4873-873C-D27F2C329155}
+		{F2089C2C-7630-47A8-B9D4-02985B3624B2} = {A1673162-1B35-4873-873C-D27F2C329155}
+		{3E6D22E8-D888-4BA3-BDFD-AB78FCC1CE43} = {A1673162-1B35-4873-873C-D27F2C329155}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DEFFA27C-3103-443E-8642-AD820B39C104}

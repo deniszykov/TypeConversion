@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace deniszykov.BaseN
 {
@@ -7,32 +8,37 @@ namespace deniszykov.BaseN
 	using ByteSafePtr = IntPtr;
 
 	/// <summary>
-	/// Base-(Alphabet Length) binary data decoder (!) based on specified <see cref="baseNAlphabet"/>.
+	/// Base-(Alphabet Length) binary data decoder (!) based on specified <see cref="Alphabet"/>.
 	/// Class named "Encoder" because it is based on <see cref="Encoder"/>, but it is effectively decoder.
 	/// </summary>
 	public sealed class BaseNEncoder : Encoder
 	{
-		private readonly BaseNAlphabet baseNAlphabet;
+		[NotNull]
+		public BaseNAlphabet Alphabet { get; }
 
 		/// <summary>
 		/// Constructor fo <see cref="BaseNEncoder"/>.
 		/// </summary>
 		/// <param name="baseNAlphabet"></param>
-		public BaseNEncoder(BaseNAlphabet baseNAlphabet)
+		public BaseNEncoder([NotNull] BaseNAlphabet baseNAlphabet)
 		{
 			if (baseNAlphabet == null) throw new ArgumentNullException(nameof(baseNAlphabet));
 
-			this.baseNAlphabet = baseNAlphabet;
+			this.Alphabet = baseNAlphabet;
 		}
 
 		/// <inheritdoc />
 		public override int GetByteCount(char[] chars, int index, int count, bool flush)
 		{
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+
 			if (count == 0)
 				return 0;
 
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var bitsPerInputChar = this.baseNAlphabet.EncodingBits;
+			var alphabetInverse = this.Alphabet.AlphabetInverse;
+			var bitsPerInputChar = this.Alphabet.EncodingBits;
 			var inputEnd = index + count;
 			for (; index < inputEnd; index++)
 			{
@@ -45,7 +51,7 @@ namespace deniszykov.BaseN
 
 			if (!flush)
 			{
-				count -= count % this.baseNAlphabet.DecodingBlockSize;
+				count -= count % this.Alphabet.DecodingBlockSize;
 			}
 
 			var bytesCount = (int)checked((ulong)count * (ulong)bitsPerInputChar / 8);
@@ -61,11 +67,14 @@ namespace deniszykov.BaseN
 		public override unsafe int GetByteCount(char* chars, int count, bool flush)
 #endif
 		{
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+
 			if (count == 0)
 				return 0;
 
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var bitsPerInputChar = this.baseNAlphabet.EncodingBits;
+			var alphabetInverse = this.Alphabet.AlphabetInverse;
+			var bitsPerInputChar = this.Alphabet.EncodingBits;
 			var inputEnd = count;
 			for (var index = 0; index < inputEnd; index++)
 			{
@@ -79,7 +88,7 @@ namespace deniszykov.BaseN
 
 			if (!flush)
 			{
-				count -= count % this.baseNAlphabet.DecodingBlockSize;
+				count -= count % this.Alphabet.DecodingBlockSize;
 			}
 
 			var bytesCount = (int)checked((ulong)count * (ulong)bitsPerInputChar / 8);
@@ -88,13 +97,17 @@ namespace deniszykov.BaseN
 		/// <summary>
 		/// See other conversion methods for info.
 		/// </summary>
-		public int GetByteCount(string chars, int index, int count, bool flush)
+		public int GetByteCount([NotNull] string chars, int index, int count, bool flush)
 		{
-			if (count == 0 || chars == null)
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+
+			if (count == 0)
 				return 0;
 
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var bitsPerInputChar = this.baseNAlphabet.EncodingBits;
+			var alphabetInverse = this.Alphabet.AlphabetInverse;
+			var bitsPerInputChar = this.Alphabet.EncodingBits;
 			var inputEnd = index + count;
 			for (; index < inputEnd; index++)
 			{
@@ -107,7 +120,7 @@ namespace deniszykov.BaseN
 
 			if (!flush)
 			{
-				count -= count % this.baseNAlphabet.DecodingBlockSize;
+				count -= count % this.Alphabet.DecodingBlockSize;
 			}
 
 			var bytesCount = (int)checked((ulong)count * (ulong)bitsPerInputChar / 8);
@@ -116,13 +129,17 @@ namespace deniszykov.BaseN
 		/// <summary>
 		/// See other conversion methods for info.
 		/// </summary>
-		public int GetByteCount(byte[] chars, int index, int count, bool flush)
+		public int GetByteCount([NotNull] byte[] chars, int index, int count, bool flush)
 		{
-			if (count == 0 || chars == null)
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+
+			if (count == 0)
 				return 0;
 
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var bitsPerInputChar = this.baseNAlphabet.EncodingBits;
+			var alphabetInverse = this.Alphabet.AlphabetInverse;
+			var bitsPerInputChar = this.Alphabet.EncodingBits;
 			var inputEnd = index + count;
 			for (; index < inputEnd; index++)
 			{
@@ -136,7 +153,7 @@ namespace deniszykov.BaseN
 
 			if (!flush)
 			{
-				count -= count % this.baseNAlphabet.DecodingBlockSize;
+				count -= count % this.Alphabet.DecodingBlockSize;
 			}
 
 			var bytesCount = (int)checked((ulong)count * (ulong)bitsPerInputChar / 8);
@@ -148,7 +165,7 @@ namespace deniszykov.BaseN
 		/// <returns></returns>
 		public int GetMaxByteCount(int charCount)
 		{
-			var bitsPerInputChar = this.baseNAlphabet.EncodingBits;
+			var bitsPerInputChar = this.Alphabet.EncodingBits;
 			var bytesCount = (int)checked((ulong)charCount * (ulong)bitsPerInputChar / 8);
 			return bytesCount;
 		}
@@ -178,6 +195,11 @@ namespace deniszykov.BaseN
 		/// </summary>
 		public unsafe void Convert(byte* chars, int charCount, byte* bytes, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+
 #if NETCOREAPP
 			this.DecodeInternal(new ReadOnlySpan<byte>(chars, charCount), new Span<byte>(bytes, byteCount), flush, out charsUsed, out bytesUsed, out completed);
 #else
@@ -202,6 +224,11 @@ namespace deniszykov.BaseN
 		public override unsafe void Convert(char* chars, int charCount, byte* bytes, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 #endif
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+
 #if NETCOREAPP
 			this.DecodeInternal(new ReadOnlySpan<char>(chars, charCount), new Span<byte>(bytes, byteCount), flush, out charsUsed, out bytesUsed, out completed);
 #else
@@ -211,6 +238,14 @@ namespace deniszykov.BaseN
 		/// <inheritdoc />
 		public override void Convert(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteIndex < 0) throw new ArgumentOutOfRangeException(nameof(byteIndex));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (byteIndex + byteCount > bytes.Length) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charIndex < 0) throw new ArgumentOutOfRangeException(nameof(charIndex));
+			if (charIndex > chars.Length) throw new ArgumentOutOfRangeException(nameof(charIndex));
+
 #if NETCOREAPP
 			this.DecodeInternal<char, byte>(chars.AsSpan(charIndex, charCount), bytes.AsSpan(byteIndex, byteCount), flush, out charsUsed, out bytesUsed, out completed);
 #else
@@ -220,8 +255,16 @@ namespace deniszykov.BaseN
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
-		public void Convert(byte[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
+		public void Convert([NotNull] byte[] chars, int charIndex, int charCount, [NotNull] byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteIndex < 0) throw new ArgumentOutOfRangeException(nameof(byteIndex));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (byteIndex + byteCount > bytes.Length) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charIndex < 0) throw new ArgumentOutOfRangeException(nameof(charIndex));
+			if (charIndex > chars.Length) throw new ArgumentOutOfRangeException(nameof(charIndex));
+
 #if NETCOREAPP
 			this.DecodeInternal<byte, byte>(chars.AsSpan(charIndex, charCount), bytes.AsSpan(byteIndex, byteCount), flush, out charsUsed, out bytesUsed, out completed);
 #else
@@ -232,8 +275,16 @@ namespace deniszykov.BaseN
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
-		public void Convert(string chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
+		public void Convert([NotNull] string chars, int charIndex, int charCount, [NotNull] byte[] bytes, int byteIndex, int byteCount, bool flush, out int charsUsed, out int bytesUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteIndex < 0) throw new ArgumentOutOfRangeException(nameof(byteIndex));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (byteIndex + byteCount > bytes.Length) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charIndex < 0) throw new ArgumentOutOfRangeException(nameof(charIndex));
+			if (charIndex > chars.Length) throw new ArgumentOutOfRangeException(nameof(charIndex));
+
 #if NETCOREAPP
 			this.DecodeInternal(chars.AsSpan(charIndex, charCount), bytes.AsSpan(byteIndex, byteCount), flush, out charsUsed, out bytesUsed, out completed);
 #else
@@ -265,8 +316,8 @@ namespace deniszykov.BaseN
 			if (chars.Length == 0 || chars == null)
 				return 0;
 
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var bitsPerInputChar = this.baseNAlphabet.EncodingBits;
+			var alphabetInverse = this.Alphabet.AlphabetInverse;
+			var bitsPerInputChar = this.Alphabet.EncodingBits;
 			var count = chars.Length;
 			foreach (var baseNChar in chars)
 			{
@@ -302,9 +353,9 @@ namespace deniszykov.BaseN
 			}
 #endif
 
-			var alphabetInverse = this.baseNAlphabet.AlphabetInverse;
-			var inputBlockSize = this.baseNAlphabet.DecodingBlockSize;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
+			var alphabetInverse = this.Alphabet.AlphabetInverse;
+			var inputBlockSize = this.Alphabet.DecodingBlockSize;
+			var encodingBits = this.Alphabet.EncodingBits;
 #if NETCOREAPP
 			var inputOffset = 0;
 			var inputCount = input.Length;
@@ -337,7 +388,7 @@ namespace deniszykov.BaseN
 			{
 				inputBytePtr = (byte*)(ByteSafePtr)(object)input;
 			}
-			else if (typeof(InputT) == typeof(ByteSafePtr))
+			else if (typeof(InputT) == typeof(CharSafePtr))
 			{
 				inputCharPtr = (char*)(CharSafePtr)(object)input;
 			}
@@ -358,7 +409,7 @@ namespace deniszykov.BaseN
 			{
 				outputBytePtr = (byte*)(ByteSafePtr)(object)output;
 			}
-			else if (typeof(OutputT) == typeof(ByteSafePtr))
+			else if (typeof(OutputT) == typeof(CharSafePtr))
 			{
 				outputCharPtr = (char*)(CharSafePtr)(object)output;
 			}
@@ -491,6 +542,6 @@ namespace deniszykov.BaseN
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => $"Base{this.baseNAlphabet.Alphabet.Length}Encoder, {new string(this.baseNAlphabet.Alphabet)}";
+		public override string ToString() => $"Base{this.Alphabet.Alphabet.Length}Encoder, {new string(this.Alphabet.Alphabet)}";
 	}
 }

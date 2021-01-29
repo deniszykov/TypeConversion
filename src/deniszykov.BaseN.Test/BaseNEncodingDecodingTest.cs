@@ -9,15 +9,13 @@
 */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using deniszykov.BaseN;
 using Xunit;
 
-namespace deniszykov.TypeConversion.Tests
+namespace deniszykov.BaseN.Tests
 {
-	public class BaseNEncodingTest
+	public class BaseNEncodingDecodingTest
 	{
 		public static IEnumerable<object[]> Base32TestData()
 		{
@@ -216,7 +214,7 @@ namespace deniszykov.TypeConversion.Tests
 			var input = (Span<byte>)plainTextData;
 			var output = (Span<byte>)outputBuffer;
 
-			decoder.Convert(input,  output, true, out var inputUsed, out var outputUsed, out var completed);
+			decoder.Convert(input, output, true, out var inputUsed, out var outputUsed, out var completed);
 
 			Assert.Equal(plainTextData.Length, inputUsed);
 			Assert.Equal(outputBuffer.Length, outputUsed);
@@ -318,7 +316,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(Base16LowerTestData))]
 		[MemberData(nameof(ZBase32TestData))]
 		[MemberData(nameof(DifferentSizeTestData))]
-		public void DecodeSpanToSpanTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
+		public void DecodeSpanToSpanByteTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
 		{
 			var encoder = (BaseNEncoder)encoding.GetEncoder();
 			var inputBuffer = new byte[encodedData.Length];
@@ -337,6 +335,83 @@ namespace deniszykov.TypeConversion.Tests
 			Assert.Equal(plainTextData, outputBuffer);
 			Assert.True(completed);
 		}
+
+		[Theory]
+		[MemberData(nameof(Base32TestData))]
+		[MemberData(nameof(Base64TestData))]
+		[MemberData(nameof(Base64UrlTestData))]
+		[MemberData(nameof(Base16UpperTestData))]
+		[MemberData(nameof(Base16LowerTestData))]
+		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
+		public void DecodeSpanToSpanCharTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
+		{
+			var encoder = (BaseNEncoder)encoding.GetEncoder();
+			var inputBuffer = new char[encodedData.Length];
+			for (var i = 0; i < encodedData.Length; i++)
+			{
+				inputBuffer[i] = encodedData[i];
+			}
+			var input = (Span<char>)inputBuffer;
+			var outputBuffer = new byte[plainTextData.Length];
+			var output = (Span<byte>)outputBuffer;
+
+			encoder.Convert(input, output, true, out var inputUsed, out var outputUsed, out var completed);
+
+			Assert.Equal(inputBuffer.Length, inputUsed);
+			Assert.Equal(outputBuffer.Length, outputUsed);
+			Assert.Equal(plainTextData, outputBuffer);
+			Assert.True(completed);
+		}
+
+		[Theory]
+		[MemberData(nameof(Base32TestData))]
+		[MemberData(nameof(Base64TestData))]
+		[MemberData(nameof(Base64UrlTestData))]
+		[MemberData(nameof(Base16UpperTestData))]
+		[MemberData(nameof(Base16LowerTestData))]
+		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
+		public void GetBytesSpanCharsTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
+		{
+			var encoder = (BaseNEncoder)encoding.GetEncoder();
+			var inputBuffer = new char[encodedData.Length];
+			for (var i = 0; i < encodedData.Length; i++)
+			{
+				inputBuffer[i] = encodedData[i];
+			}
+			var input = (Span<char>)inputBuffer;
+			var outputBuffer = new byte[plainTextData.Length];
+			var output = (Span<byte>)outputBuffer;
+
+			encoder.GetBytes(input, output, true);
+			var byteCount = encoder.GetByteCount(input, true);
+
+			Assert.Equal(plainTextData, outputBuffer);
+			Assert.Equal(outputBuffer.Length, byteCount);
+		}
+
+		[Theory]
+		[MemberData(nameof(Base32TestData))]
+		[MemberData(nameof(Base64TestData))]
+		[MemberData(nameof(Base64UrlTestData))]
+		[MemberData(nameof(Base16UpperTestData))]
+		[MemberData(nameof(Base16LowerTestData))]
+		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
+		public void GetCharsSpanBytesTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
+		{
+			var decoder = (BaseNDecoder)encoding.GetDecoder();
+			var outputBuffer = new char[encodedData.Length];
+			var input = (Span<byte>)plainTextData;
+			var output = (Span<char>)outputBuffer;
+
+			decoder.GetChars(input, output, true);
+			var charCount = decoder.GetCharCount(input, true);
+
+			Assert.Equal(encodedData, new string(output));
+			Assert.Equal(outputBuffer.Length, charCount);
+		}
 #endif
 
 		[Theory]
@@ -350,8 +425,10 @@ namespace deniszykov.TypeConversion.Tests
 		public void GetStringTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
 		{
 			var actual = encoding.GetString(plainTextData);
+			var charCount = encoding.GetCharCount(plainTextData);
 
 			Assert.Equal(encodedData, actual);
+			Assert.Equal(charCount, actual.Length);
 		}
 
 		[Theory]
@@ -367,8 +444,10 @@ namespace deniszykov.TypeConversion.Tests
 			var random = new Random(9375220);
 			var input = PadData(plainTextData, out var offset, out _, random);
 			var actual = encoding.GetString(input, offset, plainTextData.Length);
+			var charCount = encoding.GetCharCount(input, offset, plainTextData.Length);
 
 			Assert.Equal(encodedData, actual);
+			Assert.Equal(charCount, actual.Length);
 		}
 
 		[Theory]
@@ -382,8 +461,10 @@ namespace deniszykov.TypeConversion.Tests
 		public void GetCharsTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
 		{
 			var actual = encoding.GetChars(plainTextData);
+			var charCount = encoding.GetCharCount(plainTextData);
 
 			Assert.Equal(encodedData, actual);
+			Assert.Equal(charCount, actual.Length);
 		}
 
 		[Theory]
@@ -399,8 +480,31 @@ namespace deniszykov.TypeConversion.Tests
 			var random = new Random(9375220);
 			var input = PadData(plainTextData, out var offset, out var extra, random);
 			var actual = encoding.GetChars(input, offset, plainTextData.Length);
+			var charCount = encoding.GetCharCount(input, offset, plainTextData.Length);
 
 			Assert.Equal(encodedData, actual);
+			Assert.Equal(charCount, actual.Length);
+		}
+
+		[Theory]
+		[MemberData(nameof(Base32TestData))]
+		[MemberData(nameof(Base64TestData))]
+		[MemberData(nameof(Base64UrlTestData))]
+		[MemberData(nameof(Base16UpperTestData))]
+		[MemberData(nameof(Base16LowerTestData))]
+		[MemberData(nameof(ZBase32TestData))]
+		[MemberData(nameof(DifferentSizeTestData))]
+		public void GetCharsToBufferTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
+		{
+			var decoder = (BaseNDecoder)encoding.GetDecoder();
+			var random = new Random(9375220);
+			var input = PadData(plainTextData, out var offset, out var extra, random);
+			var output = new char[encodedData.Length + 2];
+			var encodedChars = decoder.GetChars(input, offset, plainTextData.Length, output, 1);
+			var charCount = decoder.GetCharCount(input, offset, plainTextData.Length, true);
+
+			Assert.Equal(encodedData, new string(output, 1, output.Length - 2));
+			Assert.Equal(charCount, encodedChars);
 		}
 
 		[Theory]
@@ -414,8 +518,13 @@ namespace deniszykov.TypeConversion.Tests
 		public void ToBytesFromStringTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
 		{
 			var actual = encoding.GetBytes(encodedData);
-
+#if NETCOREAPP
+			var bytesCount = encoding.GetByteCount(encodedData, 0, encodedData.Length);
+#else
+			var bytesCount = encoding.GetByteCount(encodedData.ToCharArray(), 0, encodedData.Length);
+#endif
 			Assert.Equal(plainTextData, actual);
+			Assert.Equal(bytesCount, actual.Length);
 		}
 
 #if !NET45
@@ -432,8 +541,10 @@ namespace deniszykov.TypeConversion.Tests
 			var random = new Random(9375220);
 			var input = PadData(encodedData, out var offset, out var extra, random);
 			var actual = encoding.GetBytes(input, offset, encodedData.Length);
+			var bytesCount = encoding.GetByteCount(input, offset, encodedData.Length);
 
 			Assert.Equal(plainTextData, actual);
+			Assert.Equal(bytesCount, actual.Length);
 		}
 #endif
 		[Theory]
@@ -447,8 +558,10 @@ namespace deniszykov.TypeConversion.Tests
 		public void ToBytesFromCharArrayTest(BaseNEncoding encoding, byte[] plainTextData, string encodedData)
 		{
 			var actual = encoding.GetBytes(encodedData.ToCharArray());
+			var bytesCount = encoding.GetByteCount(encodedData.ToCharArray(), 0, encodedData.Length);
 
 			Assert.Equal(plainTextData, actual);
+			Assert.Equal(bytesCount, actual.Length);
 		}
 
 		[Theory]
@@ -464,8 +577,11 @@ namespace deniszykov.TypeConversion.Tests
 			var random = new Random(9375220);
 			var input = PadData(encodedData, out var offset, out var extra, random);
 			var actual = encoding.GetBytes(input.ToCharArray(), offset, encodedData.Length);
+			var bytesCount = encoding.GetByteCount(input.ToCharArray(), offset, encodedData.Length);
 
 			Assert.Equal(plainTextData, actual);
+			Assert.Equal(bytesCount, actual.Length);
+
 		}
 
 		private static byte[] PadData(byte[] data, out int offset, out int extra, Random random)

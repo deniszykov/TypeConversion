@@ -21,7 +21,7 @@ namespace deniszykov.BaseN
 	/// Reference: https://en.wikipedia.org/wiki/Hexadecimal
 	/// </summary>
 	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-	public static class Base16Convert
+	public static class HexConvert
 	{
 		/// <summary>
 		/// Encode byte array to Base16 string.
@@ -51,7 +51,6 @@ namespace deniszykov.BaseN
 			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
 			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
 			if (offset + count > bytes.Length) throw new ArgumentOutOfRangeException(nameof(count));
-			if (count >= int.MaxValue / 4 * 3) throw new ArgumentOutOfRangeException(nameof(count));
 
 			if (count == 0) return string.Empty;
 

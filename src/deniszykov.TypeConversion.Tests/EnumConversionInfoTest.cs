@@ -25,7 +25,9 @@ namespace deniszykov.TypeConversion.Tests
 		private enum Int32Enum : int { One = 1, Two = 2 }
 		private enum UInt32Enum : uint { One = 1, Two = 2 }
 		private enum Int64Enum : long { One = 1, Two = 2 }
-		private enum UInt64Enum : uint { One = 1, Two = 2 }
+		private enum UInt64Enum : ulong { One = 1, Two = 2 }
+		[Flags]
+		private enum FlagsEnum : ulong { One = 1, Two = 2 }
 
 		public static IEnumerable<object[]> EnumHelperTestData()
 		{
@@ -82,12 +84,46 @@ namespace deniszykov.TypeConversion.Tests
 			testMethod?.Invoke(conversionProvider);
 		}
 
-		[Fact]
-		public void ParseTest()
+		[Theory]
+		[InlineData(ByteEnum.One)]
+		[InlineData(SByteEnum.One)]
+		[InlineData(Int16Enum.One)]
+		[InlineData(UInt16Enum.One)]
+		[InlineData(Int32Enum.One)]
+		[InlineData(UInt32Enum.One)]
+		[InlineData(Int64Enum.One)]
+		[InlineData(UInt64Enum.One)]
+		public void ParseTest<EnumT>(EnumT expected)
 		{
-			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
-			var expected = ByteEnum.One;
+			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
 			var actual = enumConversionInfo.Parse(expected.ToString());
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Theory]
+		[InlineData(ByteEnum.One)]
+		[InlineData(SByteEnum.One)]
+		[InlineData(Int16Enum.One)]
+		[InlineData(UInt16Enum.One)]
+		[InlineData(Int32Enum.One)]
+		[InlineData(UInt32Enum.One)]
+		[InlineData(Int64Enum.One)]
+		[InlineData(UInt64Enum.One)]
+		public void ParseNumberTest<EnumT>(EnumT expected)
+		{
+			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
+			var actual = enumConversionInfo.Parse("1");
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Fact]
+		public void ParseFlagsTest()
+		{
+			var enumConversionInfo = new EnumConversionInfo<FlagsEnum>(useDynamicMethods: false);
+			var expected = FlagsEnum.One | FlagsEnum.Two;
+			var actual = enumConversionInfo.Parse("One, Two");
 
 			Assert.Equal(expected, actual);
 		}
@@ -104,41 +140,55 @@ namespace deniszykov.TypeConversion.Tests
 		}
 
 		[Theory]
-		[InlineData(true)]
-		[InlineData(false)]
-		public void ToMethodsTest(bool useDynamicMethods)
+		[InlineData(ByteEnum.One, true)]
+		[InlineData(ByteEnum.One, false)]
+		[InlineData(SByteEnum.One, true)]
+		[InlineData(Int16Enum.One, true)]
+		[InlineData(UInt16Enum.One, true)]
+		[InlineData(Int32Enum.One, true)]
+		[InlineData(UInt32Enum.One, true)]
+		[InlineData(Int64Enum.One, true)]
+		[InlineData(UInt64Enum.One, true)]
+		public void ToMethodsTest<EnumT>(EnumT expected, bool useDynamicMethods)
 		{
-			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods);
+			var byteEnumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods);
 			
-			Assert.Equal((float)1, enumConversionInfo.ToSingle(ByteEnum.One));
-			Assert.Equal((double)1, enumConversionInfo.ToDouble(ByteEnum.One));
-			Assert.Equal((sbyte)1, enumConversionInfo.ToSByte(ByteEnum.One));
-			Assert.Equal((byte)1, enumConversionInfo.ToByte(ByteEnum.One));
-			Assert.Equal((short)1, enumConversionInfo.ToInt16(ByteEnum.One));
-			Assert.Equal((ushort)1, enumConversionInfo.ToUInt16(ByteEnum.One));
-			Assert.Equal((int)1, enumConversionInfo.ToInt32(ByteEnum.One));
-			Assert.Equal((uint)1, enumConversionInfo.ToUInt32(ByteEnum.One));
-			Assert.Equal((long)1, enumConversionInfo.ToInt64(ByteEnum.One));
-			Assert.Equal((ulong)1, enumConversionInfo.ToUInt64(ByteEnum.One));
+			Assert.Equal((float)1, byteEnumConversionInfo.ToSingle(expected));
+			Assert.Equal((double)1, byteEnumConversionInfo.ToDouble(expected));
+			Assert.Equal((sbyte)1, byteEnumConversionInfo.ToSByte(expected));
+			Assert.Equal((byte)1, byteEnumConversionInfo.ToByte(expected));
+			Assert.Equal((short)1, byteEnumConversionInfo.ToInt16(expected));
+			Assert.Equal((ushort)1, byteEnumConversionInfo.ToUInt16(expected));
+			Assert.Equal((int)1, byteEnumConversionInfo.ToInt32(expected));
+			Assert.Equal((uint)1, byteEnumConversionInfo.ToUInt32(expected));
+			Assert.Equal((long)1, byteEnumConversionInfo.ToInt64(expected));
+			Assert.Equal((ulong)1, byteEnumConversionInfo.ToUInt64(expected));
 		}
 
 		[Theory]
-		[InlineData(true)]
-		[InlineData(false)]
-		public void FromMethodsTest(bool useDynamicMethods)
+		[InlineData(ByteEnum.One, true)]
+		[InlineData(ByteEnum.One, false)]
+		[InlineData(SByteEnum.One, true)]
+		[InlineData(Int16Enum.One, true)]
+		[InlineData(UInt16Enum.One, true)]
+		[InlineData(Int32Enum.One, true)]
+		[InlineData(UInt32Enum.One, true)]
+		[InlineData(Int64Enum.One, true)]
+		[InlineData(UInt64Enum.One, true)]
+		public void FromMethodsTest<EnumT>(EnumT expected, bool useDynamicMethods)
 		{
-			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods);
+			var byteEnumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods);
 			
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromSingle(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromDouble(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromByte(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromSByte(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromInt16(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromUInt16(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromInt32(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromUInt32(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromInt64(1));
-			Assert.Equal(ByteEnum.One, enumConversionInfo.FromUInt64(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromSingle(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromDouble(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromByte(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromSByte(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromInt16(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromUInt16(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromInt32(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromUInt32(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromInt64(1));
+			Assert.Equal(expected, byteEnumConversionInfo.FromUInt64(1));
 		}
 
 		[Fact]
@@ -151,23 +201,48 @@ namespace deniszykov.TypeConversion.Tests
 			Assert.Equal(expected, actual);
 		}
 
-		[Fact]
-		public void TryParseNumberTest()
+		[Theory]
+		[InlineData(ByteEnum.One)]
+		[InlineData(SByteEnum.One)]
+		[InlineData(Int16Enum.One)]
+		[InlineData(UInt16Enum.One)]
+		[InlineData(Int32Enum.One)]
+		[InlineData(UInt32Enum.One)]
+		[InlineData(Int64Enum.One)]
+		[InlineData(UInt64Enum.One)]
+		public void TryParseNumberTest<EnumT>(EnumT expected)
 		{
-			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
-			var expected = ByteEnum.One;
-			var parsed = enumConversionInfo.TryParse("1", out var actual);
+			var byteEnumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
+			var parsed = byteEnumConversionInfo.TryParse("1", out var actual);
+
+			Assert.True(parsed);
+			Assert.Equal(expected, actual);
+		}
+
+		[Theory]
+		[InlineData(ByteEnum.One)]
+		[InlineData(SByteEnum.One)]
+		[InlineData(Int16Enum.One)]
+		[InlineData(UInt16Enum.One)]
+		[InlineData(Int32Enum.One)]
+		[InlineData(UInt32Enum.One)]
+		[InlineData(Int64Enum.One)]
+		[InlineData(UInt64Enum.One)]
+		public void TryParseTest<EnumT>(EnumT expected)
+		{
+			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
+			var parsed = enumConversionInfo.TryParse(expected.ToString(), out var actual);
 
 			Assert.True(parsed);
 			Assert.Equal(expected, actual);
 		}
 
 		[Fact]
-		public void TryParseTest()
+		public void TryParseFlagsTest()
 		{
-			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
-			var expected = ByteEnum.One;
-			var parsed = enumConversionInfo.TryParse(expected.ToString(), out var actual);
+			var enumConversionInfo = new EnumConversionInfo<FlagsEnum>(useDynamicMethods: false);
+			var expected = FlagsEnum.One | FlagsEnum.Two;
+			var parsed = enumConversionInfo.TryParse(expected.ToString().ToLowerInvariant(), out var actual, ignoreCase: true);
 
 			Assert.True(parsed);
 			Assert.Equal(expected, actual);

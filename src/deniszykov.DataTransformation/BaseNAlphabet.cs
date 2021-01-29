@@ -23,31 +23,39 @@ namespace deniszykov.BaseN
 		/// <summary>
 		/// Default Base16 (Hex) alphabet. Upper case.
 		/// </summary>
+		[NotNull]
 		public static readonly BaseNAlphabet Base16UpperCaseAlphabet = new BaseNAlphabet("0123456789ABCDEF".ToCharArray());
 		/// <summary>
 		/// Default Base16 (Hex) alphabet. Lower case.
 		/// </summary>
+		[NotNull]
 		public static readonly BaseNAlphabet Base16LowerCaseAlphabet = new BaseNAlphabet("0123456789abcdef".ToCharArray());
 		/// <summary>
 		/// Default Base32 alphabet.
 		/// </summary>
+		[NotNull]
 		public static readonly BaseNAlphabet Base32Alphabet = new BaseNAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".ToCharArray(), padding: '=');
 		/// <summary>
 		/// Alternative ZBase32 alphabet.
 		/// </summary>
+		[NotNull]
 		public static readonly BaseNAlphabet ZBase32Alphabet = new BaseNAlphabet("ybndrfg8ejkmcpqxot1uwisza345h769".ToCharArray());
 		/// <summary>
 		/// Default Base64 alphabet.
 		/// </summary>
+		[NotNull]
 		public static readonly BaseNAlphabet Base64Alphabet = new BaseNAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".ToCharArray(), padding: '=');
 		/// <summary>
 		/// Url-safe Base64 alphabet. Where (+) is replaced with (-) and (/) is replaced with (_).
 		/// </summary>
+		[NotNull]
 		public static readonly BaseNAlphabet Base64UrlAlphabet = new BaseNAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".ToCharArray(), padding: '=');
 		// ReSharper restore StringLiteralTypo
 
 		internal const byte NOT_IN_ALPHABET = 255;
+		[NotNull]
 		internal readonly char[] Alphabet;
+		[NotNull]
 		internal readonly byte[] AlphabetInverse;
 		internal readonly char Padding;
 
@@ -61,7 +69,7 @@ namespace deniszykov.BaseN
 		/// </summary>
 		/// <param name="alphabet">Character set which used as base alphabet for encoding/decoding. Characters should be between '\u0000' and '\u007f' and not <paramref name="padding"/>.</param>
 		/// <param name="padding">Padding character which used to pad data. '\u00ff' character indicates that no padding is used. Padding should be between '\u0000' and '\u007f'.</param>
-		public BaseNAlphabet(char[] alphabet, char padding = '\u00ff')
+		public BaseNAlphabet([NotNull] char[] alphabet, char padding = '\u00ff')
 		{
 			if (alphabet == null) throw new ArgumentNullException(nameof(alphabet));
 

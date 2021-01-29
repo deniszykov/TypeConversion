@@ -43,13 +43,12 @@ namespace deniszykov.BaseN
 		/// <param name="count">Number of bytes to encode in <paramref name="bytes"/>.</param>
 		/// <returns>Base64-encoded string.</returns>
 		[NotNull]
-		public static string ToString([NotNull]this byte[] bytes, int offset, int count)
+		public static string ToString([NotNull] byte[] bytes, int offset, int count)
 		{
 			if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
 			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
 			if (offset + count > bytes.Length) throw new ArgumentOutOfRangeException(nameof(count));
-			if (count >= int.MaxValue / 4 * 3) throw new ArgumentOutOfRangeException(nameof(count));
 
 			if (count == 0) return string.Empty;
 

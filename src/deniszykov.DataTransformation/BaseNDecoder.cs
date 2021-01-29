@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace deniszykov.BaseN
 {
@@ -8,22 +9,23 @@ namespace deniszykov.BaseN
 	using ByteSafePtr = IntPtr;
 
 	/// <summary>
-	/// Base-(Alphabet Length) binary data encoder (!) based on specified <see cref="baseNAlphabet"/>.
+	/// Base-(Alphabet Length) binary data encoder (!) based on specified <see cref="Alphabet"/>.
 	/// Class named "Decoder" because it is based on <see cref="Decoder"/>, but it is effectively encoder.
 	/// </summary>
 	public sealed class BaseNDecoder : Decoder
 	{
-		private readonly BaseNAlphabet baseNAlphabet;
+		[NotNull]
+		public BaseNAlphabet Alphabet { get; }
 
 		/// <summary>
 		/// Constructor of <see cref="BaseNDecoder"/>.
 		/// </summary>
 		/// <param name="baseNAlphabet"></param>
-		public BaseNDecoder(BaseNAlphabet baseNAlphabet)
+		public BaseNDecoder([NotNull] BaseNAlphabet baseNAlphabet)
 		{
 			if (baseNAlphabet == null) throw new ArgumentNullException(nameof(baseNAlphabet));
 
-			this.baseNAlphabet = baseNAlphabet;
+			this.Alphabet = baseNAlphabet;
 		}
 
 #if NETSTANDARD1_6
@@ -54,7 +56,7 @@ namespace deniszykov.BaseN
 		/// <returns></returns>
 		public int GetMaxCharCount(int byteCount)
 		{
-			return ((byteCount + this.baseNAlphabet.EncodingBlockSize - 1) / this.baseNAlphabet.EncodingBlockSize) * this.baseNAlphabet.DecodingBlockSize;
+			return ((byteCount + this.Alphabet.EncodingBlockSize - 1) / this.Alphabet.EncodingBlockSize) * this.Alphabet.DecodingBlockSize;
 		}
 
 		/// <inheritdoc />
@@ -86,8 +88,16 @@ namespace deniszykov.BaseN
 		/// <summary>
 		/// See description on similar conversion methods. This is just overload with different buffer types.
 		/// </summary>
-		public void Convert(byte[] bytes, int byteIndex, int byteCount, byte[] chars, int charIndex, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
+		public void Convert([NotNull] byte[] bytes, int byteIndex, int byteCount, [NotNull] byte[] chars, int charIndex, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteIndex < 0) throw new ArgumentOutOfRangeException(nameof(byteIndex));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (byteIndex + byteCount > bytes.Length) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charIndex < 0) throw new ArgumentOutOfRangeException(nameof(charIndex));
+			if (charIndex > chars.Length) throw new ArgumentOutOfRangeException(nameof(charIndex));
+
 #if NETCOREAPP
 			this.EncodeInternal<byte, byte>(bytes.AsSpan(byteIndex, byteCount), chars.AsSpan(charIndex, charCount), flush, out bytesUsed, out charsUsed, out completed);
 #else
@@ -99,6 +109,11 @@ namespace deniszykov.BaseN
 		/// </summary>
 		public unsafe void Convert(byte* bytes, int byteCount, byte* chars, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+
 #if NETCOREAPP
 			this.EncodeInternal(new ReadOnlySpan<byte>(bytes, byteCount), new Span<byte>(chars, charCount), flush, out bytesUsed, out charsUsed, out completed);
 #else
@@ -115,6 +130,11 @@ namespace deniszykov.BaseN
 		public override unsafe void Convert(byte* bytes, int byteCount, char* chars, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 #endif
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charCount < 0) throw new ArgumentOutOfRangeException(nameof(charCount));
+
 #if NETCOREAPP
 			this.EncodeInternal(new ReadOnlySpan<byte>(bytes, byteCount), new Span<char>(chars, charCount), flush, out bytesUsed, out charsUsed, out completed);
 #else
@@ -124,6 +144,14 @@ namespace deniszykov.BaseN
 		/// <inheritdoc />
 		public override void Convert(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex, int charCount, bool flush, out int bytesUsed, out int charsUsed, out bool completed)
 		{
+			if (bytes == null) throw new NullReferenceException(nameof(bytes));
+			if (byteIndex < 0) throw new ArgumentOutOfRangeException(nameof(byteIndex));
+			if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (byteIndex + byteCount > bytes.Length) throw new ArgumentOutOfRangeException(nameof(byteCount));
+			if (chars == null) throw new NullReferenceException(nameof(chars));
+			if (charIndex < 0) throw new ArgumentOutOfRangeException(nameof(charIndex));
+			if (charIndex > chars.Length) throw new ArgumentOutOfRangeException(nameof(charIndex));
+
 #if NETCOREAPP
 			this.EncodeInternal<byte, char>(bytes.AsSpan(byteIndex, byteCount), chars.AsSpan(charIndex, charCount), flush, out bytesUsed, out charsUsed, out completed);
 #else
@@ -177,13 +205,13 @@ namespace deniszykov.BaseN
 			}
 #endif
 
-		// #1: preparing
+			// #1: preparing
 			var i = 0;
-			var alphabetChars = this.baseNAlphabet.Alphabet;
-			var inputBlockSize = this.baseNAlphabet.EncodingBlockSize;
-			var outputBlockSize = this.baseNAlphabet.DecodingBlockSize;
+			var alphabetChars = this.Alphabet.Alphabet;
+			var inputBlockSize = this.Alphabet.EncodingBlockSize;
+			var outputBlockSize = this.Alphabet.DecodingBlockSize;
 			var encodingMask = (ulong)alphabetChars.Length - 1;
-			var encodingBits = this.baseNAlphabet.EncodingBits;
+			var encodingBits = this.Alphabet.EncodingBits;
 #if NETCOREAPP
 			var originalInputOffset = 0;
 			var inputOffset = 0;
@@ -442,7 +470,7 @@ namespace deniszykov.BaseN
 			for (i = 0; i < outputBlockSize; i++)
 			{
 				outputBlock <<= 8;
-				outputBlock |= (byte)this.baseNAlphabet.Padding;
+				outputBlock |= (byte)this.Alphabet.Padding;
 			}
 
 			// encode final block
@@ -453,7 +481,7 @@ namespace deniszykov.BaseN
 				inputBlock >>= encodingBits;
 			}
 
-			if (this.baseNAlphabet.HasPadding && inputCount > 0)
+			if (this.Alphabet.HasPadding && inputCount > 0)
 			{
 				finalOutputBlockSize = outputBlockSize;
 			}
@@ -539,11 +567,11 @@ namespace deniszykov.BaseN
 			if (count == 0)
 				return 0;
 
-			var wholeBlocksSize = checked(count / this.baseNAlphabet.EncodingBlockSize * this.baseNAlphabet.DecodingBlockSize);
-			var finalBlockSize = (int)Math.Ceiling(count % this.baseNAlphabet.EncodingBlockSize * 8.0 / this.baseNAlphabet.EncodingBits);
-			if (this.baseNAlphabet.HasPadding && finalBlockSize != 0)
+			var wholeBlocksSize = checked(count / this.Alphabet.EncodingBlockSize * this.Alphabet.DecodingBlockSize);
+			var finalBlockSize = (int)Math.Ceiling(count % this.Alphabet.EncodingBlockSize * 8.0 / this.Alphabet.EncodingBits);
+			if (this.Alphabet.HasPadding && finalBlockSize != 0)
 			{
-				finalBlockSize = this.baseNAlphabet.DecodingBlockSize;
+				finalBlockSize = this.Alphabet.DecodingBlockSize;
 			}
 			if (!flush)
 			{
@@ -553,6 +581,6 @@ namespace deniszykov.BaseN
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => $"Base{this.baseNAlphabet.Alphabet.Length}Decoder, {new string(this.baseNAlphabet.Alphabet)}";
+		public override string ToString() => $"Base{this.Alphabet.Alphabet.Length}Decoder, {new string(this.Alphabet.Alphabet)}";
 	}
 }
