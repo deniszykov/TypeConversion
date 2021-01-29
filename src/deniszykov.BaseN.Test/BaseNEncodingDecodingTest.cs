@@ -527,7 +527,7 @@ namespace deniszykov.BaseN.Tests
 			Assert.Equal(bytesCount, actual.Length);
 		}
 
-#if !NET45
+#if !NETFRAMEWORK
 		[Theory]
 		[MemberData(nameof(Base32TestData))]
 		[MemberData(nameof(Base64TestData))]

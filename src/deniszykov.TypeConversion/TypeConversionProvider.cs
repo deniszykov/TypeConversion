@@ -101,7 +101,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
 #pragma warning restore 1572
 		public TypeConversionProvider(
-#if NETFRAMEWORK
+#if NET45
 			[CanBeNull] TypeConversionProviderConfiguration configuration = null,
 #else
 			[CanBeNull] Microsoft.Extensions.Options.IOptions<TypeConversionProviderConfiguration> configurationOptions = null,
@@ -110,7 +110,7 @@ namespace deniszykov.TypeConversion
 			[CanBeNull] IConversionMetadataProvider metadataProvider = null
 		)
 		{
-#if !NETFRAMEWORK
+#if !NET45
 			var configuration = configurationOptions?.Value;
 #endif
 			this.converters = new IConverter[ConverterArrayIncrementCount][];

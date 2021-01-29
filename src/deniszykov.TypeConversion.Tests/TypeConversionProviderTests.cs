@@ -61,7 +61,7 @@ namespace deniszykov.TypeConversion.Tests
 		public void ConfiguredConstructorTest()
 		{
 			var configuration =
-#if NETFRAMEWORK
+#if NET45
 				new TypeConversionProviderConfiguration();
 #else
 				Microsoft.Extensions.Options.Options.Create(new TypeConversionProviderConfiguration());
@@ -122,7 +122,7 @@ namespace deniszykov.TypeConversion.Tests
 			var expected = "expected";
 			var configuration = new TypeConversionProviderConfiguration();
 			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((uri, _, __) => expected));
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
@@ -143,7 +143,7 @@ namespace deniszykov.TypeConversion.Tests
 				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
 			};
 			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((_, __, formatProvider) => ((CultureInfo)formatProvider).Name));
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
@@ -170,7 +170,7 @@ namespace deniszykov.TypeConversion.Tests
 				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
 			};
 			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((_, __, formatProvider) => ((CultureInfo)formatProvider).Name));
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
@@ -196,7 +196,7 @@ namespace deniszykov.TypeConversion.Tests
 				ConversionMethodSelectionStrategy = ConversionMethodSelectionStrategy.MostSpecificMethod,
 				Options = ConversionOptions.None
 			};
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
@@ -220,7 +220,7 @@ namespace deniszykov.TypeConversion.Tests
 			{
 				Options = ConversionOptions.None
 			};
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
@@ -239,7 +239,7 @@ namespace deniszykov.TypeConversion.Tests
 				Options = ConversionOptions.FastCast
 			};
 			configuration.RegisterConversion(new Func<TypeConversionProvider, string, IFormatProvider, ITypeConversionProvider>((___, _, __) => throw new Exception("Shouldn't be executed.")));
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));
@@ -265,7 +265,7 @@ namespace deniszykov.TypeConversion.Tests
 			{
 				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
 			};
-#if NETFRAMEWORK
+#if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
 			var typeConversionProvider = new TypeConversionProvider(Microsoft.Extensions.Options.Options.Create(configuration));

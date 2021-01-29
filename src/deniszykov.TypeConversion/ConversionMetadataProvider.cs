@@ -145,7 +145,7 @@ namespace deniszykov.TypeConversion
 		/// Constructor of <see cref="ConversionMetadataProvider"/>.
 		/// </summary>
 		public ConversionMetadataProvider(
-#if NETFRAMEWORK
+#if NET45
 			[CanBeNull] ConversionMetadataProviderConfiguration configuration = null
 #else
 			[CanBeNull] Microsoft.Extensions.Options.IOptions<ConversionMetadataProviderConfiguration> configurationOptions = null
@@ -153,7 +153,7 @@ namespace deniszykov.TypeConversion
 #endif
 		)
 		{
-#if !NETFRAMEWORK
+#if !NET45
 			var configuration = configurationOptions?.Value;
 #endif
 
