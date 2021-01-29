@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/deniszykov/typeconvert.svg?branch=master)](https://travis-ci.org/deniszykov/typeconvert)
-
 Introduction
 ============
 For historical reasons, .NET has several approaches to value conversion:
@@ -11,87 +9,86 @@ For historical reasons, .NET has several approaches to value conversion:
 - Constructors (Uri, Guid)
 - Meta types(Enums, Nullable Types).
 
-TypeConvert combines all these approaches under one API. 
-Additionally this package has hexadecimal conversion API and type instancing API(cached for better perfomance).
-Each utility class in this package can be used separately and you are free to embedd them into your project.
-
-#### TypeConvert
-```csharp
-// generic
-ToType Convert<FromType, ToType>(value, [format], [formatProvider]);
-bool TryConvert<FromType, ToType>(value, out result, [format], [formatProvider])
-string ToString<FromType>(value, [format], [formatProvider]);
-// non-generic
-object Convert(value, toType, [format], [formatProvider]);
-bool TryConvert(ref value, toType, [format], [formatProvider]);
-string ToString(value, [format], [formatProvider]);
-```
-
-#### TypeActivator
-```csharp
-object CreateInstance(type, forceCreate = false);
-object CreateInstance<Arg1T, ...>(type, arg1 ...);
-```
-
-#### HexConvert
-```csharp
-string ToString(buffer, offset, count); // bytes -> hex
-byte[] ToBytes(hexString, offset, count); // hex -> bytes
-
-void Encode(buffer, offset, count, hexBuffer, hexBufferOffset); // bytes chunk -> hex chunk
-void Decode(hexBuffer, offset, count, buffer, bufferOffset); // hex chunk -> bytes chunk
-
-int WriteTo(number, hexBuffer, offset); // number -> hex
-Number ToNumber(hexBuffer, offset) // hex -> number
-```
+This package combines all these approaches under one API. 
 
 Installation
 ============
 ```
-Install-Package TypeConvert 
+Install-Package deniszykov.TypeConversion 
 ```
 
-Examples
-========
-## TypeConvert
-Convert from string to integer
+Usage
+============
+
+#### TypeConversionProvider methods
 ```csharp
-TypeConvert.Convert<string, int>("1") // 1
-```	
-Convert from integer to Enum
-```csharp
-TypeConvert.Convert<int, ConsoleColor>(1) // DarkBlue
-```	
-Convert from string to IPAddress
-```csharp
-TypeConvert.Convert<string, IPAddress>("127.0.0.1") // 127.0.0.1 via IPAddress.Parse
+// generic
+ToType ITypeConversionProvider.Convert<FromType, ToType>(fromValue, [format], [formatProvider]);
+bool ITypeConversionProvider.TryConvert<FromType, ToType>(fromValue, out result, [format], [formatProvider])
+string ITypeConversionProvider.ConvertToString<FromType>(fromValue, [format], [formatProvider]);
+// non-generic
+object ITypeConversionProvider.Convert(fromValue, toType, fromValue, [format], [formatProvider]);
+bool ITypeConversionProvider.TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvider]);
 ```
-Convert to string with format(if supported)
+
+## Example
 ```csharp
-TypeConvert.ToString(1000000, format: "x") // f4240
-```	
-Convert from any to IpAddress
-```csharp
-TypeConvert.Convert("127.0.0.1", typeof(IPAddress)); 127.0.0.1 via IPAddress.Parse
+  var conversionProvider = new TypeConversionProvider();
+  var timeSpanString = "00:00:01";
+  var timeSpan = conversionProvider.Convert<object, TimeSpan>(timeSpanString);
 ```
-Testing conversion
+
+## Configuration
 ```csharp
-TypeConvert.TryConvert<string, int>("xxx", out intValue) // false
+  var configuration = new TypeConversionProviderConfiguration
+  {
+    Options = ConversionOptions.UseDefaultFormatIfNotSpecified
+  };
+#if NET45
+  var typeConversionProvider = new TypeConversionProvider(configuration);
+#else
+  var typeConversionProvider = new TypeConversionProvider(Options.Create(configuration));
+#endif
 ```
-## TypeActivator
-Creating from default constructor
+Or configure via DI
 ```csharp
-TypeActivator.CreateInstance(typeof(int)); // 0
+.ConfigureServices(IServiceCollection services) => {
+  services.Configure<TypeConversionProviderConfiguration>(options =>
+  {
+    options.DefaultFormatProvider = CultureInfo.CurrentUICulture;
+  });
+  // services.AddSingleton<IConversionMetadataProvider, MyCustomConversionMetadataProvider>();
+  services.AddSingleton<ITypeConversionProvider, TypeConversionProvider>();
+}
 ```
-Getting class instance without default constructor
+
+### Providing custom conversion between types
 ```csharp
-TypeActivator.CreateInstance(typeof(EventArgs)); // via EventArgs.Empty
+.ConfigureServices(IServiceCollection services) => {
+  services.Configure<TypeConversionProviderConfiguration>(options =>
+  {
+    options.RegisterConversion<Uri, string>((uri, format, formatProvider) => uri.OriginalString);
+  });
+}
 ```
-Getting class instance without default constructor and Empty property
+
+### Preparing for AOT runtime
 ```csharp
-TypeActivator.CreateInstance(typeof(IPEndPoint), force: true); // IPEndPoint bypassing constructor
+.ConfigureServices(IServiceCollection services) => {
+  services.Configure<TypeConversionProviderConfiguration>(options =>
+  {
+	// disable optimizations which use dynamic code generation
+    options.Options &= ~(ConversionOptions.OptimizeWithExpressions | ConversionOptions.OptimizeWithGenerics);
+  });
+}
 ```
-Creating an array
+
+## Key Abstractions
+
 ```csharp
-TypeActivator.CreateInstance(typeof(int[])); // int[0] (same instance every time)
+interface ITypeConversionProvider // provides methods to get IConverter
+interface IConverter<FromType, ToType> // converts values
+interface IConversionMetadataProvider // provides metadata for ITypeConversionProvider
 ```
+
+
