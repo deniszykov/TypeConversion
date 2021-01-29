@@ -7,7 +7,7 @@ For historical reasons, .NET has several approaches to value conversion:
 - System.ComponentModel.TypeConverter
 - To, From, Parse, Create methods
 - Constructors (Uri, Guid)
-- Meta types(Enums, Nullable Types).
+- Meta types (Enums, Nullable Types).
 
 This package combines all these approaches under one API. 
 
@@ -23,19 +23,19 @@ Usage
 #### TypeConversionProvider methods
 ```csharp
 // generic
-ToType ITypeConversionProvider.Convert<FromType, ToType>(fromValue, [format], [formatProvider]);
-bool ITypeConversionProvider.TryConvert<FromType, ToType>(fromValue, out result, [format], [formatProvider])
-string ITypeConversionProvider.ConvertToString<FromType>(fromValue, [format], [formatProvider]);
+ToType Convert<FromType, ToType>(fromValue, [format], [formatProvider]);
+bool TryConvert<FromType, ToType>(fromValue, out result, [format], [formatProvider])
+string ConvertToString<FromType>(fromValue, [format], [formatProvider]);
 // non-generic
-object ITypeConversionProvider.Convert(fromValue, toType, fromValue, [format], [formatProvider]);
-bool ITypeConversionProvider.TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvider]);
+object Convert(fromValue, toType, fromValue, [format], [formatProvider]);
+bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvider]);
 ```
 
 ## Example
 ```csharp
   var conversionProvider = new TypeConversionProvider();
   var timeSpanString = "00:00:01";
-  var timeSpan = conversionProvider.Convert<object, TimeSpan>(timeSpanString);
+  var timeSpan = conversionProvider.Convert<string, TimeSpan>(timeSpanString);
 ```
 
 ## Configuration
@@ -44,6 +44,7 @@ bool ITypeConversionProvider.TryConvert(fromValue, toType, fromValue, out result
   {
     Options = ConversionOptions.UseDefaultFormatIfNotSpecified
   };
+  
 #if NET45
   var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
@@ -53,11 +54,14 @@ bool ITypeConversionProvider.TryConvert(fromValue, toType, fromValue, out result
 Or configure via DI
 ```csharp
 .ConfigureServices(IServiceCollection services) => {
+
+  // add configuration
   services.Configure<TypeConversionProviderConfiguration>(options =>
   {
     options.DefaultFormatProvider = CultureInfo.CurrentUICulture;
   });
-  // services.AddSingleton<IConversionMetadataProvider, MyCustomConversionMetadataProvider>();
+
+  // register service
   services.AddSingleton<ITypeConversionProvider, TypeConversionProvider>();
 }
 ```
@@ -65,21 +69,26 @@ Or configure via DI
 ### Providing custom conversion between types
 ```csharp
 .ConfigureServices(IServiceCollection services) => {
+
   services.Configure<TypeConversionProviderConfiguration>(options =>
   {
+    // register custom conversion from Uri to string
     options.RegisterConversion<Uri, string>((uri, format, formatProvider) => uri.OriginalString);
   });
+  
 }
 ```
 
 ### Preparing for AOT runtime
 ```csharp
 .ConfigureServices(IServiceCollection services) => {
+
   services.Configure<TypeConversionProviderConfiguration>(options =>
   {
 	// disable optimizations which use dynamic code generation
     options.Options &= ~(ConversionOptions.OptimizeWithExpressions | ConversionOptions.OptimizeWithGenerics);
   });
+  
 }
 ```
 
