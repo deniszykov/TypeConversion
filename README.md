@@ -34,6 +34,8 @@ bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvi
 
 ## Example
 ```csharp
+using deniszykov.TypeConversion;
+
   var conversionProvider = new TypeConversionProvider();
   var timeSpanString = "00:00:01";
   
@@ -45,6 +47,8 @@ bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvi
 
 ## Configuration
 ```csharp
+using deniszykov.TypeConversion;
+
   var configuration = new TypeConversionProviderConfiguration
   {
     Options = ConversionOptions.UseDefaultFormatIfNotSpecified
@@ -58,6 +62,9 @@ bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvi
 ```
 Or configure via DI
 ```csharp
+using deniszykov.TypeConversion;
+using Microsoft.Extensions.DependencyInjection;
+
 .ConfigureServices(IServiceCollection services) => {
 
   // add configuration
@@ -73,6 +80,9 @@ Or configure via DI
 
 ### Providing custom conversion between types
 ```csharp
+using deniszykov.TypeConversion;
+using Microsoft.Extensions.DependencyInjection;
+
 .ConfigureServices(IServiceCollection services) => {
 
   services.Configure<TypeConversionProviderConfiguration>(options =>
@@ -86,6 +96,9 @@ Or configure via DI
 
 ### Preparing for AOT runtime
 ```csharp
+using deniszykov.TypeConversion;
+using Microsoft.Extensions.DependencyInjection;
+
 .ConfigureServices(IServiceCollection services) => {
 
   services.Configure<TypeConversionProviderConfiguration>(options =>
