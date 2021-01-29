@@ -17,12 +17,9 @@ jobs:
       working-directory: ./src/
       run: dotnet restore
     
-    - name: Setup MSBuild.exe
-      uses: warrenbuckley/Setup-MSBuild@v1
-            
     - name: Build with MSBuild
       working-directory: ./src/
-      run: msbuild -t:Pack
+      run: dotnet msbuild -t:Pack
       
     - name: Run rests
       working-directory: ./src/deniszykov.TypeConversion.Tests/
