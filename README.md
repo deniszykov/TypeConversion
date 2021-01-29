@@ -24,7 +24,7 @@ Usage
 ```csharp
 // generic
 ToType Convert<FromType, ToType>(fromValue, [format], [formatProvider]);
-bool TryConvert<FromType, ToType>(fromValue, out result, [format], [formatProvider])
+bool TryConvert<FromType, ToType>(fromValue, out result, [format], [formatProvider]);
 string ConvertToString<FromType>(fromValue, [format], [formatProvider]);
 
 // non-generic
@@ -49,15 +49,15 @@ using deniszykov.TypeConversion;
 ```csharp
 using deniszykov.TypeConversion;
 
-  var configuration = new TypeConversionProviderConfiguration
-  {
-    Options = ConversionOptions.UseDefaultFormatIfNotSpecified
-  };
-  
+var configuration = new TypeConversionProviderConfiguration
+{
+  Options = ConversionOptions.UseDefaultFormatIfNotSpecified
+};
+
 #if NET45
-  var typeConversionProvider = new TypeConversionProvider(configuration);
+var typeConversionProvider = new TypeConversionProvider(configuration);
 #else
-  var typeConversionProvider = new TypeConversionProvider(Options.Create(configuration));
+var typeConversionProvider = new TypeConversionProvider(Options.Create(configuration));
 #endif
 ```
 Or configure via DI
@@ -65,7 +65,7 @@ Or configure via DI
 using deniszykov.TypeConversion;
 using Microsoft.Extensions.DependencyInjection;
 
-.ConfigureServices(IServiceCollection services) => {
+Host.CreateDefaultBuilder().ConfigureServices(IServiceCollection services) => {
 
   // add configuration
   services.Configure<TypeConversionProviderConfiguration>(options =>
@@ -83,7 +83,7 @@ using Microsoft.Extensions.DependencyInjection;
 using deniszykov.TypeConversion;
 using Microsoft.Extensions.DependencyInjection;
 
-.ConfigureServices(IServiceCollection services) => {
+Host.CreateDefaultBuilder().ConfigureServices(IServiceCollection services) => {
 
   services.Configure<TypeConversionProviderConfiguration>(options =>
   {
@@ -99,11 +99,11 @@ using Microsoft.Extensions.DependencyInjection;
 using deniszykov.TypeConversion;
 using Microsoft.Extensions.DependencyInjection;
 
-.ConfigureServices(IServiceCollection services) => {
+Host.CreateDefaultBuilder().ConfigureServices(IServiceCollection services) => {
 
   services.Configure<TypeConversionProviderConfiguration>(options =>
   {
-	// disable optimizations which use dynamic code generation
+    // disable optimizations which use dynamic code generation
     options.Options &= ~(ConversionOptions.OptimizeWithExpressions | ConversionOptions.OptimizeWithGenerics);
   });
   
@@ -113,9 +113,9 @@ using Microsoft.Extensions.DependencyInjection;
 ## Key Abstractions
 
 ```csharp
-interface ITypeConversionProvider // provides methods to get IConverter
-interface IConverter<FromType, ToType> // converts values
-interface IConversionMetadataProvider // provides metadata for ITypeConversionProvider
+interface ITypeConversionProvider; // provides methods to get IConverter
+interface IConverter<FromType, ToType>; // converts values
+interface IConversionMetadataProvider; // provides metadata for ITypeConversionProvider
 ```
 
 
