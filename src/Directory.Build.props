@@ -10,17 +10,18 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<PackageProjectUrl>https://github.com/deniszykov/typeconvert</PackageProjectUrl>
-		<PackageLicenseUrl>https://raw.githubusercontent.com/deniszykov/typeconvert/master/LICENSE</PackageLicenseUrl>
+		<PackageProjectUrl>https://github.com/deniszykov/TypeConversion</PackageProjectUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>(c) Denis Zykov 2020</Copyright>
-		<RepositoryUrl>https://github.com/deniszykov/typeconvert</RepositoryUrl>
+		<RepositoryUrl>https://github.com/deniszykov/TypeConversion</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		
 		<NetFrameworkBottomTarget>net45</NetFrameworkBottomTarget>
+		<NetFrameworkTopTarget>net461</NetFrameworkTopTarget>
 		<NetCoreAppTarget>netcoreapp2.1</NetCoreAppTarget>
 		<NetStandardBottomTarget>netstandard1.6</NetStandardBottomTarget>
 		<NetStandardTopTarget>netstandard2.0</NetStandardTopTarget>
-		<NetTargetPlatforms>$(NetFrameworkBottomTarget);$(NetStandardBottomTarget);$(NetStandardTopTarget);$(NetCoreAppTarget);</NetTargetPlatforms>
-		<NetEndPlatforms>$(NetFrameworkBottomTarget);$(NetCoreAppTarget);</NetEndPlatforms>
+		<NetTargetPlatforms>$(NetFrameworkBottomTarget);$(NetFrameworkTopTarget);$(NetStandardBottomTarget);$(NetStandardTopTarget);$(NetCoreAppTarget);</NetTargetPlatforms>
+		<NetEndPlatforms>$(NetFrameworkTopTarget);$(NetCoreAppTarget);</NetEndPlatforms>
 	</PropertyGroup>
 </Project>
