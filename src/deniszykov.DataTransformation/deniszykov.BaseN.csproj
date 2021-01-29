@@ -1,9 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
-	</PropertyGroup>
-	<ItemGroup>
-	  <Compile Include="..\deniszykov.TypeConversion\AssemblyInfo.cs" Link="AssemblyInfo.cs" />
-	  <Compile Include="..\deniszykov.TypeConversion\JetBrains.Annotations.cs" Link="JetBrains.Annotations.cs" />
-	</ItemGroup>
-</Project>

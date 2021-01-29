@@ -1,3 +1,5 @@
+![dotnet_build](https://github.com/deniszykov/TypeConversion/workflows/dotnet_build/badge.svg)
+
 Introduction
 ============
 For historical reasons, .NET has several approaches to value conversion:
