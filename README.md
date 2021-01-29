@@ -38,7 +38,9 @@ bool TryConvert(fromValue, toType, fromValue, out result, [format], [formatProvi
   var timeSpanString = "00:00:01";
   
   var timeSpan = conversionProvider.Convert<string, TimeSpan>(timeSpanString);
-  // with default settings TimeSpan.Parse(value, format, formatProvider) is called inside Convert<string, TimeSpan>()
+  
+  // with default settings TimeSpan.Parse(value, format, formatProvider) 
+  // is used for conversion inside Convert<string, TimeSpan>()
 ```
 
 ## Configuration
