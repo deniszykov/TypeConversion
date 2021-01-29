@@ -1,0 +1,50 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+<#
+	var types = new Type[] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(double), typeof(float), typeof(char) };
+#>
+// ReSharper disable All
+
+namespace deniszykov.TypeConversion
+{
+	public partial class TypeConversionProvider
+	{
+		/// <summary>
+		/// Format string enabling "checked" numeric conversion.
+		/// </summary>
+		public const string CheckedConversionFormat = "checked";
+		/// <summary>
+		/// Format string enabling "unchecked" numeric conversion.
+		/// </summary>
+		public const string UncheckedConversionFormat = "unchecked";
+
+		private void InitializeNativeConversions()
+		{
+<#
+	foreach (var fromType in types)
+	{
+		foreach (var toType in types)
+		{
+			if (fromType == toType)
+				continue; 
+
+			try
+			{
+				var fromValue = Activator.CreateInstance(fromType);
+				var toValue = ((IConvertible)fromValue).ToType(toType, null);
+
+#>
+			this.RegisterConverter<<#= fromType.FullName #>, <#= toType.FullName #>>((v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v), ConversionQuality.Native);
+<#
+			} 
+			catch
+			{
+				// ignore
+			}
+
+		}
+	}
+#>
+		}
+	}
+}
