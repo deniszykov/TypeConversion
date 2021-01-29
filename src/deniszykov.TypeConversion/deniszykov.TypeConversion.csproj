@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
-		<Description>Utility class for conversions between .NET types.</Description>
+		<Description>Type conversion provider.</Description>
 		<PackageReleaseNotes># 3.0.0
 			- renamed project to `deniszykov.TypeConversion`
 			- removed HexConvert, Base64Convert, TypeActivator
@@ -35,5 +35,6 @@
 	</ItemGroup>
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
+		<PackageTags>type conversion, convert</PackageTags>
 	</PropertyGroup>
 </Project>
