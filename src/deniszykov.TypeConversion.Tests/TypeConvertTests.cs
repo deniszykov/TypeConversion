@@ -45,7 +45,7 @@ namespace deniszykov.TypeConversion.Tests
 			var conversionProvider = new TypeConversionProvider();
 			var value = default(object);
 			var expected = default(TimeSpan?);
-			var actual = conversionProvider.Convert<object, TimeSpan?>(value);
+			var actual = conversionProvider.Convert<object?, TimeSpan?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -111,7 +111,7 @@ namespace deniszykov.TypeConversion.Tests
 			var conversionProvider = new TypeConversionProvider();
 			var value = default(object);
 			var expected = default(ConsoleColor?);
-			var actual = conversionProvider.Convert<object, ConsoleColor?>(value);
+			var actual = conversionProvider.Convert<object?, ConsoleColor?>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -131,7 +131,7 @@ namespace deniszykov.TypeConversion.Tests
 			var conversionProvider = new TypeConversionProvider();
 			var value = default(object);
 			var expected = default(EventArgs);
-			var actual = conversionProvider.Convert<object, EventArgs>(value);
+			var actual = conversionProvider.Convert<object?, EventArgs>(value);
 
 			Assert.Equal(expected, actual);
 		}
@@ -541,9 +541,12 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var conversionProvider = new TypeConversionProvider();
 			var stringValue = conversionProvider.Convert(expected.GetType(), typeof(string), expected);
-			var actual = conversionProvider.Convert(stringValue.GetType(), expected.GetType(), stringValue);
 
-			Assert.Equal(expected.GetType(), actual.GetType());
+			Assert.NotNull(stringValue);
+			var actual = conversionProvider.Convert(stringValue!.GetType(), expected.GetType(), stringValue);
+
+			Assert.NotNull(actual);
+			Assert.Equal(expected.GetType(), actual!.GetType());
 			Assert.Equal(expected, actual);
 		}
 
@@ -579,9 +582,15 @@ namespace deniszykov.TypeConversion.Tests
 			var conversionProvider = new TypeConversionProvider();
 			var fromValue = conversionProvider.Convert(1.GetType(), fromType, 1);
 			var expected = conversionProvider.Convert(1.GetType(), toType, 1);
-			var actual = conversionProvider.Convert(fromValue.GetType(), toType, fromValue);
 
-			Assert.Equal(expected.GetType(), actual.GetType());
+			Assert.NotNull(fromValue);
+
+			var actual = conversionProvider.Convert(fromValue!.GetType(), toType, fromValue);
+
+			Assert.NotNull(expected);
+			Assert.NotNull(actual);
+
+			Assert.Equal(expected!.GetType(), actual!.GetType());
 			Assert.Equal(expected, actual);
 		}
 

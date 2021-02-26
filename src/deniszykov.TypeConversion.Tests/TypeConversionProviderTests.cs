@@ -22,7 +22,7 @@ namespace deniszykov.TypeConversion.Tests
 				return destinationType == typeof(string);
 			}
 			/// <inheritdoc />
-			public override object ConvertTo(System.ComponentModel.ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
+			public override object? ConvertTo(System.ComponentModel.ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
 			{
 				if (destinationType == typeof(string))
 				{

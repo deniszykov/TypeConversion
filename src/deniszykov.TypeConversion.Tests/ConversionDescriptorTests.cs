@@ -12,8 +12,8 @@ namespace deniszykov.TypeConversion.Tests
 	{
 		public static IEnumerable<object[]> ConstructorTestData()
 		{
-			var defaultFormats = new string[] { null, "unchecked", "" };
-			var defaultFormatProviders = new IFormatProvider[] { null, CultureInfo.CurrentCulture, CultureInfo.InvariantCulture, CultureInfo.InvariantCulture.NumberFormat };
+			var defaultFormats = new string?[] { null, "unchecked", "" };
+			var defaultFormatProviders = new IFormatProvider?[] { null, CultureInfo.CurrentCulture, CultureInfo.InvariantCulture, CultureInfo.InvariantCulture.NumberFormat };
 			var withSafeConversions = new[] { true, false };
 			return
 			(
@@ -26,8 +26,8 @@ namespace deniszykov.TypeConversion.Tests
 
 		private static long IntToLong(int value) => value;
 		private static ConversionMethodInfo IntToLongMethodInfo = new ConversionMethodInfo(
-			new Func<int, long>(IntToLong).GetMethodInfo(),
-			new Func<int, long>(IntToLong).GetMethodInfo().GetParameters(),
+			new Func<int, long>(IntToLong).GetMethodInfo()!,
+			new Func<int, long>(IntToLong).GetMethodInfo()!.GetParameters(),
 			new[] { ConversionParameterType.Value },
 			ConversionQuality.Native
 		);

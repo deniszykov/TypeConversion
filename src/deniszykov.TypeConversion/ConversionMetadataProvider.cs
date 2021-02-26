@@ -10,21 +10,22 @@ namespace deniszykov.TypeConversion
 	/// <summary>
 	/// Conversion metadata provider used by <see cref="ITypeConversionProvider"/> to discover conversion methods on types. 
 	/// </summary>
+	[PublicAPI]
 	public class ConversionMetadataProvider : IConversionMetadataProvider
 	{
 		private class ConversionTypeInfo
 		{
 			private static readonly IReadOnlyCollection<ConversionMethodInfo> EmptyConversionMethods = new ConversionMethodInfo[0];
 
-			[NotNull] private readonly Type type;
-			[NotNull] private readonly HashSet<Type> implementsAndExtends;
-			[NotNull] public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertFromMethods;
-			[NotNull] public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertToMethods;
+			private readonly Type type;
+			private readonly HashSet<Type> implementsAndExtends;
+			public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertFromMethods;
+			public readonly IReadOnlyCollection<ConversionMethodInfo> ConvertToMethods;
 #if !NETSTANDARD
-			[CanBeNull] public readonly System.ComponentModel.TypeConverter TypeConverter;
+			public readonly System.ComponentModel.TypeConverter? TypeConverter;
 #endif
 
-			public ConversionTypeInfo([NotNull] ConversionMetadataProvider provider, [NotNull] Type type)
+			public ConversionTypeInfo(ConversionMetadataProvider provider, Type type)
 			{
 				if (provider == null) throw new ArgumentNullException(nameof(provider));
 				if (type == null) throw new ArgumentNullException(nameof(type));
@@ -116,7 +117,7 @@ namespace deniszykov.TypeConversion
 #endif
 			}
 
-			public bool IsAssignableFrom([NotNull] Type type)
+			public bool IsAssignableFrom(Type type)
 			{
 				if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -132,23 +133,23 @@ namespace deniszykov.TypeConversion
 			public override string ToString() => this.type.ToString();
 		}
 
-		[NotNull] private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
-		[NotNull] private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
-		[NotNull, ItemNotNull] private readonly HashSet<string> convertFromMethodNames;
-		[NotNull, ItemNotNull] private readonly HashSet<string> convertToMethodNames;
-		[NotNull, ItemNotNull] private readonly HashSet<string> formatParameterNames;
-		[NotNull, ItemNotNull] private readonly HashSet<string> formatProviderParameterNames;
-		[NotNull, ItemNotNull] private readonly MethodInfo[] additionalConversionMethods;
-		[NotNull, ItemNotNull] private readonly HashSet<MethodBase> forbiddenConversionMethods;
-		[CanBeNull] private readonly Func<MethodBase, bool> methodFilter;
+		private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
+		private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
+		private readonly HashSet<string> convertFromMethodNames;
+		private readonly HashSet<string> convertToMethodNames;
+		private readonly HashSet<string> formatParameterNames;
+		private readonly HashSet<string> formatProviderParameterNames;
+		private readonly MethodInfo[] additionalConversionMethods;
+		private readonly HashSet<MethodBase> forbiddenConversionMethods;
+		private readonly Func<MethodBase, bool>? methodFilter;
 		/// <summary>
 		/// Constructor of <see cref="ConversionMetadataProvider"/>.
 		/// </summary>
 		public ConversionMetadataProvider(
 #if NET45
-			[CanBeNull] ConversionMetadataProviderConfiguration configuration = null
+			 ConversionMetadataProviderConfiguration? configuration = null
 #else
-			[CanBeNull] Microsoft.Extensions.Options.IOptions<ConversionMetadataProviderConfiguration> configurationOptions = null
+			 Microsoft.Extensions.Options.IOptions<ConversionMetadataProviderConfiguration>? configurationOptions = null
 
 #endif
 		)
@@ -182,7 +183,7 @@ namespace deniszykov.TypeConversion
 		}
 #if !NETSTANDARD
 		/// <inheritdoc />
-		public System.ComponentModel.TypeConverter GetTypeConverter(Type type)
+		public System.ComponentModel.TypeConverter? GetTypeConverter(Type type)
 		{
 			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
 			return conversionTypeInfo.TypeConverter;
@@ -202,7 +203,7 @@ namespace deniszykov.TypeConversion
 		{
 			if (methodParameter == null) throw new ArgumentNullException(nameof(methodParameter));
 
-			return this.formatParameterNames.Contains(methodParameter.Name) &&
+			return this.formatParameterNames.Contains(methodParameter.Name ?? "") &&
 				methodParameter.ParameterType == typeof(string) &&
 				(methodParameter.Attributes & (ParameterAttributes.In | ParameterAttributes.Out | ParameterAttributes.Retval)) == 0;
 		}
@@ -211,12 +212,12 @@ namespace deniszykov.TypeConversion
 		{
 			if (methodParameter == null) throw new ArgumentNullException(nameof(methodParameter));
 
-			return (this.formatProviderParameterNames.Count == 0 || this.formatProviderParameterNames.Contains(methodParameter.Name)) &&
+			return (this.formatProviderParameterNames.Count == 0 || this.formatProviderParameterNames.Contains(methodParameter.Name ?? "")) &&
 				methodParameter.ParameterType == typeof(IFormatProvider) &&
 				(methodParameter.Attributes & (ParameterAttributes.In | ParameterAttributes.Out | ParameterAttributes.Retval)) == 0;
 		}
 		/// <inheritdoc />
-		public string GetDefaultFormat(ConversionMethodInfo conversionMethodInfo)
+		public string? GetDefaultFormat(ConversionMethodInfo conversionMethodInfo)
 		{
 			if (conversionMethodInfo == null) throw new ArgumentNullException(nameof(conversionMethodInfo));
 
@@ -231,7 +232,7 @@ namespace deniszykov.TypeConversion
 			return null;
 		}
 
-		private bool IsPossibleConvertMethod([NotNull] MethodInfo method)
+		private bool IsPossibleConvertMethod(MethodInfo method)
 		{
 			var name = method.Name;
 			return string.Equals(name, "op_Explicit", StringComparison.Ordinal) ||
@@ -243,7 +244,7 @@ namespace deniszykov.TypeConversion
 				this.convertToMethodNames.Contains(name);
 
 		}
-		private bool IsConvertFromMethod([NotNull] MethodInfo method, [NotNull] Type resultType, [NotNull] ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
+		private bool IsConvertFromMethod(MethodInfo method, Type resultType, ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
 		{
 			if (method == null) throw new ArgumentNullException(nameof(method));
 			if (resultType == null) throw new ArgumentNullException(nameof(resultType));
@@ -264,7 +265,7 @@ namespace deniszykov.TypeConversion
 				method.ReturnType == resultType &&
 				method.DeclaringType == resultType;
 		}
-		private bool IsConvertToMethod([NotNull] MethodInfo method, [NotNull] Type sourceType, [NotNull] ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
+		private bool IsConvertToMethod(MethodInfo method, Type sourceType, ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
 		{
 			if (method == null) throw new ArgumentNullException(nameof(method));
 			if (sourceType == null) throw new ArgumentNullException(nameof(sourceType));
@@ -281,7 +282,7 @@ namespace deniszykov.TypeConversion
 					this.convertToMethodNames.Contains(method.Name)) &&
 				method.DeclaringType == sourceType;
 		}
-		private bool IsValidConversionParameters([NotNull] ParameterInfo[] parameters, [CanBeNull] ParameterInfo fromValueParameter)
+		private bool IsValidConversionParameters(ParameterInfo[] parameters, ParameterInfo? fromValueParameter)
 		{
 			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
@@ -316,7 +317,7 @@ namespace deniszykov.TypeConversion
 					return false;
 			}
 		}
-		private bool IsPlainParameter([NotNull] ParameterInfo parameterInfo)
+		private bool IsPlainParameter(ParameterInfo parameterInfo)
 		{
 			if (parameterInfo == null) throw new ArgumentNullException(nameof(parameterInfo));
 
@@ -331,8 +332,7 @@ namespace deniszykov.TypeConversion
 				parameterInfo.ParameterType.IsGenericParameter == false;
 		}
 
-		[NotNull]
-		private ConversionParameterType[] MapParameters([NotNull, ItemNotNull] ParameterInfo[] parameters, [CanBeNull]Type valueType)
+		private ConversionParameterType[] MapParameters(ParameterInfo[] parameters, Type? valueType)
 		{
 			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
@@ -349,7 +349,7 @@ namespace deniszykov.TypeConversion
 			return parameterTypes;
 		}
 
-		private static bool IsByRefLike([NotNull] ParameterInfo parameterInfo)
+		private static bool IsByRefLike(ParameterInfo parameterInfo)
 		{
 			if (parameterInfo == null) throw new ArgumentNullException(nameof(parameterInfo));
 

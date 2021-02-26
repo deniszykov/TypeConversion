@@ -25,7 +25,7 @@ namespace deniszykov.TypeConversion.Tests
 				return destinationType == typeof(string);
 			}
 			/// <inheritdoc />
-			public override object ConvertTo(System.ComponentModel.ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
+			public override object? ConvertTo(System.ComponentModel.ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
 			{
 				if (destinationType == typeof(string))
 				{
@@ -272,7 +272,7 @@ namespace deniszykov.TypeConversion.Tests
 		public void IsFormatParameterTest(int parameterIndex, bool isFormatParameter)
 		{
 			var metadataProvider = new ConversionMetadataProvider();
-			var conversionMethod = new Func<long, string, IFormatProvider, long>((value, format, formatProvider) => value).GetMethodInfo();
+			var conversionMethod = new Func<long, string, IFormatProvider, long>((value, format, formatProvider) => value).GetMethodInfo()!;
 			var parameters = conversionMethod.GetParameters();
 
 			var actual = metadataProvider.IsFormatParameter(parameters[parameterIndex]);
@@ -287,7 +287,7 @@ namespace deniszykov.TypeConversion.Tests
 		public void IsFormatProviderParameterTest(int parameterIndex, bool isFormatProviderParameter)
 		{
 			var metadataProvider = new ConversionMetadataProvider();
-			var conversionMethod = new Func<long, string, IFormatProvider, long>((value, format, formatProvider) => value).GetMethodInfo();
+			var conversionMethod = new Func<long, string, IFormatProvider, long>((value, format, formatProvider) => value).GetMethodInfo()!;
 			var parameters = conversionMethod.GetParameters();
 
 			var actual = metadataProvider.IsFormatProviderParameter(parameters[parameterIndex]);
@@ -300,7 +300,7 @@ namespace deniszykov.TypeConversion.Tests
 		{
 
 			var metadataProvider = new ConversionMetadataProvider();
-			var intToLongMethodInfo = new Func<int, string, long>(IntToLong).GetMethodInfo();
+			var intToLongMethodInfo = new Func<int, string, long>(IntToLong).GetMethodInfo()!;
 			var conversionMethodInfo = new ConversionMethodInfo(intToLongMethodInfo, intToLongMethodInfo.GetParameters(), new[] { ConversionParameterType.Value }, ConversionQuality.Native);
 
 			var actual = metadataProvider.GetDefaultFormat(conversionMethodInfo);

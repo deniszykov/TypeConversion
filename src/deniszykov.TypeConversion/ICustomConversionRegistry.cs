@@ -1,5 +1,4 @@
 ﻿using System;
-using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
@@ -13,6 +12,6 @@ namespace deniszykov.TypeConversion
 		/// </summary>
 		/// <param name="conversionFunc">Conversion function which take value of <typeparamref name="FromType"/> and converts it to <typeparamref name="ToType"/> using specified format and <see cref="IFormatProvider"/>.</param>
 		/// <param name="quality">Conversion quality for this conversion. Default to <see cref="ConversionQuality.Custom"/></param>
-		void RegisterConversion<FromType, ToType>([NotNull] Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality);
+		void RegisterConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality);
 	}
 }

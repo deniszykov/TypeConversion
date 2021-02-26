@@ -1,7 +1,7 @@
 ﻿<#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ output extension=".cs" #>
 <#
-	var types = new Type[] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(double), typeof(float), typeof(char) };
+	var types = new [] { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(double), typeof(float), typeof(char) };
 #>
 // ReSharper disable All
 
@@ -31,10 +31,10 @@ namespace deniszykov.TypeConversion
 			try
 			{
 				var fromValue = Activator.CreateInstance(fromType);
-				var toValue = ((IConvertible)fromValue).ToType(toType, null);
+				var _ = ((IConvertible)fromValue).ToType(toType, null);
 
 #>
-			this.RegisterConverter<<#= fromType.FullName #>, <#= toType.FullName #>>((v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v), ConversionQuality.Native);
+			this.RegisterConversion<<#= fromType.FullName #>, <#= toType.FullName #>>((v, f, fp) => (f == CheckedConversionFormat) ? checked((<#= toType.FullName #>)v) : unchecked((<#= toType.FullName #>)v), ConversionQuality.Native);
 <#
 			} 
 			catch

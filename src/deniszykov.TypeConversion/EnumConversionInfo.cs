@@ -9,13 +9,16 @@
 */
 
 using System;
+// ReSharper disable once RedundantUsingDirective Used in .NET Standard target
+using System.Reflection;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using JetBrains.Annotations;
+
+#pragma warning disable CS8714, CS8604 // possible nulls, but enum values are never nulls
 
 // ReSharper disable RedundantCast
 namespace deniszykov.TypeConversion
@@ -24,27 +27,28 @@ namespace deniszykov.TypeConversion
 	/// Provides methods of conversion between <see cref="Enum"/> type and it's underlying type.
 	/// </summary>
 	/// <typeparam name="EnumT">Enum type.</typeparam>
+	[PublicAPI]
 	public class EnumConversionInfo<EnumT> : IEnumConversionInfo
 	{
-		[NotNull] private readonly SortedDictionary<EnumT, string> namesByValue;
-		[NotNull] private readonly SortedDictionary<string, EnumT> valueByName;
-		[NotNull] private readonly SortedDictionary<string, EnumT> valueByNameCaseInsensitive;
+		private readonly SortedDictionary<EnumT, string> namesByValue;
+		private readonly SortedDictionary<string, EnumT> valueByName;
+		private readonly SortedDictionary<string, EnumT> valueByNameCaseInsensitive;
 
 		/// <inheritdoc />
-		[NotNull] public Type Type { get; }
+		public Type Type { get; }
 		// ReSharper disable StaticMemberInGenericType
 		/// <summary>
 		/// <typeparamref name="EnumT"/> to Number(SByte,Byte,Int16...) conversion function. Instance of <see cref="Func{T1, TResult}"/> where T1 is <typeparamref name="EnumT"/> and TResult is number type.
 		/// </summary>
-		[NotNull] public Delegate ToNumber { get; }
+		public Delegate ToNumber { get; }
 		/// <summary>
 		///  Number(SByte,Byte,Int16...) to <typeparamref name="EnumT"/> conversion function. Instance of <see cref="Func{T1, TResult}"/> where T1 is number type and TResult is <typeparamref name="EnumT"/> type.
 		/// </summary>
-		[NotNull] public Delegate FromNumber { get; set; }
+		public Delegate FromNumber { get; set; }
 		/// <summary>
 		/// Comparer for <typeparamref name="EnumT"/> values.
 		/// </summary>
-		[NotNull] public Comparer<EnumT> Comparer { get; }
+		public Comparer<EnumT> Comparer { get; }
 		/// <summary>
 		/// Type code of enum underlying type.
 		/// </summary>
@@ -52,7 +56,7 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Type of enum underlying type.
 		/// </summary>
-		[NotNull] public Type UnderlyingType { get; }
+		public Type UnderlyingType { get; }
 		/// <summary>
 		/// Flag indicating what enum has <see cref="FlagsAttribute"/>.
 		/// </summary>
@@ -76,11 +80,11 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Names of all enumeration values. Order is corresponding to <see cref="Values"/>.
 		/// </summary>
-		[NotNull, ItemNotNull] public ReadOnlyCollection<string> Names { get; }
+		public ReadOnlyCollection<string> Names { get; }
 		/// <summary>
 		/// All declared enumeration values. Order is corresponding to <see cref="Names"/>. 
 		/// </summary>
-		[NotNull] public ReadOnlyCollection<EnumT> Values { get; }
+		public ReadOnlyCollection<EnumT> Values { get; }
 		// ReSharper restore StaticMemberInGenericType
 
 		public EnumConversionInfo(bool useDynamicMethods)
@@ -94,7 +98,7 @@ namespace deniszykov.TypeConversion
 			if (enumTypeInfo.IsEnum == false)
 				throw new InvalidOperationException("EnumT should be enum type.");
 
-			var underlyingType = Enum.GetUnderlyingType(enumType);
+			var underlyingType = Enum.GetUnderlyingType(enumType)!;
 
 			this.Type = enumType;
 			this.UnderlyingType = underlyingType;
@@ -133,12 +137,12 @@ namespace deniszykov.TypeConversion
 			this.namesByValue = new SortedDictionary<EnumT, string>(this.Comparer);
 			this.valueByName = new SortedDictionary<string, EnumT>(StringComparer.Ordinal);
 			this.valueByNameCaseInsensitive = new SortedDictionary<string, EnumT>(StringComparer.OrdinalIgnoreCase);
-			this.DefaultValue = default(EnumT);
+			this.DefaultValue = this.MinValue = this.MaxValue = default(EnumT)!;
 
-			var valuesArray = Enum.GetValues(enumType);
+			var valuesArray = (EnumT[])Enum.GetValues(enumType)!;
 			var names = new List<string>(valuesArray.Length);
 			var values = new List<EnumT>(valuesArray.Length);
-			foreach (EnumT value in valuesArray)
+			foreach (var value in valuesArray)
 			{
 				var name = Enum.GetName(enumType, value);
 				if (string.IsNullOrEmpty(name))
@@ -183,7 +187,7 @@ namespace deniszykov.TypeConversion
 			if (this.namesByValue.TryGetValue(value, out var name))
 				return name;
 
-			return Convert.ToString(value);
+			return Convert.ToString(value)!;
 		}
 
 		/// <summary>
@@ -705,6 +709,7 @@ namespace deniszykov.TypeConversion
 		/// <returns>Enumeration value.</returns>
 		public EnumT Parse(string name)
 		{
+			// ReSharper disable once IntroduceOptionalParameters.Global
 			return this.Parse(name, ignoreCase: false);
 		}
 		/// <summary>
@@ -748,7 +753,7 @@ namespace deniszykov.TypeConversion
 		{
 			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			value = default(EnumT);
+			value = default(EnumT)!;
 
 			if (string.IsNullOrEmpty(name))
 			{
@@ -844,7 +849,7 @@ namespace deniszykov.TypeConversion
 					throw new ArgumentOutOfRangeException($"Invalid value '{this.UnderlyingTypeCode}' of type code of '{typeof(EnumT)}' enum.");
 			}
 
-			value = default(EnumT);
+			value = default(EnumT)!;
 			return false;
 		}
 

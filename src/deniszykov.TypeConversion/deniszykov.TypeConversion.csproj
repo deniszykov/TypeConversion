@@ -15,7 +15,7 @@
 		<PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" Condition=" '$(TargetFramework)' == '$(NetStandardBottomTarget)' " />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="1.1.2" Condition=" '$(TargetFramework)' == '$(NetStandardBottomTarget)' " />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" Condition=" '$(TargetFramework)' == '$(NetFrameworkTopTarget)' " />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="3.1.10" Condition=" '$(TargetFramework)' == '$(NetStandardTopTarget)' or '$(TargetFramework)' == '$(NetCoreAppTarget)' " />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="3.1.10" Condition=" '$(TargetFramework)' == '$(NetStandardTopTarget)' or '$(TargetFramework)' == '$(NetCoreAppBottomTarget)'  or '$(TargetFramework)' == '$(NetCoreAppTopTarget)'" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="NativeConversions.tt">

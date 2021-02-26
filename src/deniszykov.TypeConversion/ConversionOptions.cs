@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
@@ -7,6 +8,7 @@ namespace deniszykov.TypeConversion
 	/// Options for <see cref="IConverter"/> and <see cref="ITypeConversionProvider"/> types.
 	/// </summary>
 	[Flags]
+	[PublicAPI]
 	public enum ConversionOptions
 	{
 		/// <summary>

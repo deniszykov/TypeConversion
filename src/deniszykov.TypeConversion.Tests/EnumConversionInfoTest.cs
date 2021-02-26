@@ -14,6 +14,8 @@ using System.Linq;
 using System.Reflection;
 using Xunit;
 
+// ReSharper disable RedundantCast, UnusedMember.Local, UnusedMember.Global
+
 namespace deniszykov.TypeConversion.Tests
 {
 	public class EnumConversionInfoTest
@@ -80,7 +82,7 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var conversionProvider = new TypeConversionProvider();
 			var testMethodInfo = new Action<ITypeConversionProvider>(this.FromToMethodsTestImpl<ByteEnum, Byte>).Method.GetGenericMethodDefinition();
-			var testMethod = (Action<ITypeConversionProvider>)Delegate.CreateDelegate(typeof(Action<ITypeConversionProvider>), this, testMethodInfo.MakeGenericMethod(enumType, underlyingType), throwOnBindFailure: true);
+			var testMethod = (Action<ITypeConversionProvider>?)Delegate.CreateDelegate(typeof(Action<ITypeConversionProvider>), this, testMethodInfo.MakeGenericMethod(enumType, underlyingType), throwOnBindFailure: true);
 			testMethod?.Invoke(conversionProvider);
 		}
 
@@ -93,7 +95,7 @@ namespace deniszykov.TypeConversion.Tests
 		[InlineData(UInt32Enum.One)]
 		[InlineData(Int64Enum.One)]
 		[InlineData(UInt64Enum.One)]
-		public void ParseTest<EnumT>(EnumT expected)
+		public void ParseTest<EnumT>(EnumT expected) where EnumT : Enum
 		{
 			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
 			var actual = enumConversionInfo.Parse(expected.ToString());
@@ -110,7 +112,7 @@ namespace deniszykov.TypeConversion.Tests
 		[InlineData(UInt32Enum.One)]
 		[InlineData(Int64Enum.One)]
 		[InlineData(UInt64Enum.One)]
-		public void ParseNumberTest<EnumT>(EnumT expected)
+		public void ParseNumberTest<EnumT>(EnumT expected) where EnumT : Enum
 		{
 			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
 			var actual = enumConversionInfo.Parse("1");
@@ -149,7 +151,7 @@ namespace deniszykov.TypeConversion.Tests
 		[InlineData(UInt32Enum.One, true)]
 		[InlineData(Int64Enum.One, true)]
 		[InlineData(UInt64Enum.One, true)]
-		public void ToMethodsTest<EnumT>(EnumT expected, bool useDynamicMethods)
+		public void ToMethodsTest<EnumT>(EnumT expected, bool useDynamicMethods) where EnumT : Enum
 		{
 			var byteEnumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods);
 			
@@ -175,7 +177,7 @@ namespace deniszykov.TypeConversion.Tests
 		[InlineData(UInt32Enum.One, true)]
 		[InlineData(Int64Enum.One, true)]
 		[InlineData(UInt64Enum.One, true)]
-		public void FromMethodsTest<EnumT>(EnumT expected, bool useDynamicMethods)
+		public void FromMethodsTest<EnumT>(EnumT expected, bool useDynamicMethods) where EnumT : Enum
 		{
 			var byteEnumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods);
 			
@@ -210,7 +212,7 @@ namespace deniszykov.TypeConversion.Tests
 		[InlineData(UInt32Enum.One)]
 		[InlineData(Int64Enum.One)]
 		[InlineData(UInt64Enum.One)]
-		public void TryParseNumberTest<EnumT>(EnumT expected)
+		public void TryParseNumberTest<EnumT>(EnumT expected) where EnumT : Enum
 		{
 			var byteEnumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
 			var parsed = byteEnumConversionInfo.TryParse("1", out var actual);
@@ -228,7 +230,7 @@ namespace deniszykov.TypeConversion.Tests
 		[InlineData(UInt32Enum.One)]
 		[InlineData(Int64Enum.One)]
 		[InlineData(UInt64Enum.One)]
-		public void TryParseTest<EnumT>(EnumT expected)
+		public void TryParseTest<EnumT>(EnumT expected) where EnumT : Enum
 		{
 			var enumConversionInfo = new EnumConversionInfo<EnumT>(useDynamicMethods: false);
 			var parsed = enumConversionInfo.TryParse(expected.ToString(), out var actual);
@@ -264,7 +266,7 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var enumConversionInfo = new EnumConversionInfo<ByteEnum>(useDynamicMethods: false);
 			var expected = ByteEnum.One;
-			var parsed = enumConversionInfo.TryParse(expected.ToString().ToLowerInvariant(), out var actual);
+			var parsed = enumConversionInfo.TryParse(expected.ToString().ToLowerInvariant(), out _);
 
 			Assert.False(parsed);
 		}
@@ -292,7 +294,7 @@ namespace deniszykov.TypeConversion.Tests
 				typeof(UnderlyingT) == typeof(short) ||
 				typeof(UnderlyingT) == typeof(int) ||
 				typeof(UnderlyingT) == typeof(long), enumConversionInfo.IsSigned);
-			Assert.Equal(default(EnumT), enumConversionInfo.DefaultValue);
+			Assert.Equal(default(EnumT)!, enumConversionInfo.DefaultValue);
 			Assert.Equal(provider.Convert<int, EnumT>(1), enumConversionInfo.MinValue);
 			Assert.Equal(provider.Convert<int, EnumT>(2), enumConversionInfo.MaxValue);
 			Assert.Equal(new[] { nameof(SByteEnum.One), nameof(SByteEnum.Two) }, enumConversionInfo.Names);

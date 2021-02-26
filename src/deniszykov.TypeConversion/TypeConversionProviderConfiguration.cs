@@ -8,7 +8,8 @@ namespace deniszykov.TypeConversion
 	/// <summary>
 	/// Configuration for <see cref="TypeConversionProvider"/> class.
 	/// </summary>
-	[DataContract, UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+	[DataContract]
+	[PublicAPI]
 	public class TypeConversionProviderConfiguration : ICustomConversionRegistry
 	{
 		/// <summary>
@@ -16,8 +17,8 @@ namespace deniszykov.TypeConversion
 		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="Options"/> configuration parameter.
 		/// If both <see cref="DefaultFormatProvider"/> and <see cref="DefaultFormatProviderCultureName"/> are set then <see cref="DefaultFormatProvider"/> is used.
 		/// </summary>
-		[DataMember, CanBeNull]
-		public string DefaultFormatProviderCultureName;
+		[DataMember]
+		public string? DefaultFormatProviderCultureName;
 		/// <summary>
 		/// Options used by <see cref="Converter{FromType,ToType}"/> and <see cref="TypeConversionProvider"/> types.
 		/// </summary>
@@ -34,14 +35,14 @@ namespace deniszykov.TypeConversion
 		/// Application of <see cref="ConversionDescriptor.DefaultFormatProvider"/> is controlled by <see cref="Options"/> configuration parameter.
 		/// If both <see cref="DefaultFormatProvider"/> and <see cref="DefaultFormatProviderCultureName"/> are set then <see cref="DefaultFormatProvider"/> is used.
 		/// </summary>
-		[IgnoreDataMember, CanBeNull]
-		public IFormatProvider DefaultFormatProvider;
+		[IgnoreDataMember]
+		public IFormatProvider? DefaultFormatProvider;
 
 		/// <summary>
 		/// Delegate which could be applied to <see cref="ICustomConversionRegistry"/> to register all custom conversions which declared with <see cref="RegisterConversion{FromType,ToType}"/>.
 		/// </summary>
-		[IgnoreDataMember, CanBeNull]
-		public Action<ICustomConversionRegistry> CustomConversionRegistrationCallback;
+		[IgnoreDataMember]
+		public Action<ICustomConversionRegistry>? CustomConversionRegistrationCallback;
 
 		/// <inheritdoc />
 		public void RegisterConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)

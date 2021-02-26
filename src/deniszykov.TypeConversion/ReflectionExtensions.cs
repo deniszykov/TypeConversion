@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -7,7 +6,7 @@ namespace deniszykov.TypeConversion
 {
 	internal static class ReflectionExtensions
 	{
-		public static DelegateT CreateDelegate<DelegateT>(object thisObject, MethodInfo methodInfo, bool throwOnBindFailure = true) where DelegateT : Delegate
+		public static DelegateT? CreateDelegate<DelegateT>(object thisObject, MethodInfo methodInfo, bool throwOnBindFailure = true) where DelegateT : Delegate
 		{
 			if (methodInfo == null) throw new ArgumentNullException(nameof(methodInfo));
 
@@ -21,10 +20,10 @@ namespace deniszykov.TypeConversion
 				if (throwOnBindFailure)
 					throw;
 				else
-					return null;
+					return default;
 			}
 #else
-			return (DelegateT)Delegate.CreateDelegate(typeof(DelegateT), thisObject, methodInfo, throwOnBindFailure);
+			return (DelegateT?)Delegate.CreateDelegate(typeof(DelegateT), thisObject, methodInfo, throwOnBindFailure);
 #endif
 		}
 
@@ -49,9 +48,10 @@ namespace deniszykov.TypeConversion
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 
+			var baseType = (TypeInfo?)type.GetTypeInfo();
 			do
 			{
-				foreach (var method in type.GetTypeInfo().DeclaredMethods)
+				foreach (var method in baseType!.DeclaredMethods)
 				{
 					if (method.IsPublic == false)
 						continue;
@@ -61,8 +61,8 @@ namespace deniszykov.TypeConversion
 				if (declaredOnly)
 					break;
 
-				type = type.GetTypeInfo().BaseType == null || type.GetTypeInfo().BaseType == typeof(object) ? null : type.GetTypeInfo().BaseType;
-			} while (type != null);
+				baseType = baseType.BaseType == null || baseType.BaseType == typeof(object) ? null : baseType.BaseType.GetTypeInfo();
+			} while (baseType != null);
 		}
 		public static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
 		{
@@ -78,16 +78,6 @@ namespace deniszykov.TypeConversion
 		}
 #endif
 
-#if NETFRAMEWORK
-		public static Type GetTypeInfo(this Type type)
-		{
-			return type;
-		}
-		public static Type AsType(this Type type)
-		{
-			return type;
-		}
-#endif
 		public static IEnumerable<Type> EnumerateBaseTypesAndInterfaces(Type type)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));

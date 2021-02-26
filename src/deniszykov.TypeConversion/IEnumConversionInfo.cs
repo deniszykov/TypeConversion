@@ -1,7 +1,9 @@
 ﻿using System;
+using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
+	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 	internal interface IEnumConversionInfo
 	{
 		Delegate ToNumber { get; }

@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
@@ -14,23 +13,23 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Method used to create conversion delegate.
 		/// </summary>
-		[NotNull] public readonly MethodBase Method;
+		public readonly MethodBase Method;
 		/// <summary>
 		/// List of <see cref="Method"/>'s parameters.
 		/// </summary>
-		[NotNull, ItemNotNull] public readonly ReadOnlyCollection<ParameterInfo> Parameters;
+		public readonly ReadOnlyCollection<ParameterInfo> Parameters;
 		/// <summary>
 		/// List of <see cref="Parameters"/>'s roles in conversion.
 		/// </summary>
-		[NotNull] public readonly ReadOnlyCollection<ConversionParameterType> ConversionParameterTypes;
+		public readonly ReadOnlyCollection<ConversionParameterType> ConversionParameterTypes;
 		/// <summary>
 		/// Conversion source type.
 		/// </summary>
-		[NotNull] internal readonly Type FromType;
+		internal readonly Type FromType;
 		/// <summary>
 		/// Conversion destination type.
 		/// </summary>
-		[NotNull] internal readonly Type ToType;
+		internal readonly Type ToType;
 		/// <summary>
 		/// Conversion quality with specified <see cref="Method"/>.
 		/// </summary>
@@ -44,10 +43,10 @@ namespace deniszykov.TypeConversion
 		/// <param name="conversionParameterTypes">Value for <see cref="ConversionParameterTypes"/>.</param>
 		/// <param name="conversionQualityOverride">Override value for <see cref="Quality"/>. If not set then quality is determinate by signature.</param>
 		public ConversionMethodInfo(
-			[NotNull] MethodBase methodBase,
-			[NotNull, ItemNotNull] ParameterInfo[] parameters,
-			[NotNull] ConversionParameterType[] conversionParameterTypes,
-			[CanBeNull] ConversionQuality? conversionQualityOverride = null)
+			 MethodBase methodBase,
+			 ParameterInfo[] parameters,
+			 ConversionParameterType[] conversionParameterTypes,
+			 ConversionQuality? conversionQualityOverride = null)
 		{
 			if (methodBase == null) throw new ArgumentNullException(nameof(methodBase));
 			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
@@ -123,11 +122,11 @@ namespace deniszykov.TypeConversion
 			return other.Method.Name.Length.CompareTo(this.Method.Name.Length); // shorter name = better 
 		}
 
-		internal static ConversionMethodInfo FromNativeConversion(Delegate conversionFn, [CanBeNull] ConversionQuality? conversionQualityOverride = null)
+		internal static ConversionMethodInfo FromNativeConversion(Delegate conversionFn, ConversionQuality? conversionQualityOverride = null)
 		{
 			if (conversionFn == null) throw new ArgumentNullException(nameof(conversionFn));
 
-			var methodInfo = conversionFn.GetMethodInfo();
+			var methodInfo = conversionFn.GetMethodInfo()!;
 			var parameters = methodInfo.GetParameters();
 			var parameterTypes = new[] { ConversionParameterType.Value, ConversionParameterType.Format, ConversionParameterType.FormatProvider };
 

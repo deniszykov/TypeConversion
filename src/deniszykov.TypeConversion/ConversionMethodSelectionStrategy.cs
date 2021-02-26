@@ -1,8 +1,11 @@
-﻿namespace deniszykov.TypeConversion
+﻿using JetBrains.Annotations;
+
+namespace deniszykov.TypeConversion
 {
 	/// <summary>
 	/// Strategy to select conversion method from alternatives.
 	/// </summary>
+	[PublicAPI]
 	public enum ConversionMethodSelectionStrategy
 	{
 		/// <summary>
