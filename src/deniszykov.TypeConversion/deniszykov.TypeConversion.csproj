@@ -3,7 +3,12 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
-		<PackageReleaseNotes># 3.0.0
+		<PackageReleaseNotes># 3.0.2
+
+fix: fixed usage of dynamic methods in EnumConversionInfo (frag was checked wrongly)
+feature: added compatibility shim for old 'TypeConvert' package
+
+# 3.0.0
 			- renamed project to `deniszykov.TypeConversion`
 			- removed HexConvert, Base64Convert, TypeActivator
 			- refactored TypeConvert to `ITypeConversionProvider` abstraction and `TypeConversionProvider` implementation
@@ -36,5 +41,6 @@
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
 		<PackageTags>type conversion, convert</PackageTags>
+		<Version>3.0.2</Version>
 	</PropertyGroup>
 </Project>
