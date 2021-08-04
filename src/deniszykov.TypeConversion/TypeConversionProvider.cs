@@ -9,6 +9,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using JetBrains.Annotations;
+// ReSharper disable InconsistentNaming
 
 namespace deniszykov.TypeConversion
 {
@@ -74,12 +75,12 @@ namespace deniszykov.TypeConversion
 
 			public ToType ConvertTo(FromType fromValue, string? format, IFormatProvider? formatProvider)
 			{
-				return (ToType)this.typeConverter.ConvertTo(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue, typeof(ToType));
+				return (ToType)this.typeConverter.ConvertTo(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue, typeof(ToType))!;
 			}
 			public ToType ConvertFrom(FromType fromValue, string? format, IFormatProvider? formatProvider)
 			{
 				// ReSharper disable once AssignNullToNotNullAttribute
-				return (ToType)this.typeConverter.ConvertFrom(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue);
+				return (ToType)this.typeConverter.ConvertFrom(null!, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue);
 			}
 		}
 #endif
@@ -128,7 +129,6 @@ namespace deniszykov.TypeConversion
 				this.defaultFormatProvider = CultureInfo.GetCultureInfo(configuration!.DefaultFormatProviderCultureName!);
 #endif
 			}
-			this.defaultFormatProvider ??= CultureInfo.InvariantCulture;
 			this.converterOptions = configuration?.Options ?? ConversionOptions.Default;
 			this.conversionMethodSelectionStrategy = configuration?.ConversionMethodSelectionStrategy ?? ConversionMethodSelectionStrategy.MostFittingMethod;
 
@@ -343,7 +343,7 @@ namespace deniszykov.TypeConversion
 			{
 				conversionFn = ThrowNoConversionBetweenTypes<FromType, ToType>;
 				conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.None) };
-				safeConversionFn = (fromValue, format, formatProvider) => new KeyValuePair<ToType, bool>(default!, false);
+				safeConversionFn = (_, _, _) => new KeyValuePair<ToType, bool>(default!, false);
 			}
 			else if (conversionFn == null)
 			{
@@ -499,13 +499,13 @@ namespace deniszykov.TypeConversion
 
 		private void InitializeCustomConversion()
 		{
-			this.RegisterConversion<string, Uri>((value, format, fp) =>
+			this.RegisterConversion<string, Uri>((value, format, _) =>
 			{
 				var kind = string.IsNullOrEmpty(format) ? UriKind.RelativeOrAbsolute : (UriKind)Enum.Parse(typeof(UriKind), format, ignoreCase: true);
 				return new Uri(value, kind);
 			}, ConversionQuality.Custom);
 
-			this.RegisterConversion<Uri, string>((value, format, fp) => value.OriginalString, ConversionQuality.Custom);
+			this.RegisterConversion<Uri, string>((value, _, _) => value.OriginalString, ConversionQuality.Custom);
 
 			this.RegisterConversion<string, DateTime>((str, f, fp) =>
 			{
@@ -780,7 +780,7 @@ namespace deniszykov.TypeConversion
 		}
 		private ToType NullableToAnyAot<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var result = default(ToType)!;
+			var result = default(ToType);
 			if (ReferenceEquals(fromValue, null))
 			{
 				if (ReferenceEquals(result, null))
@@ -813,7 +813,7 @@ namespace deniszykov.TypeConversion
 		}
 		private ToType NullableToAny<FromType, ToType>(FromType? fromValue, string? format, IFormatProvider? formatProvider) where FromType : struct
 		{
-			var result = default(ToType)!;
+			var result = default(ToType);
 			if (fromValue.HasValue == false)
 			{
 				if (ReferenceEquals(result, null))
@@ -842,6 +842,7 @@ namespace deniszykov.TypeConversion
 
 			if (ReferenceEquals(fromValue, null))
 			{
+				// ReSharper disable once ConditionIsAlwaysTrueOrFalse
 				if (ReferenceEquals(toValue, null))
 				{
 					return default(ToType)!;

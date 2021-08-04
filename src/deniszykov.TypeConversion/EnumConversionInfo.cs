@@ -106,7 +106,7 @@ namespace deniszykov.TypeConversion
 			this.IsFlags = enumTypeInfo.GetCustomAttributes(typeof(FlagsAttribute), false).Any();
 			this.IsSigned = this.UnderlyingTypeCode == TypeCode.SByte || this.UnderlyingTypeCode == TypeCode.Int16 || this.UnderlyingTypeCode == TypeCode.Int32 || this.UnderlyingTypeCode == TypeCode.Int64;
 
-			if (useDynamicMethods)
+			if (!useDynamicMethods)
 			{
 				this.FromNumber = GetFromNumberAot(this.UnderlyingTypeCode);
 				this.ToNumber = GetToNumberAot(this.UnderlyingTypeCode);
