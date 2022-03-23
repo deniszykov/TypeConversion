@@ -101,15 +101,17 @@ namespace deniszykov.TypeConversion
 		/// <param name="configuration">Configuration options.</param>
 		/// <param name="configurationOptions">Configuration options.</param>
 		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
+		/// <param name="registrations">Registrations of custom providers. Alternative way of registering custom conversion is <see cref="TypeConversionProviderConfiguration"/>.</param>
 #pragma warning restore 1572
 		public TypeConversionProvider(
 #if NET45
-			 TypeConversionProviderConfiguration? configuration = null,
+			TypeConversionProviderConfiguration? configuration = null,
 #else
-			 Microsoft.Extensions.Options.IOptions<TypeConversionProviderConfiguration>? configurationOptions = null,
+			Microsoft.Extensions.Options.IOptions<TypeConversionProviderConfiguration>? configurationOptions = null,
 
 #endif
-			 IConversionMetadataProvider? metadataProvider = null
+			IConversionMetadataProvider? metadataProvider = null,
+			IEnumerable<ICustomConversionRegistration>? registrations = null
 		)
 		{
 #if !NET45
@@ -134,7 +136,15 @@ namespace deniszykov.TypeConversion
 
 			this.InitializeNativeConversions();
 			this.InitializeCustomConversion();
+
 			configuration?.CustomConversionRegistrationCallback?.Invoke(this);
+			if (registrations != null)
+			{
+				foreach(var registration in registrations)
+				{
+					registration.Register(this);
+				}
+			}
 		}
 
 		/// <inheritdoc />

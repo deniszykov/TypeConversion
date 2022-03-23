@@ -1,7 +1,7 @@
 <Project>
 	<PropertyGroup>
 		<Authors>Denis Zykov</Authors>
-		<Version>3.0.1</Version>
+		<Version>3.0.2</Version>
 		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)sign.snk</AssemblyOriginatorKeyFile>
 		<SignAssembly>True</SignAssembly>
 		<LangVersion>latest</LangVersion>
@@ -19,7 +19,7 @@
 		<NetFrameworkBottomTarget>net45</NetFrameworkBottomTarget>
 		<NetFrameworkTopTarget>net461</NetFrameworkTopTarget>
 		<NetCoreAppBottomTarget>netcoreapp2.1</NetCoreAppBottomTarget>
-		<NetCoreAppTopTarget>netcoreapp3.0</NetCoreAppTopTarget>
+		<NetCoreAppTopTarget>netcoreapp3.1</NetCoreAppTopTarget>
 		<NetStandardBottomTarget>netstandard1.6</NetStandardBottomTarget>
 		<NetStandardTopTarget>netstandard2.1</NetStandardTopTarget>
 		<NetTargetPlatforms>$(NetFrameworkBottomTarget);$(NetFrameworkTopTarget);$(NetStandardBottomTarget);$(NetStandardTopTarget);$(NetCoreAppBottomTarget);$(NetCoreAppTopTarget);</NetTargetPlatforms>

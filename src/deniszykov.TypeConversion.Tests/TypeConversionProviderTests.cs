@@ -2,12 +2,32 @@
 using System;
 using System.Globalization;
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace deniszykov.TypeConversion.Tests
 {
 	public class TypeConversionProviderTests
 	{
+		private class CustomRegistration : ICustomConversionRegistration
+		{
+			public bool IsRegisterCalled;
+			public bool IsConversionCalled;
+			public ConsoleColor ExpectedColor = ConsoleColor.Black;
+
+			/// <inheritdoc />
+			public void Register(ICustomConversionRegistry registry)
+			{
+				this.IsRegisterCalled = true;
+				registry.RegisterConversion<Guid, ConsoleColor>((_, _, _) =>
+				{
+					this.IsConversionCalled = true;
+					return this.ExpectedColor;
+				}, ConversionQuality.Custom);
+			}
+		}
+
 #if NETFRAMEWORK
 		private class MyConvertibleTypeConverter : System.ComponentModel.TypeConverter
 		{
@@ -78,6 +98,51 @@ namespace deniszykov.TypeConversion.Tests
 			var typeConversionProvider = new TypeConversionProvider(null, metadataProvider);
 			Assert.NotNull(typeConversionProvider);
 		}
+
+#if !NET45
+		[Fact]
+		public void RegisterConversionWithConfigConstructorTest()
+		{
+			var serviceCollection = new ServiceCollection();
+			var conversionCalled = false;
+			var expectedColor = ConsoleColor.Black;
+			serviceCollection.Configure<TypeConversionProviderConfiguration>(options =>
+			{
+				options.RegisterConversion<Guid, ConsoleColor>((_, _, _) =>
+				{
+					conversionCalled = true;
+					return expectedColor;
+				});
+			});
+			serviceCollection.AddTransient<ITypeConversionProvider, TypeConversionProvider>();
+			var serviceProvider = serviceCollection.BuildServiceProvider();
+
+			var conversionProvider = serviceProvider.GetRequiredService<ITypeConversionProvider>();
+			var actualColor = conversionProvider.Convert<Guid, ConsoleColor>(Guid.Empty);
+
+			Assert.Equal(expectedColor, actualColor);
+			Assert.True(conversionCalled, "conversion method should be called.");
+		}
+
+		[Fact]
+		public void RegisterConversionWithInterfaceConstructorTest()
+		{
+			var serviceCollection = new ServiceCollection();
+			var customRegistration = new CustomRegistration();
+
+			serviceCollection.AddSingleton<ICustomConversionRegistration>(customRegistration);
+			serviceCollection.AddTransient<ITypeConversionProvider, TypeConversionProvider>();
+			var serviceProvider = serviceCollection.BuildServiceProvider();
+
+			var conversionProvider = serviceProvider.GetRequiredService<ITypeConversionProvider>();
+			var actualColor = conversionProvider.Convert<Guid, ConsoleColor>(Guid.Empty);
+
+			Assert.True(customRegistration.IsRegisterCalled, "conversion registration method should be called.");
+			Assert.True(customRegistration.IsConversionCalled, "conversion method should be called.");
+			Assert.Equal(customRegistration.ExpectedColor, actualColor);
+		}
+#endif
+
 
 		[Fact]
 		public void GetConverterGenericTest()
