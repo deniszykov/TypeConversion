@@ -80,6 +80,21 @@ Host.CreateDefaultBuilder().ConfigureServices(IServiceCollection services) => {
 }
 ```
 
+### Which conversion method is used?
+At the beginning, for each pair of types, all possible conversions are found. Then they are sorted by quality and the best one is selected.
+In one group, method with parameter type closest in inheritance to the required one is selected. 
+For debug purposes `TypeConversionProvider.DebugPrintConversions` could be used to review which conversion methods are selected.
+
+Quality of conversions in descending order: 
+
+- Constructor
+- TypeConverter
+- Method like Parse, From, To
+- Explicit conversion operator
+- Implicit conversion operator
+- Native (long -> int, class -> null)
+- Custom
+
 ### Providing custom conversion between types
 ```csharp
 using deniszykov.TypeConversion;
@@ -87,12 +102,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 Host.CreateDefaultBuilder().ConfigureServices(IServiceCollection services) => {
 
-  services.Configure<TypeConversionProviderConfiguration>(options =>
-  {
     // register custom conversion from Uri to string
-    options.RegisterConversion<Uri, string>((uri, format, formatProvider) => uri.OriginalString);
-  });
-  
+    serviceCollection.AddSingleton<ICustomConversionRegistration>(
+        new CustomConversion<Uri, string>((uri, _, _) => uri.OriginalString)
+    );
+
+    // register custom conversion from string to Uri
+    serviceCollection.AddSingleton<ICustomConversionRegistration>(
+        new CustomConversion<string, Uri>((str, _, _) => new Uri(str))
+    );
+    
+    // ...  
 }
 ```
 

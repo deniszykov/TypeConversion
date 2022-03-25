@@ -42,10 +42,12 @@ namespace deniszykov.TypeConversion
 		/// Delegate which could be applied to <see cref="ICustomConversionRegistry"/> to register all custom conversions which declared with <see cref="RegisterConversion{FromType,ToType}"/>.
 		/// </summary>
 		[IgnoreDataMember]
+		[Obsolete("Please pass instance of 'CustomConversion<FromTypeT, ToTypeT>' in TypeConversionProvider's constructor for registering custom conversions.")]
 		public Action<ICustomConversionRegistry>? CustomConversionRegistrationCallback;
 
 		/// <inheritdoc />
-		public void RegisterConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)
+		[Obsolete("Please pass instance of 'CustomConversion<FromTypeT, ToTypeT>' in TypeConversionProvider's constructor for registering custom conversions.")]
+		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string, IFormatProvider, ToTypeT> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)
 		{
 			var registration = new Action<ICustomConversionRegistry>(provider =>
 			{

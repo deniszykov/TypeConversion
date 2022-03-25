@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 
 #if NETCOREAPP3_0 || NETSTANDARD2_1
@@ -14,41 +15,41 @@ using MaybeNull = JetBrains.Annotations.CanBeNullAttribute;
 namespace deniszykov.TypeConversion
 {
 	/// <summary>
-	/// Provides type conversion methods from <typeparamref name="FromType"/> to <typeparamref name="ToType"/>.
+	/// Provides type conversion methods from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/>.
 	/// </summary>
 	[PublicAPI]
-	public sealed class Converter<FromType, ToType> : IConverter<FromType, ToType>
+	public sealed class Converter<FromTypeT, ToTypeT> : IConverter<FromTypeT, ToTypeT>
 	{
 		private readonly ConversionOptions converterOptions;
 
 		/// <inheritdoc />
 		public ConversionDescriptor Descriptor { get; }
 		/// <inheritdoc />
-		Type IConverter.FromType => typeof(FromType);
+		Type IConverter.FromType => typeof(FromTypeT);
 		/// <inheritdoc />
-		Type IConverter.ToType => typeof(ToType);
+		Type IConverter.ToType => typeof(ToTypeT);
 		/// <inheritdoc />
 		void IConverter.Convert(object? value, out object? result, string? format, IFormatProvider? formatProvider)
 		{
-			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToTypeT)
 			{
 				result = value;
 				return;
 			}
 
-			this.Convert((FromType)value!, out var resultTyped, format, formatProvider);
+			this.Convert((FromTypeT)value!, out var resultTyped, format, formatProvider);
 			result = resultTyped;
 		}
 		/// <inheritdoc />
 		bool IConverter.TryConvert(object? value, out object? result, string? format, IFormatProvider? formatProvider)
 		{
-			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToTypeT)
 			{
 				result = value;
 				return true;
 			}
 
-			var success = this.TryConvert((FromType)value!, out var resultTyped, format, formatProvider);
+			var success = this.TryConvert((FromTypeT)value!, out var resultTyped, format, formatProvider);
 			result = resultTyped;
 			return success;
 		}
@@ -63,7 +64,7 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public void Convert([AllowNull] FromType value, [MaybeNull] out ToType result, string? format = null, IFormatProvider? formatProvider = null)
+		public void Convert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null)
 		{
 			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatIfNotSpecified) && format == null)
 			{
@@ -74,17 +75,17 @@ namespace deniszykov.TypeConversion
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
 
-			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType typedValue)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToTypeT typedValue)
 			{
 				result = typedValue;
 				return;
 			}
 
-			var convertFn = (Func<FromType, string?, IFormatProvider?, ToType>)this.Descriptor.Conversion;
+			var convertFn = (Func<FromTypeT, string?, IFormatProvider?, ToTypeT>)this.Descriptor.Conversion;
 			result = convertFn(value!, format, formatProvider);
 		}
 		/// <inheritdoc />
-		public bool TryConvert([AllowNull] FromType value, [MaybeNull] out ToType result, string? format = null, IFormatProvider? formatProvider = null)
+		public bool TryConvert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null)
 		{
 			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatIfNotSpecified) && format == null)
 			{
@@ -94,13 +95,13 @@ namespace deniszykov.TypeConversion
 			{
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
-			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToType typedValue)
+			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToTypeT typedValue)
 			{
 				result = typedValue;
 				return true;
 			}
 
-			var safeConvertFn = (Func<FromType, string?, IFormatProvider?, KeyValuePair<ToType, bool>>?)this.Descriptor.SafeConversion;
+			var safeConvertFn = (Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>?)this.Descriptor.SafeConversion;
 			if (safeConvertFn != null)
 			{
 				var resultOrFail = safeConvertFn(value!, format, formatProvider);
@@ -124,6 +125,12 @@ namespace deniszykov.TypeConversion
 					throw;
 				}
 			}
+		}
+
+		/// <inheritdoc />
+		public override string ToString()
+		{
+			return this.Descriptor.ToString();
 		}
 	}
 }

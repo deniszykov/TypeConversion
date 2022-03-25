@@ -101,6 +101,33 @@ namespace deniszykov.TypeConversion
 		/// <param name="configuration">Configuration options.</param>
 		/// <param name="configurationOptions">Configuration options.</param>
 		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
+#pragma warning restore 1572
+#if NET45
+		[Obsolete("Please use .ctr(configuration, metadataProvider, registrations). This constructor will be removed in next major version.")]
+		public TypeConversionProvider
+		(
+			TypeConversionProviderConfiguration? configuration,
+			IConversionMetadataProvider? metadataProvider
+		) : this(configuration, metadataProvider, default(IEnumerable<ICustomConversionRegistration>))
+		{
+		}
+#else
+		public TypeConversionProvider
+		(
+			Microsoft.Extensions.Options.IOptions<TypeConversionProviderConfiguration>? configurationOptions,
+			IConversionMetadataProvider? metadataProvider
+		) : this(configurationOptions, metadataProvider, default(IEnumerable<ICustomConversionRegistration>))
+		{
+		}
+#endif
+
+#pragma warning disable 1572
+		/// <summary>
+		/// Constructor of <see cref="TypeConversionProvider"/>.
+		/// </summary>
+		/// <param name="configuration">Configuration options.</param>
+		/// <param name="configurationOptions">Configuration options.</param>
+		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
 		/// <param name="registrations">Registrations of custom providers. Alternative way of registering custom conversion is <see cref="TypeConversionProviderConfiguration"/>.</param>
 #pragma warning restore 1572
 		public TypeConversionProvider(
@@ -137,7 +164,10 @@ namespace deniszykov.TypeConversion
 			this.InitializeNativeConversions();
 			this.InitializeCustomConversion();
 
+#pragma warning disable 618
 			configuration?.CustomConversionRegistrationCallback?.Invoke(this);
+#pragma warning restore 618
+
 			if (registrations != null)
 			{
 				foreach(var registration in registrations)
@@ -1005,6 +1035,32 @@ namespace deniszykov.TypeConversion
 				$"Unable to convert value of type '{typeof(FromType).FullName}' to '{typeof(ToType).FullName}' because there is no conversion method found.");
 		}
 		//
+
+		/// <summary>
+		/// Print information about all known conversions between types.
+		/// </summary>
+		/// <returns>List of conversions separated with newline.</returns>
+		public string DebugPrintConversions()
+		{
+			var output = new System.Text.StringBuilder();
+			foreach (var converterByType in this.converters)
+			{
+				if (converterByType == null)
+				{
+					continue;
+				}
+				foreach (var converter in converterByType)
+				{
+					if (converter == null)
+					{
+						continue;
+					}
+
+					output.AppendLine(converter.ToString());
+				}
+			}
+			return output.ToString();
+		}
 
 		/// <summary>
 		/// Prepare conversion between <typeparamref name="FromType"/> and <typeparamref name="ToType"/> for AOT runtime and expose all internal generic method to static analyzer.

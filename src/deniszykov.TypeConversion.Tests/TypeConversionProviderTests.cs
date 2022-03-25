@@ -108,7 +108,9 @@ namespace deniszykov.TypeConversion.Tests
 			var expectedColor = ConsoleColor.Black;
 			serviceCollection.Configure<TypeConversionProviderConfiguration>(options =>
 			{
+#pragma warning disable 618
 				options.RegisterConversion<Guid, ConsoleColor>((_, _, _) =>
+#pragma warning restore 618
 				{
 					conversionCalled = true;
 					return expectedColor;
@@ -129,6 +131,8 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var serviceCollection = new ServiceCollection();
 			var customRegistration = new CustomRegistration();
+
+			serviceCollection.AddSingleton<ICustomConversionRegistration>(new CustomConversion<Uri, string>((uri, _, _) => uri.OriginalString));
 
 			serviceCollection.AddSingleton<ICustomConversionRegistration>(customRegistration);
 			serviceCollection.AddTransient<ITypeConversionProvider, TypeConversionProvider>();
@@ -343,6 +347,15 @@ namespace deniszykov.TypeConversion.Tests
 
 			Assert.True(success);
 			Assert.NotNull(actual);
+		}
+
+		[Fact]
+		public void DebugPrintConversionsTest()
+		{
+			var metadataProvider = new ConversionMetadataProvider();
+			var typeConversionProvider = new TypeConversionProvider(null, metadataProvider);
+			
+			Assert.NotNull(typeConversionProvider.DebugPrintConversions());
 		}
 	}
 }

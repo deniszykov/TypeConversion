@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6CE55E09-61D3-4DAA-BCC6-A2CF3A8E8E22}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Build.props = Directory.Build.props
+		..\README.md = ..\README.md
 		sign.snk = sign.snk
 	EndProjectSection
 EndProject
