@@ -3,7 +3,14 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
-		<PackageReleaseNotes># 3.0.2
+		<PackageReleaseNotes># 3.0.4
+refac: deprecated TypeConversionProviderConfiguration.RegisterConversion in favor of TypeConversionProvider constructor injection.
+feature: added TypeConversionProviderConfiguration.DebugPrintConversions for debug purposes.
+
+# 3.0.3
+feature: added additional way to configure new conversions between types via constructor. This way allow service resolution for such conversions. Type need to be registered in DI ICustomConversionRegistration and services could be injected in implementation constructor.
+
+# 3.0.2
 
 fix: fixed usage of dynamic methods in EnumConversionInfo (frag was checked wrongly)
 feature: added compatibility shim for old 'TypeConvert' package
@@ -40,7 +47,6 @@ feature: added compatibility shim for old 'TypeConvert' package
 	</ItemGroup>
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
-		<PackageTags>type conversion, convert</PackageTags>
-		<Version>3.0.2</Version>
+		<PackageTags>type conversion, convert</PackageTags>		
 	</PropertyGroup>
 </Project>
