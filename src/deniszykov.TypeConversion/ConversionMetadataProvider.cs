@@ -147,9 +147,9 @@ namespace deniszykov.TypeConversion
 		/// </summary>
 		public ConversionMetadataProvider(
 #if NET45
-			 ConversionMetadataProviderConfiguration? configuration = null
+			 ConversionMetadataProviderOptions? configuration = null
 #else
-			 Microsoft.Extensions.Options.IOptions<ConversionMetadataProviderConfiguration>? configurationOptions = null
+			 Microsoft.Extensions.Options.IOptions<ConversionMetadataProviderOptions>? configurationOptions = null
 
 #endif
 		)

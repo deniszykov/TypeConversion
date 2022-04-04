@@ -10,7 +10,7 @@ namespace deniszykov.TypeConversion
 	/// </summary>
 	[DataContract]
 	[PublicAPI]
-	public class ConversionMetadataProviderConfiguration
+	public class ConversionMetadataProviderOptions
 	{
 		/// <summary>
 		/// List of method names used to create value of some type from other type. If not set then default list of names used. Example: 'Parse', 'Create', 'From'.
