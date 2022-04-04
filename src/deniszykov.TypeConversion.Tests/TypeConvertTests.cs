@@ -860,5 +860,21 @@ namespace deniszykov.TypeConversion.Tests
 
 			this.outputHelper.WriteLine(error.ToString());
 		}
+
+		[Theory]
+		[MemberData(nameof(ConversionOptionsTestData))]
+		public void DateToStringTest(ConversionOptions options)
+		{
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+				Options = options | ConversionOptions.PromoteValueToActualType
+			}));
+
+			var value = DateTime.Now;
+			var expected = value.ToString("o");
+
+			var actual = conversionProvider.Convert<object, string>(value, "o");
+
+			Assert.Equal(expected, actual);
+		}
 	}
 }

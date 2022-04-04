@@ -20,6 +20,7 @@ namespace deniszykov.TypeConversion
 	[PublicAPI]
 	public sealed class Converter<FromTypeT, ToTypeT> : IConverter<FromTypeT, ToTypeT>
 	{
+		private readonly ITypeConversionProvider typeConversionProvider;
 		private readonly ConversionOptions converterOptions;
 
 		/// <inheritdoc />
@@ -54,11 +55,13 @@ namespace deniszykov.TypeConversion
 			return success;
 		}
 
-		public Converter(ConversionDescriptor conversion, ConversionOptions converterOptions)
+		public Converter(ITypeConversionProvider typeConversionProvider, ConversionDescriptor conversion, ConversionOptions converterOptions)
 		{
+			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 			if (conversion == null) throw new ArgumentNullException(nameof(conversion));
 
 			this.Descriptor = conversion;
+			this.typeConversionProvider = typeConversionProvider;
 			this.converterOptions = converterOptions;
 			this.converterOptions = converterOptions;
 		}
@@ -74,10 +77,18 @@ namespace deniszykov.TypeConversion
 			{
 				formatProvider = this.Descriptor.DefaultFormatProvider;
 			}
-
 			if (this.converterOptions.HasFlag(ConversionOptions.FastCast) && value is ToTypeT typedValue)
 			{
 				result = typedValue;
+				return;
+			}
+			if (this.converterOptions.HasFlag(ConversionOptions.PromoteValueToActualType) &&
+				ReferenceEquals(value, null) == false &&
+				value.GetType() != typeof(FromTypeT))
+			{
+				var actualConverter = this.typeConversionProvider.GetConverter(value.GetType(), typeof(ToTypeT));
+				actualConverter.Convert(value, out var resultObj, format, formatProvider);
+				result = (ToTypeT)resultObj;
 				return;
 			}
 
@@ -100,6 +111,17 @@ namespace deniszykov.TypeConversion
 				result = typedValue;
 				return true;
 			}
+
+			if (this.converterOptions.HasFlag(ConversionOptions.PromoteValueToActualType) &&
+				ReferenceEquals(value, null) == false &&
+				value.GetType() != typeof(FromTypeT))
+			{
+				var actualConverter = this.typeConversionProvider.GetConverter(value.GetType(), typeof(ToTypeT));
+				var converted = actualConverter.TryConvert(value, out var resultObj, format, formatProvider);
+				result = (ToTypeT)resultObj;
+				return converted;
+			}
+
 
 			var safeConvertFn = (Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>?)this.Descriptor.SafeConversion;
 			if (safeConvertFn != null)

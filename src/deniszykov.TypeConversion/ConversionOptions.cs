@@ -39,8 +39,13 @@ namespace deniszykov.TypeConversion
 		/// </summary>
 		FastCast = 0x1 << 4,
 		/// <summary>
-		/// Default option. Set to <see cref="UseDefaultFormatProviderIfNotSpecified"/> because this will lead to predictable conversion on different platforms and locales, <see cref="OptimizeWithExpressions"/> and <see cref="OptimizeWithGenerics"/> optimizations.
+		/// Converter tries to use actual value's type instead of specified one.
 		/// </summary>
-		Default = UseDefaultFormatProviderIfNotSpecified | OptimizeWithExpressions | OptimizeWithGenerics
+		PromoteValueToActualType = 0x1 << 5,
+		/// <summary>
+		/// Default option. Set to <see cref="UseDefaultFormatProviderIfNotSpecified"/> because this will lead to predictable
+		/// conversion on different platforms and locales, <see cref="OptimizeWithExpressions"/> and <see cref="OptimizeWithGenerics"/> optimizations.
+		/// </summary>
+		Default = UseDefaultFormatProviderIfNotSpecified | OptimizeWithExpressions | OptimizeWithGenerics | PromoteValueToActualType
 	}
 }

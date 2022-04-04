@@ -19,7 +19,7 @@ namespace deniszykov.TypeConversion
 	[PublicAPI]
 	public partial class TypeConversionProvider : ITypeConversionProvider, ICustomConversionRegistry
 	{
-		private static readonly int ConverterArrayIncrementCount = 20;
+		private static readonly int ConverterArrayIncrementCount = 5;
 
 		public static readonly string IgnoreCaseFormat = "ignoreCase";
 
@@ -62,7 +62,7 @@ namespace deniszykov.TypeConversion
 			DownCasting,
 		}
 #if !NETSTANDARD
-		private class TypeConverterAdapter<FromType, ToType>
+		private class TypeConverterAdapter<FromTypeT, ToTypeT>
 		{
 			private readonly System.ComponentModel.TypeConverter typeConverter;
 
@@ -73,14 +73,14 @@ namespace deniszykov.TypeConversion
 				this.typeConverter = typeConverter;
 			}
 
-			public ToType ConvertTo(FromType fromValue, string? format, IFormatProvider? formatProvider)
+			public ToTypeT ConvertTo(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 			{
-				return (ToType)this.typeConverter.ConvertTo(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue, typeof(ToType))!;
+				return (ToTypeT)this.typeConverter.ConvertTo(null, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue, typeof(ToTypeT))!;
 			}
-			public ToType ConvertFrom(FromType fromValue, string? format, IFormatProvider? formatProvider)
+			public ToTypeT ConvertFrom(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 			{
 				// ReSharper disable once AssignNullToNotNullAttribute
-				return (ToType)this.typeConverter.ConvertFrom(null!, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue);
+				return (ToTypeT)this.typeConverter.ConvertFrom(null!, formatProvider as CultureInfo ?? CultureInfo.InvariantCulture, fromValue);
 			}
 		}
 #endif
@@ -151,26 +151,26 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public IConverter<FromType, ToType> GetConverter<FromType, ToType>()
+		public IConverter<FromTypeT, ToTypeT> GetConverter<FromTypeT, ToTypeT>()
 		{
-			var fromTypeIndex = ConversionLookupIndex.FromType<FromType>.FromIndex;
-			var toTypeIndex = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
+			var fromTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.FromIndex;
+			var toTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.ToType<ToTypeT>.ToIndex;
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
 
 			if (this.GetType().Name == string.Empty)
 			{
 				// AOT static compilation hack
-				PrepareTypesForAotRuntime<FromType, ToType>();
+				PrepareTypesForAotRuntime<FromTypeT, ToTypeT>();
 			}
 
-			if (toConverters[toTypeIndex] is IConverter<FromType, ToType> converter)
+			if (toConverters[toTypeIndex] is IConverter<FromTypeT, ToTypeT> converter)
 			{
 				return converter;
 			}
 			else
 			{
-				var conversionDescriptor = this.CreateConversionDescriptor<FromType, ToType>();
-				converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions);
+				var conversionDescriptor = this.CreateConversionDescriptor<FromTypeT, ToTypeT>();
+				converter = new Converter<FromTypeT, ToTypeT>(this, conversionDescriptor, this.converterOptions);
 				toConverters[toTypeIndex] = converter;
 				return converter;
 			}
@@ -199,15 +199,15 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public void RegisterConversion<FromType, ToType>(Func<FromType, string, IFormatProvider, ToType> conversionFunc, ConversionQuality quality)
+		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string, IFormatProvider, ToTypeT> conversionFunc, ConversionQuality quality)
 		{
 			var conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFunc, quality) };
-			var fromTypeIndex = ConversionLookupIndex.FromType<FromType>.FromIndex;
-			var toTypeIndex = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
+			var fromTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.FromIndex;
+			var toTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.ToType<ToTypeT>.ToIndex;
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
 
 			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default(Delegate));
-			var converter = new Converter<FromType, ToType>(conversionDescriptor, this.converterOptions);
+			var converter = new Converter<FromTypeT, ToTypeT>(this, conversionDescriptor, this.converterOptions);
 			toConverters[toTypeIndex] = converter;
 		}
 
@@ -234,41 +234,41 @@ namespace deniszykov.TypeConversion
 			return toConverters!;
 		}
 
-		private ConversionDescriptor CreateConversionDescriptor<FromType, ToType>()
+		private ConversionDescriptor CreateConversionDescriptor<FromTypeT, ToTypeT>()
 		{
-			var fromType = typeof(FromType);
-			var toType = typeof(ToType);
+			var fromType = typeof(FromTypeT);
+			var toType = typeof(ToTypeT);
 
 			var conversionMethods = default(ConversionMethodInfo[]); // from best to worst
-			var conversionFn = default(Func<FromType, string?, IFormatProvider?, ToType>);
-			var safeConversionFn = default(Func<FromType, string?, IFormatProvider?, KeyValuePair<ToType, bool>>);
+			var conversionFn = default(Func<FromTypeT, string?, IFormatProvider?, ToTypeT>);
+			var safeConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>);
 			var defaultFormat = default(string);
 			var defaultFormatProvider = this.defaultFormatProvider;
 
 			// fallback conversion is used when no conversion method is found on types
-			var fallbackConversionFn = default(Func<FromType, string?, IFormatProvider?, ToType>?);
+			var fallbackConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, ToTypeT>?);
 			var fallbackConversionMethodInfo = default(ConversionMethodInfo);
 
 			switch (this.DetectNativeConversion(fromType, toType))
 			{
 				case KnownNativeConversion.UpCasting:
-					conversionFn = UpCast<FromType, ToType>;
+					conversionFn = UpCast<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.DownCasting:
-					fallbackConversionFn = this.DownCast<FromType, ToType>;
+					fallbackConversionFn = this.DownCast<FromTypeT, ToTypeT>;
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.NullableToNullable:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = NullableToNullableAot<FromType, ToType>;
+						fallbackConversionFn = NullableToNullableAot<FromTypeT, ToTypeT>;
 					}
 					else
 					{
 						var nullableToNullableMethod = new Func<int?, string, IFormatProvider, int?>(NullableToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
 							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromType, string?, IFormatProvider?, ToType>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
+						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
 					}
 
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
@@ -276,48 +276,48 @@ namespace deniszykov.TypeConversion
 				case KnownNativeConversion.NullableToAny:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = NullableToAnyAot<FromType, ToType>;
+						fallbackConversionFn = NullableToAnyAot<FromTypeT, ToTypeT>;
 					}
 					else
 					{
 						var nullableToNullableMethod = new Func<int?, string, IFormatProvider, int>(NullableToAny<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
 							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType)!, toType);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromType, string?, IFormatProvider?, ToType>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
+						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
 					}
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.AnyToNullable:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = AnyToNullableAot<FromType, ToType>;
+						fallbackConversionFn = AnyToNullableAot<FromTypeT, ToTypeT>;
 					}
 					else
 					{
 						var nullableToNullableMethod = new Func<int, string, IFormatProvider, int?>(AnyToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
 							.MakeGenericMethod(fromType, Nullable.GetUnderlyingType(toType)!);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromType, string?, IFormatProvider?, ToType>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
+						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
 					}
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.EnumToNumber:
-					conversionFn = ConvertEnumToNumber<FromType, ToType>;
+					conversionFn = ConvertEnumToNumber<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.EnumToEnum:
-					conversionFn = ConvertEnumToEnum<FromType, ToType>;
+					conversionFn = ConvertEnumToEnum<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.NumberToEnum:
-					conversionFn = ConvertNumberToEnum<FromType, ToType>;
+					conversionFn = ConvertNumberToEnum<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.EnumToString:
-					conversionFn = ConvertEnumToString<FromType, ToType>;
+					conversionFn = ConvertEnumToString<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.StringToEnum:
-					conversionFn = ConvertStringToEnum<FromType, ToType>;
-					safeConversionFn = ConvertStringToEnumSafe<FromType, ToType>;
+					conversionFn = ConvertStringToEnum<FromTypeT, ToTypeT>;
+					safeConversionFn = ConvertStringToEnumSafe<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.Unknown:
@@ -332,7 +332,7 @@ namespace deniszykov.TypeConversion
 				var toTypeConverter = this.metadataProvider.GetTypeConverter(toType);
 				if (toTypeConverter?.CanConvertFrom(fromType) ?? false)
 				{
-					var adapter = new TypeConverterAdapter<FromType, ToType>(toTypeConverter!);
+					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(toTypeConverter!);
 					conversionFn = adapter.ConvertFrom;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
 				}
@@ -340,7 +340,7 @@ namespace deniszykov.TypeConversion
 				var fromTypeConverter = this.metadataProvider.GetTypeConverter(fromType);
 				if (conversionMethods.Length == 0 && (fromTypeConverter?.CanConvertTo(toType) ?? false))
 				{
-					var adapter = new TypeConverterAdapter<FromType, ToType>(fromTypeConverter!);
+					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(fromTypeConverter!);
 					conversionFn = adapter.ConvertTo;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
 				}
@@ -354,9 +354,9 @@ namespace deniszykov.TypeConversion
 
 			if (conversionMethods.Length == 0)
 			{
-				conversionFn = ThrowNoConversionBetweenTypes<FromType, ToType>;
+				conversionFn = ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>;
 				conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.None) };
-				safeConversionFn = (_, _, _) => new KeyValuePair<ToType, bool>(default!, false);
+				safeConversionFn = (_, _, _) => new KeyValuePair<ToTypeT, bool>(default!, false);
 			}
 			else if (conversionFn == null)
 			{
@@ -380,11 +380,11 @@ namespace deniszykov.TypeConversion
 
 				if ((this.converterOptions & ConversionOptions.OptimizeWithExpressions) == 0)
 				{
-					conversionFn = this.PrepareConvertFunc<FromType, ToType>(conversionMethods);
+					conversionFn = this.PrepareConvertFunc<FromTypeT, ToTypeT>(conversionMethods);
 				}
 				else
 				{
-					conversionFn = this.PrepareConvertExpression<FromType, ToType>(conversionMethods);
+					conversionFn = this.PrepareConvertExpression<FromTypeT, ToTypeT>(conversionMethods);
 				}
 			}
 			return new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), defaultFormat, defaultFormatProvider, conversionFn, safeConversionFn);
@@ -533,13 +533,13 @@ namespace deniszykov.TypeConversion
 			}, ConversionQuality.Custom);
 		}
 
-		private Func<FromType, string?, IFormatProvider?, ToType> PrepareConvertExpression<FromType, ToType>(params ConversionMethodInfo[] methods)
+		private Func<FromTypeT, string?, IFormatProvider?, ToTypeT> PrepareConvertExpression<FromTypeT, ToTypeT>(params ConversionMethodInfo[] methods)
 		{
 			if (methods == null) throw new ArgumentNullException(nameof(methods));
 			if (methods.Length == 0) throw new ArgumentOutOfRangeException(nameof(methods));
 
-			var fromType = typeof(FromType);
-			var toType = typeof(ToType);
+			var fromType = typeof(FromTypeT);
+			var toType = typeof(ToTypeT);
 			var fromValueParameter = Expression.Parameter(fromType, "fromValue");
 			var formatParameter = Expression.Parameter(typeof(string), "format");
 			var formatProviderParameter = Expression.Parameter(typeof(IFormatProvider), "formatProvider");
@@ -594,7 +594,7 @@ namespace deniszykov.TypeConversion
 
 			Debug.Assert(convertExpression != null);
 
-			return Expression.Lambda<Func<FromType, string?, IFormatProvider?, ToType>>(
+			return Expression.Lambda<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(
 				Expression.Block(new[] { convertResultVariable }, convertExpression, convertResultVariable),
 				$"Convert_{fromType.Name}_{toType.Name}_via_{string.Join("_or_", methods.Select(m => $"{m.Method.Name}_{string.Join("_", m.Parameters.Select(p => p.Name))}"))}",
 				new[] {
@@ -671,14 +671,14 @@ namespace deniszykov.TypeConversion
 						$"Invalid conversion method: {conversionMethodInfo.Method}. This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
 				}
 
-				if (convertCallExpression.Type != typeof(ToType))
+				if (convertCallExpression.Type != typeof(ToTypeT))
 				{
-					convertCallExpression = Expression.ConvertChecked(convertCallExpression, typeof(ToType));
+					convertCallExpression = Expression.ConvertChecked(convertCallExpression, typeof(ToTypeT));
 				}
 				return convertCallExpression;
 			}
 		}
-		private Func<FromType, string?, IFormatProvider?, ToType> PrepareConvertFunc<FromType, ToType>(params ConversionMethodInfo[] methods)
+		private Func<FromTypeT, string?, IFormatProvider?, ToTypeT> PrepareConvertFunc<FromTypeT, ToTypeT>(params ConversionMethodInfo[] methods)
 		{
 			if (methods == null) throw new ArgumentNullException(nameof(methods));
 			if (methods.Length == 0) throw new ArgumentOutOfRangeException(nameof(methods));
@@ -750,7 +750,7 @@ namespace deniszykov.TypeConversion
 						{
 							if (methodInfo.IsStatic)
 							{
-								return (ToType)methodInfo.Invoke(null, arguments)!;
+								return (ToTypeT)methodInfo.Invoke(null, arguments)!;
 							}
 							else if (ReferenceEquals(fromValue, null))
 							{
@@ -758,12 +758,12 @@ namespace deniszykov.TypeConversion
 							}
 							else
 							{
-								return (ToType)methodInfo.Invoke(fromValue, arguments)!;
+								return (ToTypeT)methodInfo.Invoke(fromValue, arguments)!;
 							}
 						}
 						else if (method.Method is ConstructorInfo constructorInfo)
 						{
-							return (ToType)constructorInfo.Invoke(arguments);
+							return (ToTypeT)constructorInfo.Invoke(arguments);
 						}
 						else
 						{
@@ -800,85 +800,85 @@ namespace deniszykov.TypeConversion
 		}
 
 		// predefined types transitions between nullable/enum/base-types/interfaces
-		private ToType NullableToNullableAot<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT NullableToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
-				return default(ToType)!;
+				return default(ToTypeT)!;
 
-			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromType)) ?? typeof(FromType);
-			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToType)) ?? typeof(ToType);
+			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromTypeT)) ?? typeof(FromTypeT);
+			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToTypeT)) ?? typeof(ToTypeT);
 
 			this.GetConverter(fromUnderlyingType, toUnderlyingType).Convert(fromValue, out var result, format, formatProvider);
-			return (ToType)result!;
+			return (ToTypeT)result!;
 		}
-		private ToType NullableToAnyAot<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT NullableToAnyAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var result = default(ToType);
+			var result = default(ToTypeT);
 			if (ReferenceEquals(fromValue, null))
 			{
 				if (ReferenceEquals(result, null))
-					return default(ToType)!;
-				throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToType)}'.");
+					return default(ToTypeT)!;
+				throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToTypeT)}'.");
 			}
 
-			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromType)) ?? typeof(FromType);
+			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromTypeT)) ?? typeof(FromTypeT);
 
-			this.GetConverter(fromUnderlyingType, typeof(ToType)).Convert(fromValue, out var resultObj, format, formatProvider);
-			return (ToType)resultObj!;
+			this.GetConverter(fromUnderlyingType, typeof(ToTypeT)).Convert(fromValue, out var resultObj, format, formatProvider);
+			return (ToTypeT)resultObj!;
 		}
-		private ToType AnyToNullableAot<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT AnyToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
-				return default(ToType)!;
+				return default(ToTypeT)!;
 
-			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToType)) ?? typeof(ToType);
+			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToTypeT)) ?? typeof(ToTypeT);
 
-			this.GetConverter(typeof(FromType), toUnderlyingType).Convert(fromValue, out var result, format, formatProvider);
-			return (ToType)result!;
+			this.GetConverter(typeof(FromTypeT), toUnderlyingType).Convert(fromValue, out var result, format, formatProvider);
+			return (ToTypeT)result!;
 		}
-		private ToType? NullableToNullable<FromType, ToType>(FromType? fromValue, string? format, IFormatProvider? formatProvider) where ToType : struct where FromType : struct
+		private ToTypeT? NullableToNullable<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider) where ToTypeT : struct where FromTypeT : struct
 		{
 			if (fromValue.HasValue == false)
-				return default(ToType?);
+				return default(ToTypeT?);
 
-			this.GetConverter<FromType, ToType>().Convert(fromValue!.Value, out var result, format, formatProvider);
+			this.GetConverter<FromTypeT, ToTypeT>().Convert(fromValue!.Value, out var result, format, formatProvider);
 			return result;
 		}
-		private ToType NullableToAny<FromType, ToType>(FromType? fromValue, string? format, IFormatProvider? formatProvider) where FromType : struct
+		private ToTypeT NullableToAny<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider) where FromTypeT : struct
 		{
-			var result = default(ToType);
+			var result = default(ToTypeT);
 			if (fromValue.HasValue == false)
 			{
 				if (ReferenceEquals(result, null))
-					return default(ToType)!;
-				throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToType)}'.");
+					return default(ToTypeT)!;
+				throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToTypeT)}'.");
 			}
 
-			this.GetConverter<FromType, ToType>().Convert(fromValue.GetValueOrDefault(), out result, format, formatProvider);
+			this.GetConverter<FromTypeT, ToTypeT>().Convert(fromValue.GetValueOrDefault(), out result, format, formatProvider);
 			return result!;
 		}
-		private ToType? AnyToNullable<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider) where ToType : struct
+		private ToTypeT? AnyToNullable<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider) where ToTypeT : struct
 		{
 			if (ReferenceEquals(fromValue, null))
-				return default(ToType?);
+				return default(ToTypeT?);
 
-			this.GetConverter<FromType, ToType>().Convert(fromValue, out var result, format, formatProvider);
+			this.GetConverter<FromTypeT, ToTypeT>().Convert(fromValue, out var result, format, formatProvider);
 			return result;
 		}
-		private ToType DownCast<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT DownCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			if (fromValue is ToType toValue)
+			if (fromValue is ToTypeT toValue)
 			{
 				return toValue;
 			}
-			toValue = default(ToType)!;
+			toValue = default(ToTypeT)!;
 
 			if (ReferenceEquals(fromValue, null))
 			{
 				// ReSharper disable once ConditionIsAlwaysTrueOrFalse
 				if (ReferenceEquals(toValue, null))
 				{
-					return default(ToType)!;
+					return default(ToTypeT)!;
 				}
 				else
 				{
@@ -886,114 +886,114 @@ namespace deniszykov.TypeConversion
 				}
 			}
 			var fromValueType = fromValue.GetType();
-			if (fromValueType == typeof(FromType))
+			if (fromValueType == typeof(FromTypeT))
 			{
-				ThrowNoConversionBetweenTypes<FromType, ToType>(fromValue, format, formatProvider);
+				ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(fromValue, format, formatProvider);
 			}
-			this.GetConverter(fromValueType, typeof(ToType)).Convert(fromValue, out var result, format, formatProvider);
-			return (ToType)result!;
+			this.GetConverter(fromValueType, typeof(ToTypeT)).Convert(fromValue, out var result, format, formatProvider);
+			return (ToTypeT)result!;
 		}
-		private static ToType UpCast<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private static ToTypeT UpCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			return (ToType)(object)fromValue!;
+			return (ToTypeT)(object)fromValue!;
 		}
 
-		private ToType ConvertEnumToNumber<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertEnumToNumber<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var enumConversionInfo = this.GetEnumConversionInfo<FromType>();
-			if (typeof(ToType) == typeof(float))
+			var enumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
+			if (typeof(ToTypeT) == typeof(float))
 			{
-				return (ToType)(object)enumConversionInfo.ToSingle(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToSingle(fromValue!);
 			}
-			if (typeof(ToType) == typeof(double))
+			if (typeof(ToTypeT) == typeof(double))
 			{
-				return (ToType)(object)enumConversionInfo.ToDouble(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToDouble(fromValue!);
 			}
-			if (typeof(ToType) == typeof(byte))
+			if (typeof(ToTypeT) == typeof(byte))
 			{
-				return (ToType)(object)enumConversionInfo.ToByte(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToByte(fromValue!);
 			}
-			if (typeof(ToType) == typeof(sbyte))
+			if (typeof(ToTypeT) == typeof(sbyte))
 			{
-				return (ToType)(object)enumConversionInfo.ToSByte(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToSByte(fromValue!);
 			}
-			if (typeof(ToType) == typeof(short))
+			if (typeof(ToTypeT) == typeof(short))
 			{
-				return (ToType)(object)enumConversionInfo.ToInt16(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToInt16(fromValue!);
 			}
-			if (typeof(ToType) == typeof(ushort))
+			if (typeof(ToTypeT) == typeof(ushort))
 			{
-				return (ToType)(object)enumConversionInfo.ToUInt16(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToUInt16(fromValue!);
 			}
-			if (typeof(ToType) == typeof(int))
+			if (typeof(ToTypeT) == typeof(int))
 			{
-				return (ToType)(object)enumConversionInfo.ToInt32(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToInt32(fromValue!);
 			}
-			if (typeof(ToType) == typeof(uint))
+			if (typeof(ToTypeT) == typeof(uint))
 			{
-				return (ToType)(object)enumConversionInfo.ToUInt32(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToUInt32(fromValue!);
 			}
-			if (typeof(ToType) == typeof(long))
+			if (typeof(ToTypeT) == typeof(long))
 			{
-				return (ToType)(object)enumConversionInfo.ToInt64(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToInt64(fromValue!);
 			}
-			if (typeof(ToType) == typeof(ulong))
+			if (typeof(ToTypeT) == typeof(ulong))
 			{
-				return (ToType)(object)enumConversionInfo.ToUInt64(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToUInt64(fromValue!);
 			}
 
-			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToType)}' while build-in number types are expected.");
+			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToTypeT)}' while build-in number types are expected.");
 		}
-		private ToType ConvertNumberToEnum<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertNumberToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var enumConversionInfo = this.GetEnumConversionInfo<ToType>();
-			if (typeof(FromType) == typeof(float))
+			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
+			if (typeof(FromTypeT) == typeof(float))
 			{
 				return enumConversionInfo.FromSingle((float)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(double))
+			if (typeof(FromTypeT) == typeof(double))
 			{
 				return enumConversionInfo.FromDouble((double)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(byte))
+			if (typeof(FromTypeT) == typeof(byte))
 			{
 				return enumConversionInfo.FromByte((byte)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(sbyte))
+			if (typeof(FromTypeT) == typeof(sbyte))
 			{
 				return enumConversionInfo.FromSByte((sbyte)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(short))
+			if (typeof(FromTypeT) == typeof(short))
 			{
 				return enumConversionInfo.FromInt16((short)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(ushort))
+			if (typeof(FromTypeT) == typeof(ushort))
 			{
 				return enumConversionInfo.FromUInt16((ushort)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(int))
+			if (typeof(FromTypeT) == typeof(int))
 			{
 				return enumConversionInfo.FromInt32((int)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(uint))
+			if (typeof(FromTypeT) == typeof(uint))
 			{
 				return enumConversionInfo.FromUInt32((uint)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(long))
+			if (typeof(FromTypeT) == typeof(long))
 			{
 				return enumConversionInfo.FromInt64((long)(object)fromValue!);
 			}
-			if (typeof(FromType) == typeof(ulong))
+			if (typeof(FromTypeT) == typeof(ulong))
 			{
 				return enumConversionInfo.FromUInt64((ulong)(object)fromValue!);
 			}
 
-			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToType)}' while build-in number types are expected.");
+			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToTypeT)}' while build-in number types are expected.");
 		}
-		private ToType ConvertEnumToEnum<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertEnumToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var fromEnumConversionInfo = this.GetEnumConversionInfo<FromType>();
-			var toEnumConversionInfo = this.GetEnumConversionInfo<ToType>();
+			var fromEnumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
+			var toEnumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 
 			if (fromEnumConversionInfo.IsSigned && toEnumConversionInfo.IsSigned)
 			{
@@ -1004,28 +1004,28 @@ namespace deniszykov.TypeConversion
 				return toEnumConversionInfo.FromUInt64(fromEnumConversionInfo.ToUInt64(fromValue));
 			}
 		}
-		private ToType ConvertEnumToString<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertEnumToString<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var enumConversionInfo = this.GetEnumConversionInfo<FromType>();
-			return (ToType)(object)enumConversionInfo.ToName(fromValue);
+			var enumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
+			return (ToTypeT)(object)enumConversionInfo.ToName(fromValue);
 		}
-		private ToType ConvertStringToEnum<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertStringToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var enumConversionInfo = this.GetEnumConversionInfo<ToType>();
+			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 			var ignoreCase = string.Equals(format, IgnoreCaseFormat, StringComparison.OrdinalIgnoreCase);
 			return enumConversionInfo.Parse((string)(object)fromValue!, ignoreCase);
 		}
-		private KeyValuePair<ToType, bool> ConvertStringToEnumSafe<FromType, ToType>(FromType fromValue, string? format, IFormatProvider? formatProvider)
+		private KeyValuePair<ToTypeT, bool> ConvertStringToEnumSafe<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
-			var enumConversionInfo = this.GetEnumConversionInfo<ToType>();
+			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 			var ignoreCase = string.Equals(format, IgnoreCaseFormat, StringComparison.OrdinalIgnoreCase);
 			var success = enumConversionInfo.TryParse((string)(object)fromValue!, out var result, ignoreCase);
-			return new KeyValuePair<ToType, bool>(result, success);
+			return new KeyValuePair<ToTypeT, bool>(result, success);
 		}
-		private static ToType ThrowNoConversionBetweenTypes<FromType, ToType>(FromType _, string? __, IFormatProvider? ___)
+		private static ToTypeT ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(FromTypeT _, string? __, IFormatProvider? ___)
 		{
 			throw new InvalidOperationException(
-				$"Unable to convert value of type '{typeof(FromType).FullName}' to '{typeof(ToType).FullName}' because there is no conversion method found.");
+				$"Unable to convert value of type '{typeof(FromTypeT).FullName}' to '{typeof(ToTypeT).FullName}' because there is no conversion method found.");
 		}
 		//
 
@@ -1056,9 +1056,9 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <summary>
-		/// Prepare conversion between <typeparamref name="FromType"/> and <typeparamref name="ToType"/> for AOT runtime and expose all internal generic method to static analyzer.
+		/// Prepare conversion between <typeparamref name="FromTypeT"/> and <typeparamref name="ToTypeT"/> for AOT runtime and expose all internal generic method to static analyzer.
 		/// </summary>
-		public static void PrepareTypesForAotRuntime<FromType, ToType>()
+		public static void PrepareTypesForAotRuntime<FromTypeT, ToTypeT>()
 		{
 			// this block of code is never executed but visible to static analyzer
 			// ReSharper disable All
@@ -1066,35 +1066,35 @@ namespace deniszykov.TypeConversion
 			{
 #nullable disable
 				var instance = new TypeConversionProvider();
-				var x = ConversionLookupIndex.FromType<FromType>.ToType<ToType>.ToIndex;
-				var y = new Converter<FromType, ToType>(default, default);
-				instance.CreateConversionDescriptor<FromType, ToType>();
-				instance.RegisterConversion<FromType, ToType>(default, default);
-				instance.PrepareConvertFunc<FromType, ToType>(default);
-				instance.NullableToNullableAot<FromType, ToType>(default, default, default);
-				instance.NullableToAnyAot<FromType, ToType>(default, default, default);
-				instance.AnyToNullableAot<FromType, ToType>(default, default, default);
-				instance.DownCast<FromType, ToType>(default, default, default);
-				UpCast<FromType, ToType>(default, default, default);
+				var x = ConversionLookupIndex.FromType<FromTypeT>.ToType<ToTypeT>.ToIndex;
+				var y = new Converter<FromTypeT, ToTypeT>(default, default, default);
+				instance.CreateConversionDescriptor<FromTypeT, ToTypeT>();
+				instance.RegisterConversion<FromTypeT, ToTypeT>(default, default);
+				instance.PrepareConvertFunc<FromTypeT, ToTypeT>(default);
+				instance.NullableToNullableAot<FromTypeT, ToTypeT>(default, default, default);
+				instance.NullableToAnyAot<FromTypeT, ToTypeT>(default, default, default);
+				instance.AnyToNullableAot<FromTypeT, ToTypeT>(default, default, default);
+				instance.DownCast<FromTypeT, ToTypeT>(default, default, default);
+				UpCast<FromTypeT, ToTypeT>(default, default, default);
 #if !NETSTANDARD1_6
-				if (typeof(FromType).IsEnum)
+				if (typeof(FromTypeT).IsEnum)
 #endif
 				{
-					instance.GetEnumConversionInfo<FromType>();
-					instance.ConvertEnumToNumber<FromType, ToType>(default, default, default);
-					instance.ConvertEnumToString<FromType, ToType>(default, default, default);
-					instance.ConvertEnumToEnum<FromType, ToType>(default, default, default);
+					instance.GetEnumConversionInfo<FromTypeT>();
+					instance.ConvertEnumToNumber<FromTypeT, ToTypeT>(default, default, default);
+					instance.ConvertEnumToString<FromTypeT, ToTypeT>(default, default, default);
+					instance.ConvertEnumToEnum<FromTypeT, ToTypeT>(default, default, default);
 				}
 #if !NETSTANDARD1_6
-				if (typeof(ToType).IsEnum)
+				if (typeof(ToTypeT).IsEnum)
 #endif
 				{
-					instance.GetEnumConversionInfo<ToType>();
-					instance.ConvertNumberToEnum<FromType, ToType>(default, default, default);
-					instance.ConvertStringToEnum<FromType, ToType>(default, default, default);
-					instance.ConvertStringToEnumSafe<FromType, ToType>(default, default, default);
+					instance.GetEnumConversionInfo<ToTypeT>();
+					instance.ConvertNumberToEnum<FromTypeT, ToTypeT>(default, default, default);
+					instance.ConvertStringToEnum<FromTypeT, ToTypeT>(default, default, default);
+					instance.ConvertStringToEnumSafe<FromTypeT, ToTypeT>(default, default, default);
 				}
-				ThrowNoConversionBetweenTypes<FromType, ToType>(default, default, default);
+				ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(default, default, default);
 			}
 #nullable restore
 			// ReSharper enable All
