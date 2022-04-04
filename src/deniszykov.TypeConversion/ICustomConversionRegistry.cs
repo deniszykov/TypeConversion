@@ -3,7 +3,7 @@
 namespace deniszykov.TypeConversion
 {
 	/// <summary>
-	/// Container containing conversion function registration. Implementations are <see cref="TypeConversionProvider"/> and <see cref="TypeConversionProviderConfiguration"/>.
+	/// Container containing conversion function registration. Implementations are <see cref="TypeConversionProvider"/> and <see cref="TypeConversionProviderOptions"/>.
 	/// </summary>
 	public interface ICustomConversionRegistry
 	{

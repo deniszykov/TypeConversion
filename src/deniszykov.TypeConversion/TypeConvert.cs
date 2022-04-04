@@ -16,6 +16,11 @@ namespace System
 	{
 		public static TypeConversionProvider Default = new TypeConversionProvider();
 
+		public const string IgnoreCaseFormat = TypeConversionProvider.IgnoreCaseFormat;
+		public const string CheckedConversionFormat = TypeConversionProvider.CheckedConversionFormat;
+		public const string UncheckedConversionFormat = TypeConversionProvider.UncheckedConversionFormat;
+
+		
 		/// <summary>
 		/// Covert <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
 		/// </summary>

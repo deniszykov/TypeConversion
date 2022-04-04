@@ -51,7 +51,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void ObjectToValueTypeTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -66,7 +66,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void ObjectToNullableTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -81,7 +81,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullObjectToNullableTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -96,7 +96,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullableToObjectTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -111,7 +111,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void ObjectToEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -126,7 +126,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void EnumToObjectTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -141,7 +141,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullableEnumToObjectTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -156,7 +156,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void ObjectToNullableEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -171,7 +171,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullObjectToNullableEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -186,7 +186,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void ObjectToObjectTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -199,7 +199,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullObjectToClassTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -214,7 +214,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullableToNullableTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -230,7 +230,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullableToNullableNullTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -246,7 +246,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void EnumToNullableTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -261,7 +261,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void EnumToEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -276,7 +276,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void EnumToStringTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -291,7 +291,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void StringToEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -306,7 +306,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullableEnumToEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -321,7 +321,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void EnumToNullableEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -336,7 +336,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullableEnumToNullableEnumTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -650,7 +650,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(NumbersTestData))]
 		public void ConvertNumberToStringTest(object expected, ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -694,7 +694,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(NumberTypesTestData))]
 		public void ConvertNumbersTest(Type fromType, Type toType, ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -716,7 +716,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void StringToUrlTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -730,7 +730,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void StringToRelativeUrlTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -744,7 +744,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void StringToVersionTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -758,7 +758,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void StringToDateTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -789,7 +789,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(DatesData))]
 		public void DatesTest(DateTime expected, ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -802,7 +802,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullToStringTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -817,7 +817,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullToIntTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -833,7 +833,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void LongToIntTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -849,7 +849,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void WrongStringToIntTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options
 			}));
 
@@ -865,7 +865,7 @@ namespace deniszykov.TypeConversion.Tests
 		[MemberData(nameof(ConversionOptionsTestData))]
 		public void DateToStringTest(ConversionOptions options)
 		{
-			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderConfiguration {
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions {
 				Options = options | ConversionOptions.PromoteValueToActualType
 			}));
 

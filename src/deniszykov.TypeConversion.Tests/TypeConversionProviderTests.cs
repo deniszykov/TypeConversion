@@ -84,7 +84,7 @@ namespace deniszykov.TypeConversion.Tests
 #if NET45
 				new TypeConversionProviderConfiguration();
 #else
-				Microsoft.Extensions.Options.Options.Create(new TypeConversionProviderConfiguration());
+				Microsoft.Extensions.Options.Options.Create(new TypeConversionProviderOptions());
 #endif
 			var typeConversionProvider = new TypeConversionProvider(configuration, null);
 			Assert.NotNull(typeConversionProvider);
@@ -106,7 +106,7 @@ namespace deniszykov.TypeConversion.Tests
 			var serviceCollection = new ServiceCollection();
 			var conversionCalled = false;
 			var expectedColor = ConsoleColor.Black;
-			serviceCollection.Configure<TypeConversionProviderConfiguration>(options =>
+			serviceCollection.Configure<TypeConversionProviderOptions>(options =>
 			{
 #pragma warning disable 618
 				options.RegisterConversion<Guid, ConsoleColor>((_, _, _) =>
@@ -189,7 +189,7 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var url = new Uri("http://example.com/");
 			var expected = "expected";
-			var configuration = new TypeConversionProviderConfiguration();
+			var configuration = new TypeConversionProviderOptions();
 			configuration.RegisterConversion(new Func<Uri, string, IFormatProvider, string>((uri, _, __) => expected));
 #if NET45
 			var typeConversionProvider = new TypeConversionProvider(configuration);
@@ -206,7 +206,7 @@ namespace deniszykov.TypeConversion.Tests
 			var value = new Uri("http://example.com/");
 			var defaultFormatProvider = CultureInfo.CurrentUICulture;
 			var expected = defaultFormatProvider.Name;
-			var configuration = new TypeConversionProviderConfiguration
+			var configuration = new TypeConversionProviderOptions
 			{
 				DefaultFormatProvider = defaultFormatProvider,
 				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
@@ -233,7 +233,7 @@ namespace deniszykov.TypeConversion.Tests
 			var value = new Uri("http://example.com/");
 			var defaultFormatProvider = CultureInfo.CurrentUICulture;
 			var expected = defaultFormatProvider.Name;
-			var configuration = new TypeConversionProviderConfiguration
+			var configuration = new TypeConversionProviderOptions
 			{
 				DefaultFormatProviderCultureName = defaultFormatProvider.Name,
 				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
@@ -260,7 +260,7 @@ namespace deniszykov.TypeConversion.Tests
 			var value = DateTime.UtcNow;
 			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
 			var expected = value.ToString(null, CultureInfo.InvariantCulture);
-			var configuration = new TypeConversionProviderConfiguration
+			var configuration = new TypeConversionProviderOptions
 			{
 				ConversionMethodSelectionStrategy = ConversionMethodSelectionStrategy.MostSpecificMethod,
 				Options = ConversionOptions.None
@@ -285,7 +285,7 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var value = DateTime.UtcNow;
 			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
-			var configuration = new TypeConversionProviderConfiguration
+			var configuration = new TypeConversionProviderOptions
 			{
 				Options = ConversionOptions.None
 			};
@@ -303,7 +303,7 @@ namespace deniszykov.TypeConversion.Tests
 		public void ConfigurationFastCallOptimizationTest()
 		{
 			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
-			var configuration = new TypeConversionProviderConfiguration
+			var configuration = new TypeConversionProviderOptions
 			{
 				Options = ConversionOptions.FastCast
 			};
@@ -330,7 +330,7 @@ namespace deniszykov.TypeConversion.Tests
 			var value = DateTime.UtcNow;
 			// ReSharper disable once SpecifyACultureInStringConversionExplicitly
 			var expected = value.ToString("o", CultureInfo.InvariantCulture);
-			var configuration = new TypeConversionProviderConfiguration
+			var configuration = new TypeConversionProviderOptions
 			{
 				Options = ConversionOptions.UseDefaultFormatIfNotSpecified
 			};

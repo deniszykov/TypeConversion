@@ -21,7 +21,7 @@ namespace deniszykov.TypeConversion
 	{
 		private static readonly int ConverterArrayIncrementCount = 5;
 
-		public static readonly string IgnoreCaseFormat = "ignoreCase";
+		public const string IgnoreCaseFormat = "ignoreCase";
 
 		private static class ConversionLookupIndex
 		{
@@ -101,13 +101,13 @@ namespace deniszykov.TypeConversion
 		/// <param name="configuration">Configuration options.</param>
 		/// <param name="configurationOptions">Configuration options.</param>
 		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
-		/// <param name="registrations">Registrations of custom providers. Alternative way of registering custom conversion is <see cref="TypeConversionProviderConfiguration"/>.</param>
+		/// <param name="registrations">Registrations of custom providers. Alternative way of registering custom conversion is <see cref="TypeConversionProviderOptions"/>.</param>
 #pragma warning restore 1572
 		public TypeConversionProvider(
 #if NET45
-			TypeConversionProviderConfiguration? configuration = null,
+			TypeConversionProviderOptions? configuration = null,
 #else
-			Microsoft.Extensions.Options.IOptions<TypeConversionProviderConfiguration>? configurationOptions = null,
+			Microsoft.Extensions.Options.IOptions<TypeConversionProviderOptions>? configurationOptions = null,
 
 #endif
 			IConversionMetadataProvider? metadataProvider = null,

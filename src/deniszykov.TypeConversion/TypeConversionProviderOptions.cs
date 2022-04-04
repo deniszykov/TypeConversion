@@ -10,7 +10,7 @@ namespace deniszykov.TypeConversion
 	/// </summary>
 	[DataContract]
 	[PublicAPI]
-	public class TypeConversionProviderConfiguration : ICustomConversionRegistry
+	public class TypeConversionProviderOptions : ICustomConversionRegistry
 	{
 		/// <summary>
 		/// Name of default format provider to set <see cref="ConversionDescriptor.DefaultFormatProvider"/>.
@@ -38,7 +38,7 @@ namespace deniszykov.TypeConversion
 		[IgnoreDataMember]
 		public IFormatProvider? DefaultFormatProvider;
 
-		public TypeConversionProviderConfiguration()
+		public TypeConversionProviderOptions()
 		{
 			this.Options = ConversionOptions.Default;
 			this.ConversionMethodSelectionStrategy = ConversionMethodSelectionStrategy.Default;
