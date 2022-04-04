@@ -101,33 +101,6 @@ namespace deniszykov.TypeConversion
 		/// <param name="configuration">Configuration options.</param>
 		/// <param name="configurationOptions">Configuration options.</param>
 		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
-#pragma warning restore 1572
-#if NET45
-		[Obsolete("Please use .ctr(configuration, metadataProvider, registrations). This constructor will be removed in next major version.")]
-		public TypeConversionProvider
-		(
-			TypeConversionProviderConfiguration? configuration,
-			IConversionMetadataProvider? metadataProvider
-		) : this(configuration, metadataProvider, default(IEnumerable<ICustomConversionRegistration>))
-		{
-		}
-#else
-		public TypeConversionProvider
-		(
-			Microsoft.Extensions.Options.IOptions<TypeConversionProviderConfiguration>? configurationOptions,
-			IConversionMetadataProvider? metadataProvider
-		) : this(configurationOptions, metadataProvider, default(IEnumerable<ICustomConversionRegistration>))
-		{
-		}
-#endif
-
-#pragma warning disable 1572
-		/// <summary>
-		/// Constructor of <see cref="TypeConversionProvider"/>.
-		/// </summary>
-		/// <param name="configuration">Configuration options.</param>
-		/// <param name="configurationOptions">Configuration options.</param>
-		/// <param name="metadataProvider">Metadata provider used to discover conversion method on types. If null then instance of <see cref="ConversionMetadataProvider"/> is created.</param>
 		/// <param name="registrations">Registrations of custom providers. Alternative way of registering custom conversion is <see cref="TypeConversionProviderConfiguration"/>.</param>
 #pragma warning restore 1572
 		public TypeConversionProvider(
@@ -677,6 +650,15 @@ namespace deniszykov.TypeConversion
 						}
 
 						convertCallExpression = Expression.Call(callTarget, methodInfo, arguments);
+
+						if (callTarget.Type.GetTypeInfo().IsValueType == false)
+						{
+							convertCallExpression = Expression.Condition(
+								test: Expression.Equal(callTarget, Expression.Default(callTarget.Type)),
+								ifTrue: Expression.Default(convertCallExpression.Type),
+								ifFalse: convertCallExpression
+							);
+						}
 					}
 				}
 				else if (conversionMethodInfo.Method is ConstructorInfo constructorInfo)
@@ -762,24 +744,35 @@ namespace deniszykov.TypeConversion
 					}
 
 					// invoke method
-					if (method.Method is MethodInfo methodInfo)
+					try
 					{
-						if (methodInfo.IsStatic)
+						if (method.Method is MethodInfo methodInfo)
 						{
-							return (ToType)methodInfo.Invoke(null, arguments)!;
+							if (methodInfo.IsStatic)
+							{
+								return (ToType)methodInfo.Invoke(null, arguments)!;
+							}
+							else if (ReferenceEquals(fromValue, null))
+							{
+								return default;
+							}
+							else
+							{
+								return (ToType)methodInfo.Invoke(fromValue, arguments)!;
+							}
+						}
+						else if (method.Method is ConstructorInfo constructorInfo)
+						{
+							return (ToType)constructorInfo.Invoke(arguments);
 						}
 						else
 						{
-							return (ToType)methodInfo.Invoke(fromValue, arguments)!;
+							throw new InvalidOperationException($"Invalid conversion method: {method.Method}. This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
 						}
 					}
-					else if (method.Method is ConstructorInfo constructorInfo)
+					catch (TargetInvocationException invocationException)
 					{
-						return (ToType)constructorInfo.Invoke(arguments);
-					}
-					else
-					{
-						throw new InvalidOperationException($"Invalid conversion method: {method.Method}. This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
+						throw invocationException.InnerException!.Rethrow();
 					}
 				}
 				throw new InvalidOperationException(); // never happens

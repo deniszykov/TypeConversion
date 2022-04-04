@@ -244,7 +244,7 @@ namespace deniszykov.TypeConversion
 				this.convertToMethodNames.Contains(name);
 
 		}
-		private bool IsConvertFromMethod(MethodInfo method, Type resultType, ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
+		private bool IsConvertFromMethod(MethodInfo method, Type resultType, ParameterInfo[] parameters, out ParameterInfo? fromValueParameter)
 		{
 			if (method == null) throw new ArgumentNullException(nameof(method));
 			if (resultType == null) throw new ArgumentNullException(nameof(resultType));
@@ -265,7 +265,7 @@ namespace deniszykov.TypeConversion
 				method.ReturnType == resultType &&
 				method.DeclaringType == resultType;
 		}
-		private bool IsConvertToMethod(MethodInfo method, Type sourceType, ParameterInfo[] parameters, out ParameterInfo fromValueParameter)
+		private bool IsConvertToMethod(MethodInfo method, Type sourceType, ParameterInfo[] parameters, out ParameterInfo? fromValueParameter)
 		{
 			if (method == null) throw new ArgumentNullException(nameof(method));
 			if (sourceType == null) throw new ArgumentNullException(nameof(sourceType));

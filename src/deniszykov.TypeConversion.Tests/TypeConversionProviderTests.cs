@@ -135,7 +135,7 @@ namespace deniszykov.TypeConversion.Tests
 			serviceCollection.AddSingleton<ICustomConversionRegistration>(new CustomConversion<Uri, string>((uri, _, _) => uri.OriginalString));
 
 			serviceCollection.AddSingleton<ICustomConversionRegistration>(customRegistration);
-			serviceCollection.AddTransient<ITypeConversionProvider, TypeConversionProvider>();
+			serviceCollection.AddSingleton<ITypeConversionProvider, TypeConversionProvider>();
 			var serviceProvider = serviceCollection.BuildServiceProvider();
 
 			var conversionProvider = serviceProvider.GetRequiredService<ITypeConversionProvider>();

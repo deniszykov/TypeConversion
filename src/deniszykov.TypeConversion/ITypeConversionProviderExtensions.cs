@@ -176,12 +176,12 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <summary>
-		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using default format and default format provider.
+		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using default format and default format provider.
 		/// </summary>
-		/// <typeparam name="FromType"></typeparam>
-		/// <typeparam name="ToType"></typeparam>
+		/// <typeparam name="FromTypeT"></typeparam>
+		/// <typeparam name="ToTypeT"></typeparam>
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
 		[MustUseReturnValue, Pure]
 #if NETCOREAPP3_0 || NETSTANDARD2_1
@@ -189,21 +189,21 @@ namespace deniszykov.TypeConversion
 #else
 		[MaybeNull]
 #endif
-		public static ToType Convert<FromType, ToType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue)
+		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, ToType>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, ToTypeT>();
 			converter.Convert(fromValue, out var result, converter.Descriptor.DefaultFormat, converter.Descriptor.DefaultFormatProvider);
 			return result;
 		}
 		/// <summary>
-		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and default format provider.
+		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and default format provider.
 		/// </summary>
-		/// <typeparam name="FromType"></typeparam>
-		/// <typeparam name="ToType"></typeparam>
+		/// <typeparam name="FromTypeT"></typeparam>
+		/// <typeparam name="ToTypeT"></typeparam>
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
 		[MustUseReturnValue, Pure]
@@ -212,11 +212,11 @@ namespace deniszykov.TypeConversion
 #else
 		[MaybeNull]
 #endif
-		public static ToType Convert<FromType, ToType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, string? format)
+		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, ToType>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, ToTypeT>();
 			converter.Convert(fromValue, out var result, format, converter.Descriptor.DefaultFormatProvider);
 			return result;
 		}
@@ -244,12 +244,12 @@ namespace deniszykov.TypeConversion
 			return result;
 		}
 		/// <summary>
-		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
+		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
 		/// </summary>
-		/// <typeparam name="FromType">From type.</typeparam>
-		/// <typeparam name="ToType">To type.</typeparam>
+		/// <typeparam name="FromTypeT">From type.</typeparam>
+		/// <typeparam name="ToTypeT">To type.</typeparam>
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/>.</returns>
@@ -259,66 +259,66 @@ namespace deniszykov.TypeConversion
 #else
 		[MaybeNull]
 #endif
-		public static ToType Convert<FromType, ToType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, string? format, IFormatProvider? formatProvider)
+		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, ToType>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, ToTypeT>();
 			converter.Convert(fromValue, out var result, format, formatProvider);
 			return result;
 		}
 
 		/// <summary>
-		/// Tries to covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using default format and default format provider.
+		/// Tries to covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using default format and default format provider.
 		/// Any exception except <see cref="InvalidCastException"/>, <see cref="FormatException"/>, <see cref="ArithmeticException"/>, <see cref="NotSupportedException"/>, <see cref="ArgumentException"/> and <see cref="InvalidTimeZoneException"/> will be re-thrown.
 		/// </summary>
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <typeparam name="FromType">From type.</typeparam>
-		/// <typeparam name="ToType">To type.</typeparam>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
-		/// <param name="result">Converted to <typeparamref name="ToType"/> value or null.</param>
+		/// <typeparam name="FromTypeT">From type.</typeparam>
+		/// <typeparam name="ToTypeT">To type.</typeparam>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
+		/// <param name="result">Converted to <typeparamref name="ToTypeT"/> value or null.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromType, ToType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, [MaybeNull] out ToType result)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, ToType>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, ToTypeT>();
 			return converter.TryConvert(fromValue, out result, converter.Descriptor.DefaultFormat, converter.Descriptor.DefaultFormatProvider);
 		}
 		/// <summary>
-		/// Tries to covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and default format provider.
+		/// Tries to covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and default format provider.
 		/// Any exception except <see cref="InvalidCastException"/>, <see cref="FormatException"/>, <see cref="ArithmeticException"/>, <see cref="NotSupportedException"/>, <see cref="ArgumentException"/> and <see cref="InvalidTimeZoneException"/> will be re-thrown.
 		/// </summary>
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <typeparam name="FromType">From type.</typeparam>
-		/// <typeparam name="ToType">To type.</typeparam>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
-		/// <param name="result">Converted to <typeparamref name="ToType"/> value or null.</param>
+		/// <typeparam name="FromTypeT">From type.</typeparam>
+		/// <typeparam name="ToTypeT">To type.</typeparam>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
+		/// <param name="result">Converted to <typeparamref name="ToTypeT"/> value or null.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromType, ToType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, [MaybeNull] out ToType result, string? format)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result, string? format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, ToType>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, ToTypeT>();
 			return converter.TryConvert(fromValue, out result, format, converter.Descriptor.DefaultFormatProvider);
 		}
 		/// <summary>
-		/// Tries to covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using default format and <paramref name="formatProvider"/>.
+		/// Tries to covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using default format and <paramref name="formatProvider"/>.
 		/// Any exception except <see cref="InvalidCastException"/>, <see cref="FormatException"/>, <see cref="ArithmeticException"/>, <see cref="NotSupportedException"/>, <see cref="ArgumentException"/> and <see cref="InvalidTimeZoneException"/> will be re-thrown.
 		/// </summary>
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <typeparam name="FromType">From type.</typeparam>
-		/// <typeparam name="ToType">To type.</typeparam>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
-		/// <param name="result">Converted to <typeparamref name="ToType"/> value or null.</param>
+		/// <typeparam name="FromTypeT">From type.</typeparam>
+		/// <typeparam name="ToTypeT">To type.</typeparam>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
+		/// <param name="result">Converted to <typeparamref name="ToTypeT"/> value or null.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromType, ToType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, [MaybeNull] out ToType result, IFormatProvider? formatProvider)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, ToType>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, ToTypeT>();
 			return converter.TryConvert(fromValue, out result, converter.Descriptor.DefaultFormat, formatProvider);
 		}
 		/// <summary>
@@ -342,18 +342,18 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <summary>
-		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <see cref="string"/> using default format and default format provider.
+		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <see cref="string"/> using default format and default format provider.
 		/// </summary>
-		/// <typeparam name="FromType">From type.</typeparam>\
+		/// <typeparam name="FromTypeT">From type.</typeparam>\
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, string>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, string>();
 			converter.Convert(fromValue, out var result, converter.Descriptor.DefaultFormat, converter.Descriptor.DefaultFormatProvider);
 			return result ?? string.Empty;
 		}
@@ -375,37 +375,37 @@ namespace deniszykov.TypeConversion
 			return result ?? string.Empty;
 		}
 		/// <summary>
-		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <see cref="string"/> using default format and <paramref name="formatProvider"/>.
+		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <see cref="string"/> using default format and <paramref name="formatProvider"/>.
 		/// </summary>
-		/// <typeparam name="FromType">From type.</typeparam>\
+		/// <typeparam name="FromTypeT">From type.</typeparam>\
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, IFormatProvider? formatProvider)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, string>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, string>();
 			converter.Convert(fromValue, out var result, converter.Descriptor.DefaultFormat, formatProvider);
 			return result ?? string.Empty;
 		}
 		/// <summary>
-		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromType"/> to <see cref="string"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
+		/// Covert <paramref name="fromValue"/> from <typeparamref name="FromTypeT"/> to <see cref="string"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
 		/// </summary>
-		/// <typeparam name="FromType">From type.</typeparam>\
+		/// <typeparam name="FromTypeT">From type.</typeparam>\
 		/// <param name="typeConversionProvider">Conversion provider instance.</param>
-		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromType"/> type.</param>
+		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromType>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromType fromValue, string? format, IFormatProvider? formatProvider)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
-			var converter = typeConversionProvider.GetConverter<FromType, string>();
+			var converter = typeConversionProvider.GetConverter<FromTypeT, string>();
 			converter.Convert(fromValue, out var result, format, formatProvider);
 			return result ?? string.Empty;
 		}

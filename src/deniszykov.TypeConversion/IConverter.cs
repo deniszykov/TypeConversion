@@ -53,23 +53,23 @@ namespace deniszykov.TypeConversion
 	}
 
 	/// <summary>
-	/// Provides type conversion methods from <typeparamref name="FromType"/> to <typeparamref name="ToType"/>.
+	/// Provides type conversion methods from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/>.
 	/// </summary>
 	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-	public interface IConverter<in FromType, ToType> : IConverter
+	public interface IConverter<in FromTypeT, ToTypeT> : IConverter
 	{
 		/// <summary>
-		/// Covert <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
+		/// Covert <paramref name="value"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
 		/// </summary>
 		/// <param name="value">A value to convert.</param>
 		/// <param name="result">A converted value.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
-		void Convert([AllowNull] FromType value, [MaybeNull] out ToType result, string? format = null, IFormatProvider? formatProvider = null
+		void Convert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null
 		);
 
 		/// <summary>
-		/// Tries to covert <paramref name="value"/> from <typeparamref name="FromType"/> to <typeparamref name="ToType"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
+		/// Tries to covert <paramref name="value"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
 		/// Any exception except <see cref="InvalidCastException"/>, <see cref="FormatException"/>, <see cref="ArithmeticException"/>, <see cref="NotSupportedException"/>, <see cref="ArgumentException"/> and <see cref="InvalidTimeZoneException"/> will be re-thrown.
 		/// </summary>
 		/// <param name="value">A value to convert.</param>
@@ -77,7 +77,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		bool TryConvert([AllowNull] FromType value, [MaybeNull] out ToType result, string? format = null, IFormatProvider? formatProvider = null
+		bool TryConvert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null
 		);
 	}
 }

@@ -38,6 +38,12 @@ namespace deniszykov.TypeConversion
 		[IgnoreDataMember]
 		public IFormatProvider? DefaultFormatProvider;
 
+		public TypeConversionProviderConfiguration()
+		{
+			this.Options = ConversionOptions.Default;
+			this.ConversionMethodSelectionStrategy = ConversionMethodSelectionStrategy.Default;
+		}
+
 		/// <summary>
 		/// Delegate which could be applied to <see cref="ICustomConversionRegistry"/> to register all custom conversions which declared with <see cref="RegisterConversion{FromType,ToType}"/>.
 		/// </summary>

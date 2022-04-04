@@ -3,7 +3,11 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
-		<PackageReleaseNotes># 3.0.4
+		<PackageReleaseNotes># 3.0.5
+refac: removed extra constructor TypeConversionProvider to prevent DI constructor confusion.
+fix: fixed null to any ref type conversion error.
+
+# 3.0.4
 refac: deprecated TypeConversionProviderConfiguration.RegisterConversion in favor of TypeConversionProvider constructor injection.
 feature: added TypeConversionProviderConfiguration.DebugPrintConversions for debug purposes.
 
@@ -47,6 +51,8 @@ feature: added compatibility shim for old 'TypeConvert' package
 	</ItemGroup>
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
-		<PackageTags>type conversion, convert</PackageTags>		
+		<PackageTags>type conversion, convert</PackageTags>
+		<Copyright>(c) Denis Zykov 2022</Copyright>
+		<Version>3.0.5</Version>		
 	</PropertyGroup>
 </Project>

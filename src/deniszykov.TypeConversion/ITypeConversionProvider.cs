@@ -9,11 +9,11 @@ namespace deniszykov.TypeConversion
 	public interface ITypeConversionProvider
 	{
 		/// <summary>
-		/// Get converter instance which could convert values from <typeparamref name="FromType"/> to <typeparamref name="ToType"/>.
+		/// Get converter instance which could convert values from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/>.
 		/// </summary>
 		/// <returns>Instance of <see cref="IConverter{FromType,ToType}"/>. Same instance is returned for same generic parameters.</returns>
 		[MustUseReturnValue]
-		IConverter<FromType, ToType> GetConverter<FromType, ToType>();
+		IConverter<FromTypeT, ToTypeT> GetConverter<FromTypeT, ToTypeT>();
 
 		/// <summary>
 		/// Get converter instance which could convert values from <paramref name="fromType"/> to <paramref name="toType"/>.
