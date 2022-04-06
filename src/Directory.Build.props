@@ -1,7 +1,7 @@
 <Project>
 	<PropertyGroup>
 		<Authors>Denis Zykov</Authors>
-		<Version>3.0.4</Version>
+		<Version>3.0.6</Version>
 		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)sign.snk</AssemblyOriginatorKeyFile>
 		<SignAssembly>True</SignAssembly>
 		<LangVersion>latest</LangVersion>
@@ -12,7 +12,7 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<PackageProjectUrl>https://github.com/deniszykov/TypeConversion</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Copyright>(c) Denis Zykov 2021</Copyright>
+		<Copyright>(c) Denis Zykov 2022</Copyright>
 		<RepositoryUrl>https://github.com/deniszykov/TypeConversion</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<Nullable>enable</Nullable>

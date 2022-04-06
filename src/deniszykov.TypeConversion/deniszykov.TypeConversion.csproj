@@ -3,7 +3,13 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
-		<PackageReleaseNotes># 3.0.5
+		<PackageReleaseNotes># 3.0.6
+refac: renamed TypeConversionProviderConfiguration to TypeConversionProviderOptions
+refac: renamed ConversionMetadataProviderConfiguration into ConversionMetadataProviderOptions to conform .NET Core configuration conversion.
+feature: added type promotion function for value with ConversionOptions.PromoteValueToActualType
+fix: fixed TargetInvocationException instead of actual error is thrown when some conversion failed and OptimizeWithExpressions is disabled in config.
+
+# 3.0.5
 refac: removed extra constructor TypeConversionProvider to prevent DI constructor confusion.
 fix: fixed null to any ref type conversion error.
 
@@ -52,7 +58,5 @@ feature: added compatibility shim for old 'TypeConvert' package
 	<PropertyGroup>
 		<DefineConstants>$(DefineConstants);ENUM_HELPER;NATIVE_CONVERSIONS;TYPE_ACTIVATOR</DefineConstants>
 		<PackageTags>type conversion, convert</PackageTags>
-		<Copyright>(c) Denis Zykov 2022</Copyright>
-		<Version>3.0.5</Version>		
 	</PropertyGroup>
 </Project>
