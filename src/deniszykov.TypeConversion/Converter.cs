@@ -87,9 +87,12 @@ namespace deniszykov.TypeConversion
 				value.GetType() != typeof(FromTypeT))
 			{
 				var actualConverter = this.typeConversionProvider.GetConverter(value.GetType(), typeof(ToTypeT));
-				actualConverter.Convert(value, out var resultObj, format, formatProvider);
-				result = (ToTypeT)resultObj;
-				return;
+				if (actualConverter.Descriptor.HasSomeConversion)
+				{
+					actualConverter.Convert(value, out var resultObj, format, formatProvider);
+					result = (ToTypeT)resultObj;
+					return;
+				}
 			}
 
 			var convertFn = (Func<FromTypeT, string?, IFormatProvider?, ToTypeT>)this.Descriptor.Conversion;
@@ -117,9 +120,12 @@ namespace deniszykov.TypeConversion
 				value.GetType() != typeof(FromTypeT))
 			{
 				var actualConverter = this.typeConversionProvider.GetConverter(value.GetType(), typeof(ToTypeT));
-				var converted = actualConverter.TryConvert(value, out var resultObj, format, formatProvider);
-				result = (ToTypeT)resultObj;
-				return converted;
+				if (actualConverter.Descriptor.HasSomeConversion)
+				{
+					var converted = actualConverter.TryConvert(value, out var resultObj, format, formatProvider);
+					result = (ToTypeT)resultObj;
+					return converted;
+				}
 			}
 
 

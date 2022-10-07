@@ -342,7 +342,7 @@ namespace deniszykov.TypeConversion
 				parameterTypes[p] = this.IsFormatParameter(parameters[p]) ? ConversionParameterType.Format :
 					this.IsFormatProviderParameter(parameters[p]) ? ConversionParameterType.FormatProvider :
 					valueType == null || parameters[p].ParameterType == valueType ? ConversionParameterType.Value :
-					throw new InvalidOperationException("Unknown parameter in conversion method.");
+					throw new InvalidOperationException($"Unexpected parameter '{parameters[p].Name}' in conversion method. Probably method is detected as conversion method by mistake. Shouldn't be happening. Report this case to library developer.");
 
 			}
 

@@ -134,7 +134,7 @@ namespace deniszykov.TypeConversion
 				parameters[1].ParameterType != typeof(string) ||
 				parameters[2].ParameterType != typeof(IFormatProvider))
 			{
-				throw new InvalidOperationException("Invalid native conversion method's signature. Should be fn(value, format, formatProvider).");
+				throw new InvalidOperationException("Invalid native conversion method's signature. Should be fn(value, format, formatProvider). Shouldn't be happening. Report this case to library developer.");
 			}
 
 			return new ConversionMethodInfo(methodInfo, parameters, parameterTypes, conversionQualityOverride ?? ConversionQuality.Native);

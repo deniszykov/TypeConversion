@@ -44,6 +44,11 @@ namespace deniszykov.TypeConversion
 		public Type ToType => this.Methods[0].ToType;
 
 		/// <summary>
+		/// Returns true if any conversion method exists between <see cref="FromType"/> and <see cref="ToType"/> types.
+		/// </summary>
+		public bool HasSomeConversion => this.Methods.Count > 1 || this.Methods[0].Quality != ConversionQuality.None;
+
+		/// <summary>
 		/// Constructor for <see cref="ConversionDescriptor"/>.
 		/// </summary>
 		/// <param name="methods">One or more methods. Value for <see cref="Methods"/>.</param>

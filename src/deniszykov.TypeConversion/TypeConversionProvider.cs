@@ -143,7 +143,7 @@ namespace deniszykov.TypeConversion
 
 			if (registrations != null)
 			{
-				foreach(var registration in registrations)
+				foreach (var registration in registrations)
 				{
 					registration.Register(this);
 				}
@@ -191,7 +191,8 @@ namespace deniszykov.TypeConversion
 			}
 
 			var getConverterMethod = this.getConverterDefinition.MakeGenericMethod(fromType, toType);
-			getConverterFunc = ReflectionExtensions.CreateDelegate<Func<IConverter>>(this, getConverterMethod, throwOnBindFailure: true) ?? throw new InvalidOperationException();
+			getConverterFunc = ReflectionExtensions.CreateDelegate<Func<IConverter>>(this, getConverterMethod, throwOnBindFailure: true) ??
+				throw new InvalidOperationException($"Failed to create conversion delegate from '{getConverterMethod}' method.");
 
 			this.getConverterByTypes[typePairIndex] = getConverterFunc;
 
@@ -268,7 +269,8 @@ namespace deniszykov.TypeConversion
 					{
 						var nullableToNullableMethod = new Func<int?, string, IFormatProvider, int?>(NullableToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
 							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
+						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create nullable-to-nullable conversion delegate from '{nullableToNullableMethod}' method.");
 					}
 
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
@@ -280,9 +282,10 @@ namespace deniszykov.TypeConversion
 					}
 					else
 					{
-						var nullableToNullableMethod = new Func<int?, string, IFormatProvider, int>(NullableToAny<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
+						var nullableToAnyMethod = new Func<int?, string, IFormatProvider, int>(NullableToAny<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
 							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType)!, toType);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
+						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToAnyMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create nullable-to-any conversion delegate from '{nullableToAnyMethod}' method.");
 					}
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
@@ -293,9 +296,10 @@ namespace deniszykov.TypeConversion
 					}
 					else
 					{
-						var nullableToNullableMethod = new Func<int, string, IFormatProvider, int?>(AnyToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
+						var anyToNullableMethod = new Func<int, string, IFormatProvider, int?>(AnyToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
 							.MakeGenericMethod(fromType, Nullable.GetUnderlyingType(toType)!);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod) ?? throw new InvalidOperationException();
+						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, anyToNullableMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create any-to-nullable conversion delegate from '{anyToNullableMethod}' method.");
 					}
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
@@ -667,8 +671,8 @@ namespace deniszykov.TypeConversion
 				}
 				else
 				{
-					throw new InvalidOperationException(
-						$"Invalid conversion method: {conversionMethodInfo.Method}. This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
+					throw new InvalidOperationException($"Invalid conversion method: {conversionMethodInfo.Method}. " +
+						$"This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
 				}
 
 				if (convertCallExpression.Type != typeof(ToTypeT))
@@ -775,6 +779,8 @@ namespace deniszykov.TypeConversion
 						throw invocationException.InnerException!.Rethrow();
 					}
 				}
+
+				ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(fromValue, format, formatProvider);
 				throw new InvalidOperationException(); // never happens
 			};
 		}
@@ -900,6 +906,7 @@ namespace deniszykov.TypeConversion
 
 		private ToTypeT ConvertEnumToNumber<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
+			var checkedConversion = format != UncheckedConversionFormat;
 			var enumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
 			if (typeof(ToTypeT) == typeof(float))
 			{
@@ -911,81 +918,82 @@ namespace deniszykov.TypeConversion
 			}
 			if (typeof(ToTypeT) == typeof(byte))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToByte(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToByte(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(sbyte))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToSByte(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToSByte(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(short))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToInt16(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToInt16(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(ushort))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToUInt16(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToUInt16(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(int))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToInt32(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToInt32(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(uint))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToUInt32(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToUInt32(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(long))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToInt64(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToInt64(fromValue!, checkedConversion);
 			}
 			if (typeof(ToTypeT) == typeof(ulong))
 			{
-				return (ToTypeT)(object)enumConversionInfo.ToUInt64(fromValue!);
+				return (ToTypeT)(object)enumConversionInfo.ToUInt64(fromValue!, checkedConversion);
 			}
 
 			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToTypeT)}' while build-in number types are expected.");
 		}
 		private ToTypeT ConvertNumberToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
+			var checkedConversion = format != UncheckedConversionFormat;
 			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 			if (typeof(FromTypeT) == typeof(float))
 			{
-				return enumConversionInfo.FromSingle((float)(object)fromValue!);
+				return enumConversionInfo.FromSingle((float)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(double))
 			{
-				return enumConversionInfo.FromDouble((double)(object)fromValue!);
+				return enumConversionInfo.FromDouble((double)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(byte))
 			{
-				return enumConversionInfo.FromByte((byte)(object)fromValue!);
+				return enumConversionInfo.FromByte((byte)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(sbyte))
 			{
-				return enumConversionInfo.FromSByte((sbyte)(object)fromValue!);
+				return enumConversionInfo.FromSByte((sbyte)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(short))
 			{
-				return enumConversionInfo.FromInt16((short)(object)fromValue!);
+				return enumConversionInfo.FromInt16((short)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(ushort))
 			{
-				return enumConversionInfo.FromUInt16((ushort)(object)fromValue!);
+				return enumConversionInfo.FromUInt16((ushort)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(int))
 			{
-				return enumConversionInfo.FromInt32((int)(object)fromValue!);
+				return enumConversionInfo.FromInt32((int)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(uint))
 			{
-				return enumConversionInfo.FromUInt32((uint)(object)fromValue!);
+				return enumConversionInfo.FromUInt32((uint)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(long))
 			{
-				return enumConversionInfo.FromInt64((long)(object)fromValue!);
+				return enumConversionInfo.FromInt64((long)(object)fromValue!, checkedConversion);
 			}
 			if (typeof(FromTypeT) == typeof(ulong))
 			{
-				return enumConversionInfo.FromUInt64((ulong)(object)fromValue!);
+				return enumConversionInfo.FromUInt64((ulong)(object)fromValue!, checkedConversion);
 			}
 
 			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToTypeT)}' while build-in number types are expected.");
@@ -994,14 +1002,15 @@ namespace deniszykov.TypeConversion
 		{
 			var fromEnumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
 			var toEnumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
+			var checkedConversion = format != UncheckedConversionFormat;
 
 			if (fromEnumConversionInfo.IsSigned && toEnumConversionInfo.IsSigned)
 			{
-				return toEnumConversionInfo.FromInt64(fromEnumConversionInfo.ToInt64(fromValue));
+				return toEnumConversionInfo.FromInt64(fromEnumConversionInfo.ToInt64(fromValue, checkedConversion), checkedConversion);
 			}
 			else
 			{
-				return toEnumConversionInfo.FromUInt64(fromEnumConversionInfo.ToUInt64(fromValue));
+				return toEnumConversionInfo.FromUInt64(fromEnumConversionInfo.ToUInt64(fromValue, checkedConversion), checkedConversion);
 			}
 		}
 		private ToTypeT ConvertEnumToString<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
@@ -1024,8 +1033,7 @@ namespace deniszykov.TypeConversion
 		}
 		private static ToTypeT ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(FromTypeT _, string? __, IFormatProvider? ___)
 		{
-			throw new InvalidOperationException(
-				$"Unable to convert value of type '{typeof(FromTypeT).FullName}' to '{typeof(ToTypeT).FullName}' because there is no conversion method found.");
+			throw new FormatException($"Unable to convert value of type '{typeof(FromTypeT).FullName}' to '{typeof(ToTypeT).FullName}' because there is no conversion method found.");
 		}
 		//
 
