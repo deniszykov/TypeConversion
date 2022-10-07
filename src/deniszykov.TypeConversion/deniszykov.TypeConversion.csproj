@@ -3,7 +3,10 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
-		<PackageReleaseNotes># 3.0.6
+		<PackageReleaseNotes># 3.0.7
+fix: changed error for "No conversion exists" from InvalidOperationException to FormatException so it would be handled by TryConvert try/catch clause.
+
+# 3.0.6
 refac: renamed TypeConversionProviderConfiguration to TypeConversionProviderOptions
 refac: renamed ConversionMetadataProviderConfiguration into ConversionMetadataProviderOptions to conform .NET Core configuration conversion.
 feature: added type promotion function for value with ConversionOptions.PromoteValueToActualType
