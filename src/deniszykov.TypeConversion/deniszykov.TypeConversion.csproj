@@ -3,8 +3,9 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
-		<PackageReleaseNotes># 3.0.7
-fix: changed error for "No conversion exists" from InvalidOperationException to FormatException so it would be handled by TryConvert try/catch clause.
+		<PackageReleaseNotes># 3.0.7-3.0.8
+feature: added fast execution path for TryConvert methods, any transition methods like nullable-to-any, any-to-nullable, nullable-to-nullable, downcast support TryConvert variant and wouldn't fallback to Convert method. This change increase performance TryConvert calls.
+fix: changed error for "No conversion exists" from InvalidOperationException to FormatException so it would be handled by TryConvert try/catch clause. This could be breaking change if you made logic based on exception types.
 
 # 3.0.6
 refac: renamed TypeConversionProviderConfiguration to TypeConversionProviderOptions

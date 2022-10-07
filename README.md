@@ -85,14 +85,14 @@ At the beginning, for each pair of types, all possible conversions are found. Th
 In one group, method with parameter type closest in inheritance to the required one is selected. 
 For debug purposes `TypeConversionProvider.DebugPrintConversions` could be used to review which conversion methods are selected.
 
-Quality of conversions in descending order: 
+Quality of conversions form worst to best: 
 
-- Constructor
-- TypeConverter
-- Method like Parse, From, To
+- Constructor (worst)
+- System.ComponentModel.TypeConverter
+- Methods like Parse, From, To
 - Explicit conversion operator
 - Implicit conversion operator
-- Native (long -> int, class -> null)
+- Build-in (long -> int, class -> null)
 - Custom
 
 ### Providing custom conversion between types
