@@ -207,7 +207,7 @@ namespace deniszykov.TypeConversion
 			var toTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.ToType<ToTypeT>.ToIndex;
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
 
-			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default(Delegate));
+			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default);
 			var converter = new Converter<FromTypeT, ToTypeT>(this, conversionDescriptor, this.converterOptions);
 			toConverters[toTypeIndex] = converter;
 		}
@@ -248,6 +248,7 @@ namespace deniszykov.TypeConversion
 
 			// fallback conversion is used when no conversion method is found on types
 			var fallbackConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, ToTypeT>?);
+			var safeFallbackConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>?);
 			var fallbackConversionMethodInfo = default(ConversionMethodInfo);
 
 			switch (this.DetectNativeConversion(fromType, toType))
@@ -259,18 +260,23 @@ namespace deniszykov.TypeConversion
 				case KnownNativeConversion.DownCasting:
 					fallbackConversionFn = this.DownCast<FromTypeT, ToTypeT>;
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
+					safeFallbackConversionFn = this.TryDownCast<FromTypeT, ToTypeT>;
 					goto default;
 				case KnownNativeConversion.NullableToNullable:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = NullableToNullableAot<FromTypeT, ToTypeT>;
+						fallbackConversionFn = this.NullableToNullableAot<FromTypeT, ToTypeT>;
+						safeFallbackConversionFn = this.TryNullableToNullableAot<FromTypeT, ToTypeT>;
 					}
 					else
 					{
-						var nullableToNullableMethod = new Func<int?, string, IFormatProvider, int?>(NullableToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
-							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
+						var nullableToNullableMethod = InstantiateGenericMethod<int?, int?>(this.NullableToNullable<int, int>, Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
 						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod, throwOnBindFailure: true) ??
 							throw new InvalidOperationException($"Failed to create nullable-to-nullable conversion delegate from '{nullableToNullableMethod}' method.");
+
+						var safeNullableToNullableMethod = InstantiateGenericMethod<int?, int?>(this.TryNullableToNullable<int, int>, Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
+						safeFallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToNullableMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create safe nullable-to-nullable conversion delegate from '{safeNullableToNullableMethod}' method.");
 					}
 
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
@@ -278,50 +284,58 @@ namespace deniszykov.TypeConversion
 				case KnownNativeConversion.NullableToAny:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = NullableToAnyAot<FromTypeT, ToTypeT>;
+						fallbackConversionFn = this.NullableToAnyAot<FromTypeT, ToTypeT>;
+						safeFallbackConversionFn = this.TryNullableToAnyAot<FromTypeT, ToTypeT>;
 					}
 					else
 					{
-						var nullableToAnyMethod = new Func<int?, string, IFormatProvider, int>(NullableToAny<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
-							.MakeGenericMethod(Nullable.GetUnderlyingType(fromType)!, toType);
+						var nullableToAnyMethod = InstantiateGenericMethod<int?, int>(this.NullableToAny<int, int>, Nullable.GetUnderlyingType(fromType)!, toType);
 						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToAnyMethod, throwOnBindFailure: true) ??
 							throw new InvalidOperationException($"Failed to create nullable-to-any conversion delegate from '{nullableToAnyMethod}' method.");
+
+						var safeNullableToAnyMethod = InstantiateGenericMethod<int?, int>(this.TryNullableToAny<int, int>, Nullable.GetUnderlyingType(fromType)!, toType);
+						safeFallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToAnyMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create safe nullable-to-any conversion delegate from '{safeNullableToAnyMethod}' method.");
 					}
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.AnyToNullable:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = AnyToNullableAot<FromTypeT, ToTypeT>;
+						fallbackConversionFn = this.AnyToNullableAot<FromTypeT, ToTypeT>;
+						safeFallbackConversionFn = this.TryAnyToNullableAot<FromTypeT, ToTypeT>;
 					}
 					else
 					{
-						var anyToNullableMethod = new Func<int, string, IFormatProvider, int?>(AnyToNullable<int, int>).GetMethodInfo()!.GetGenericMethodDefinition()
-							.MakeGenericMethod(fromType, Nullable.GetUnderlyingType(toType)!);
+						var anyToNullableMethod = InstantiateGenericMethod<int, int?>(this.AnyToNullable<int, int>, fromType, Nullable.GetUnderlyingType(toType)!);
 						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, anyToNullableMethod, throwOnBindFailure: true) ??
 							throw new InvalidOperationException($"Failed to create any-to-nullable conversion delegate from '{anyToNullableMethod}' method.");
+
+						var safeNullableToAnyMethod = InstantiateGenericMethod<int, int?>(this.TryAnyToNullable<int, int>, fromType, Nullable.GetUnderlyingType(toType)!);
+						safeFallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToAnyMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create safe any-to-nullable conversion delegate from '{safeNullableToAnyMethod}' method.");
 					}
 					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.EnumToNumber:
-					conversionFn = ConvertEnumToNumber<FromTypeT, ToTypeT>;
+					conversionFn = this.ConvertEnumToNumber<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.EnumToEnum:
-					conversionFn = ConvertEnumToEnum<FromTypeT, ToTypeT>;
+					conversionFn = this.ConvertEnumToEnum<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.NumberToEnum:
-					conversionFn = ConvertNumberToEnum<FromTypeT, ToTypeT>;
+					conversionFn = this.ConvertNumberToEnum<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.EnumToString:
-					conversionFn = ConvertEnumToString<FromTypeT, ToTypeT>;
+					conversionFn = this.ConvertEnumToString<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.StringToEnum:
-					conversionFn = ConvertStringToEnum<FromTypeT, ToTypeT>;
-					safeConversionFn = ConvertStringToEnumSafe<FromTypeT, ToTypeT>;
+					conversionFn = this.ConvertStringToEnum<FromTypeT, ToTypeT>;
+					safeConversionFn = this.TryConvertStringToEnum<FromTypeT, ToTypeT>;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
 					break;
 				case KnownNativeConversion.Unknown:
@@ -336,7 +350,7 @@ namespace deniszykov.TypeConversion
 				var toTypeConverter = this.metadataProvider.GetTypeConverter(toType);
 				if (toTypeConverter?.CanConvertFrom(fromType) ?? false)
 				{
-					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(toTypeConverter!);
+					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(toTypeConverter);
 					conversionFn = adapter.ConvertFrom;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
 				}
@@ -344,7 +358,7 @@ namespace deniszykov.TypeConversion
 				var fromTypeConverter = this.metadataProvider.GetTypeConverter(fromType);
 				if (conversionMethods.Length == 0 && (fromTypeConverter?.CanConvertTo(toType) ?? false))
 				{
-					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(fromTypeConverter!);
+					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(fromTypeConverter);
 					conversionFn = adapter.ConvertTo;
 					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
 				}
@@ -354,6 +368,7 @@ namespace deniszykov.TypeConversion
 			{
 				conversionMethods = new[] { fallbackConversionMethodInfo };
 				conversionFn = fallbackConversionFn;
+				safeConversionFn = safeFallbackConversionFn;
 			}
 
 			if (conversionMethods.Length == 0)
@@ -758,7 +773,7 @@ namespace deniszykov.TypeConversion
 							}
 							else if (ReferenceEquals(fromValue, null))
 							{
-								return default;
+								return default!;
 							}
 							else
 							{
@@ -809,13 +824,36 @@ namespace deniszykov.TypeConversion
 		private ToTypeT NullableToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
-				return default(ToTypeT)!;
+			{
+				return default!;
+			}
 
 			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromTypeT)) ?? typeof(FromTypeT);
 			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToTypeT)) ?? typeof(ToTypeT);
 
-			this.GetConverter(fromUnderlyingType, toUnderlyingType).Convert(fromValue, out var result, format, formatProvider);
-			return (ToTypeT)result!;
+			var converter = this.GetConverter(fromUnderlyingType, toUnderlyingType);
+			converter.Convert(fromValue, out var resultObj, format, formatProvider);
+			return (ToTypeT)resultObj!;
+		}
+		private KeyValuePair<ToTypeT, bool> TryNullableToNullableAot<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		{
+			if (ReferenceEquals(fromValue, null))
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, true);
+			}
+
+			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromTypeT)) ?? typeof(FromTypeT);
+			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToTypeT)) ?? typeof(ToTypeT);
+
+			var converter = this.GetConverter(fromUnderlyingType, toUnderlyingType);
+			if (converter.TryConvert(fromValue, out var result, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT, bool>((ToTypeT)result!, true);
+			}
+			else
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, false); // conversion failed
+			}
 		}
 		private ToTypeT NullableToAnyAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
@@ -823,32 +861,106 @@ namespace deniszykov.TypeConversion
 			if (ReferenceEquals(fromValue, null))
 			{
 				if (ReferenceEquals(result, null))
-					return default(ToTypeT)!;
-				throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToTypeT)}'.");
+				{
+					return default!;
+				}
+				else
+				{
+					throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToTypeT)}'.");
+				}
 			}
 
 			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromTypeT)) ?? typeof(FromTypeT);
-
-			this.GetConverter(fromUnderlyingType, typeof(ToTypeT)).Convert(fromValue, out var resultObj, format, formatProvider);
+			var converter = this.GetConverter(fromUnderlyingType, typeof(ToTypeT));
+			converter.Convert(fromValue, out var resultObj, format, formatProvider);
 			return (ToTypeT)resultObj!;
+		}
+		private KeyValuePair<ToTypeT, bool> TryNullableToAnyAot<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		{
+			var result = default(ToTypeT);
+			if (ReferenceEquals(fromValue, null))
+			{
+				if (ReferenceEquals(result, null))
+				{
+					return new KeyValuePair<ToTypeT, bool>(default!, true);
+				}
+				else
+				{
+					return new KeyValuePair<ToTypeT, bool>(default!, false); // unable to cast null to ToTypeT
+				}
+			}
+
+			var fromUnderlyingType = Nullable.GetUnderlyingType(typeof(FromTypeT)) ?? typeof(FromTypeT);
+			var converter = this.GetConverter(fromUnderlyingType, typeof(ToTypeT));
+			if (converter.TryConvert(fromValue, out var resultObj, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT, bool>((ToTypeT)resultObj!, true);
+
+			}
+			else
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
+			}
 		}
 		private ToTypeT AnyToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
-				return default(ToTypeT)!;
+			{
+				return default!;
+			}
 
 			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToTypeT)) ?? typeof(ToTypeT);
-
-			this.GetConverter(typeof(FromTypeT), toUnderlyingType).Convert(fromValue, out var result, format, formatProvider);
+			var converter = this.GetConverter(typeof(FromTypeT), toUnderlyingType);
+			converter.Convert(fromValue, out var result, format, formatProvider);
 			return (ToTypeT)result!;
 		}
-		private ToTypeT? NullableToNullable<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider) where ToTypeT : struct where FromTypeT : struct
+		private KeyValuePair<ToTypeT, bool> TryAnyToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		{
+			if (ReferenceEquals(fromValue, null))
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, true);
+			}
+
+			var toUnderlyingType = Nullable.GetUnderlyingType(typeof(ToTypeT)) ?? typeof(ToTypeT);
+			var converter = this.GetConverter(typeof(FromTypeT), toUnderlyingType);
+			if (converter.TryConvert(fromValue, out var resultObj, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT, bool>((ToTypeT)resultObj!, true);
+			}
+			else
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
+			}
+		}
+		private ToTypeT? NullableToNullable<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+			where ToTypeT : struct where FromTypeT : struct
 		{
 			if (fromValue.HasValue == false)
-				return default(ToTypeT?);
+			{
+				return default;
+			}
 
-			this.GetConverter<FromTypeT, ToTypeT>().Convert(fromValue!.Value, out var result, format, formatProvider);
+			var converter = this.GetConverter<FromTypeT, ToTypeT>();
+			converter.Convert(fromValue.Value, out var result, format, formatProvider);
 			return result;
+		}
+		private KeyValuePair<ToTypeT?, bool> TryNullableToNullable<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+			where FromTypeT : struct where ToTypeT : struct
+		{
+			if (fromValue.HasValue == false)
+			{
+				return new KeyValuePair<ToTypeT?, bool>(default!, true);
+			}
+
+			var converter = this.GetConverter<FromTypeT, ToTypeT>();
+			if (converter.TryConvert(fromValue.Value, out var result, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT?, bool>(result, true);
+			}
+			else
+			{
+				return new KeyValuePair<ToTypeT?, bool>(default!, false);  // conversion failed
+			}
 		}
 		private ToTypeT NullableToAny<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider) where FromTypeT : struct
 		{
@@ -856,20 +968,74 @@ namespace deniszykov.TypeConversion
 			if (fromValue.HasValue == false)
 			{
 				if (ReferenceEquals(result, null))
-					return default(ToTypeT)!;
-				throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToTypeT)}'.");
+				{
+					return default!;
+				}
+				else
+				{
+					throw new InvalidCastException($"Unable to convert <null> to '{typeof(ToTypeT)}'.");
+				}
 			}
 
-			this.GetConverter<FromTypeT, ToTypeT>().Convert(fromValue.GetValueOrDefault(), out result, format, formatProvider);
+			var converter = this.GetConverter<FromTypeT, ToTypeT>();
+			converter.Convert(fromValue.GetValueOrDefault(), out result, format, formatProvider);
 			return result!;
+		}
+		private KeyValuePair<ToTypeT, bool> TryNullableToAny<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+			where FromTypeT : struct
+		{
+			var result = default(ToTypeT);
+			if (fromValue.HasValue == false)
+			{
+				if (ReferenceEquals(result, null))
+				{
+					return new KeyValuePair<ToTypeT, bool>(default!, true);
+				}
+				else
+				{
+					return new KeyValuePair<ToTypeT, bool>(default!, false); // unable to cast null to ToTypeT
+				}
+			}
+
+			var converter = this.GetConverter<FromTypeT, ToTypeT>();
+			if (converter.TryConvert(fromValue.GetValueOrDefault(), out result, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT, bool>(result!, true);
+
+			}
+			else
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
+			}
 		}
 		private ToTypeT? AnyToNullable<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider) where ToTypeT : struct
 		{
 			if (ReferenceEquals(fromValue, null))
-				return default(ToTypeT?);
+			{
+				return default;
+			}
 
-			this.GetConverter<FromTypeT, ToTypeT>().Convert(fromValue, out var result, format, formatProvider);
+			var converter = this.GetConverter<FromTypeT, ToTypeT>();
+			converter.Convert(fromValue, out var result, format, formatProvider);
 			return result;
+		}
+		private KeyValuePair<ToTypeT?, bool> TryAnyToNullable<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+			where ToTypeT : struct
+		{
+			if (ReferenceEquals(fromValue, null))
+			{
+				return new KeyValuePair<ToTypeT?, bool>(default!, true);
+			}
+
+			var converter = this.GetConverter<FromTypeT, ToTypeT>();
+			if (converter.TryConvert(fromValue, out var result, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT?, bool>(result, true);
+			}
+			else
+			{
+				return new KeyValuePair<ToTypeT?, bool>(default!, false);  // conversion failed
+			}
 		}
 		private ToTypeT DownCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
@@ -877,14 +1043,14 @@ namespace deniszykov.TypeConversion
 			{
 				return toValue;
 			}
-			toValue = default(ToTypeT)!;
+			toValue = default!;
 
 			if (ReferenceEquals(fromValue, null))
 			{
 				// ReSharper disable once ConditionIsAlwaysTrueOrFalse
 				if (ReferenceEquals(toValue, null))
 				{
-					return default(ToTypeT)!;
+					return default!;
 				}
 				else
 				{
@@ -896,8 +1062,43 @@ namespace deniszykov.TypeConversion
 			{
 				ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(fromValue, format, formatProvider);
 			}
-			this.GetConverter(fromValueType, typeof(ToTypeT)).Convert(fromValue, out var result, format, formatProvider);
+
+			var converter = this.GetConverter(fromValueType, typeof(ToTypeT));
+			converter.Convert(fromValue, out var result, format, formatProvider);
 			return (ToTypeT)result!;
+		}
+		private KeyValuePair<ToTypeT, bool> TryDownCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		{
+			if (fromValue is ToTypeT toValue)
+			{
+				return new KeyValuePair<ToTypeT, bool>(toValue, true);
+			}
+			toValue = default!;
+
+			if (ReferenceEquals(fromValue, null))
+			{
+				// ReSharper disable once ConditionIsAlwaysTrueOrFalse
+				if (ReferenceEquals(toValue, null))
+				{
+					return new KeyValuePair<ToTypeT, bool>(default!, true);
+				}
+				else
+				{
+					return new KeyValuePair<ToTypeT, bool>(default!, false); // can't convert ValueType to null
+				}
+			}
+			var fromValueType = fromValue.GetType();
+			if (fromValueType == typeof(FromTypeT))
+			{
+				return new KeyValuePair<ToTypeT, bool>(default!, false); // no conversion is found
+			}
+			var converter = this.GetConverter(fromValueType, typeof(ToTypeT));
+			if (converter.TryConvert(fromValue, out var result, format, formatProvider))
+			{
+				return new KeyValuePair<ToTypeT, bool>((ToTypeT)result!, true);
+			}
+			return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
+
 		}
 		private static ToTypeT UpCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
@@ -1024,13 +1225,14 @@ namespace deniszykov.TypeConversion
 			var ignoreCase = string.Equals(format, IgnoreCaseFormat, StringComparison.OrdinalIgnoreCase);
 			return enumConversionInfo.Parse((string)(object)fromValue!, ignoreCase);
 		}
-		private KeyValuePair<ToTypeT, bool> ConvertStringToEnumSafe<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private KeyValuePair<ToTypeT, bool> TryConvertStringToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 			var ignoreCase = string.Equals(format, IgnoreCaseFormat, StringComparison.OrdinalIgnoreCase);
 			var success = enumConversionInfo.TryParse((string)(object)fromValue!, out var result, ignoreCase);
 			return new KeyValuePair<ToTypeT, bool>(result, success);
 		}
+
 		private static ToTypeT ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(FromTypeT _, string? __, IFormatProvider? ___)
 		{
 			throw new FormatException($"Unable to convert value of type '{typeof(FromTypeT).FullName}' to '{typeof(ToTypeT).FullName}' because there is no conversion method found.");
@@ -1100,12 +1302,33 @@ namespace deniszykov.TypeConversion
 					instance.GetEnumConversionInfo<ToTypeT>();
 					instance.ConvertNumberToEnum<FromTypeT, ToTypeT>(default, default, default);
 					instance.ConvertStringToEnum<FromTypeT, ToTypeT>(default, default, default);
-					instance.ConvertStringToEnumSafe<FromTypeT, ToTypeT>(default, default, default);
+					instance.TryConvertStringToEnum<FromTypeT, ToTypeT>(default, default, default);
 				}
 				ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(default, default, default);
 			}
 #nullable restore
 			// ReSharper enable All
+		}
+
+		private static MethodInfo InstantiateGenericMethod<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> methodDelegate, params Type[] typeArguments)
+		{
+			if (methodDelegate == null) throw new ArgumentNullException(nameof(methodDelegate));
+			if (typeArguments == null) throw new ArgumentNullException(nameof(typeArguments));
+
+			var method = methodDelegate.GetMethodInfo();
+			var methodDefinition = method.GetGenericMethodDefinition();
+			if (methodDefinition == null) throw new InvalidOperationException($"Method '{method}' is not generic and can't be used for generic construction.");
+			return methodDefinition.MakeGenericMethod(typeArguments);
+		}
+		private static MethodInfo InstantiateGenericMethod<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>> methodDelegate, params Type[] typeArguments)
+		{
+			if (methodDelegate == null) throw new ArgumentNullException(nameof(methodDelegate));
+			if (typeArguments == null) throw new ArgumentNullException(nameof(typeArguments));
+
+			var method = methodDelegate.GetMethodInfo();
+			var methodDefinition = method.GetGenericMethodDefinition();
+			if (methodDefinition == null) throw new InvalidOperationException($"Method '{method}' is not generic and can't be used for generic construction.");
+			return methodDefinition.MakeGenericMethod(typeArguments);
 		}
 
 		private static bool IsNumber(Type type)
