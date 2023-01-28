@@ -977,6 +977,19 @@ namespace deniszykov.TypeConversion.Tests
 
 		[Theory]
 		[MemberData(nameof(ConversionOptionsTestData))]
+		public void InvalidObjectToNullableTryTest(ConversionOptions options)
+		{
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions
+			{
+				Options = options
+			}));
+
+			var intString = "4.9";
+			Assert.False(conversionProvider.TryConvert<string, int?>(intString, out _));
+		}
+
+		[Theory]
+		[MemberData(nameof(ConversionOptionsTestData))]
 		public void NullObjectToNullableTryTest(ConversionOptions options)
 		{
 			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions

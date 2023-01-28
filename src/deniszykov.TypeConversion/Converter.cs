@@ -146,13 +146,22 @@ namespace deniszykov.TypeConversion
 				}
 				catch (Exception e)
 				{
-					if (e is InvalidCastException || e is FormatException ||
-						e is ArithmeticException || e is NotSupportedException ||
-						e is ArgumentException || e is InvalidTimeZoneException) // TODO make exception list configurable
+					if (this.IsValueFormatException(e) ||
+						(e.InnerException != null && this.IsValueFormatException(e.InnerException)))
 						return false;
 					throw;
 				}
 			}
+		}
+
+		private bool IsValueFormatException(Exception e)  // TODO make exception list configurable
+		{
+			return e is InvalidCastException ||
+				e is FormatException ||
+				e is ArithmeticException ||
+				e is NotSupportedException ||
+				e is ArgumentException ||
+				e is InvalidTimeZoneException;
 		}
 
 		/// <inheritdoc />

@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -348,6 +349,11 @@ namespace deniszykov.TypeConversion
 			if (conversionMethods.Length == 0 || conversionMethods[0].Quality < ConversionQuality.TypeConverter)
 			{
 				var toTypeConverter = this.metadataProvider.GetTypeConverter(toType);
+				if (toTypeConverter is NullableConverter) // worse than nothing
+				{
+					toTypeConverter = null; 
+				}
+				
 				if (toTypeConverter?.CanConvertFrom(fromType) ?? false)
 				{
 					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(toTypeConverter);
@@ -356,6 +362,11 @@ namespace deniszykov.TypeConversion
 				}
 
 				var fromTypeConverter = this.metadataProvider.GetTypeConverter(fromType);
+				if (fromTypeConverter is NullableConverter) // worse than nothing
+				{
+					toTypeConverter = null; 
+				}
+
 				if (conversionMethods.Length == 0 && (fromTypeConverter?.CanConvertTo(toType) ?? false))
 				{
 					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(fromTypeConverter);
