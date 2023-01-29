@@ -45,6 +45,14 @@ namespace deniszykov.TypeConversion
 					}
 
 					var parameters = method.GetParameters();
+
+					if (method.IsStatic && provider.IsSafeConvertFromMethod(method, type, parameters, out var fromValueParameter))
+					{
+						fromMethods ??= new List<ConversionMethodInfo>(10);
+						fromMethods.Add(new ConversionMethodInfo(method, parameters, provider.MapParameters(parameters, fromValueParameter?.ParameterType, type)));
+						continue;
+					}
+
 					if (!parameters.All(provider.IsPlainParameter))
 					{
 						continue;  // some ref/out/by ref like/pointer parameters
@@ -70,7 +78,7 @@ namespace deniszykov.TypeConversion
 					}
 
 					// custom FromX method
-					if (provider.IsConvertFromMethod(method, type, parameters, out var fromValueParameter))
+					if (provider.IsConvertFromMethod(method, type, parameters, out fromValueParameter))
 					{
 						fromMethods ??= new List<ConversionMethodInfo>(10);
 						fromMethods.Add(new ConversionMethodInfo(method, parameters, provider.MapParameters(parameters, fromValueParameter?.ParameterType)));
@@ -240,6 +248,7 @@ namespace deniszykov.TypeConversion
 				name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||
 				name.StartsWith("From", StringComparison.OrdinalIgnoreCase) ||
 				name.StartsWith("To", StringComparison.OrdinalIgnoreCase) ||
+				name.StartsWith("Try", StringComparison.OrdinalIgnoreCase) ||
 				this.convertFromMethodNames.Contains(name) ||
 				this.convertToMethodNames.Contains(name);
 
@@ -282,6 +291,37 @@ namespace deniszykov.TypeConversion
 					this.convertToMethodNames.Contains(method.Name)) &&
 				method.DeclaringType == sourceType;
 		}
+		private bool IsSafeConvertFromMethod(MethodInfo method, Type resultType, ParameterInfo[] parameters, out ParameterInfo? fromValueParameter)
+		{
+			if (method == null) throw new ArgumentNullException(nameof(method));
+			if (resultType == null) throw new ArgumentNullException(nameof(resultType));
+			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+
+			fromValueParameter = default;
+
+			if (method.ReturnType != typeof(bool))
+			{
+				return false;
+			}
+
+			fromValueParameter = parameters.FirstOrDefault(p => !this.IsFormatParameter(p) && !this.IsFormatProviderParameter(p) && this.IsPlainParameter(p));
+			if (fromValueParameter == null)
+			{
+				return false;
+			}
+
+			var resultValueParameter = parameters.FirstOrDefault(p => !this.IsFormatParameter(p) && !this.IsFormatProviderParameter(p) && this.IsOutParameter(p));
+			if (resultValueParameter == null || resultValueParameter.ParameterType.GetElementType() != resultType)
+			{
+				return false;
+			}
+
+			return
+				this.IsValidSafeConversionParameters(parameters, fromValueParameter, resultValueParameter) &&
+				method.IsStatic &&
+				(method.Name.StartsWith("Try", StringComparison.OrdinalIgnoreCase) ||
+					this.convertFromMethodNames.Contains(method.Name));
+		}
 		private bool IsValidConversionParameters(ParameterInfo[] parameters, ParameterInfo? fromValueParameter)
 		{
 			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
@@ -314,9 +354,47 @@ namespace deniszykov.TypeConversion
 					return this.IsFormatParameter(parameters[param1Index]) ^ this.IsFormatParameter(parameters[param2Index]) &&
 						this.IsFormatProviderParameter(parameters[param1Index]) ^ this.IsFormatProviderParameter(parameters[param2Index]);
 				default:
-					return false;
+					return false; // to many extra parameters
 			}
 		}
+		private bool IsValidSafeConversionParameters(ParameterInfo[] parameters, ParameterInfo fromValueParameter, ParameterInfo resultValueParameter)
+		{
+			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
+
+			var param1Index = -1;
+			var param2Index = -1;
+			for (var i = 0; i < parameters.Length; i++)
+			{
+				if (parameters[i] == fromValueParameter ||
+					parameters[i] == resultValueParameter)
+				{
+					continue;
+				}
+
+				if (param1Index == -1)
+				{
+					param1Index = i;
+				}
+				else if (param2Index == -1)
+				{
+					param2Index = i;
+				}
+			}
+
+			switch (parameters.Length - 2)
+			{
+				case 0:
+					return true;
+				case 1:
+					return this.IsFormatParameter(parameters[param1Index]) || this.IsFormatProviderParameter(parameters[param1Index]);
+				case 2:
+					return this.IsFormatParameter(parameters[param1Index]) ^ this.IsFormatParameter(parameters[param2Index]) &&
+						this.IsFormatProviderParameter(parameters[param1Index]) ^ this.IsFormatProviderParameter(parameters[param2Index]);
+				default:
+					return false; // to many extra parameters
+			}
+		}
+
 		private bool IsPlainParameter(ParameterInfo parameterInfo)
 		{
 			if (parameterInfo == null) throw new ArgumentNullException(nameof(parameterInfo));
@@ -331,18 +409,51 @@ namespace deniszykov.TypeConversion
 				parameterInfo.ParameterType.IsPointer == false &&
 				parameterInfo.ParameterType.IsGenericParameter == false;
 		}
+		private bool IsOutParameter(ParameterInfo parameterInfo)
+		{
+			if (parameterInfo == null) throw new ArgumentNullException(nameof(parameterInfo));
 
-		private ConversionParameterType[] MapParameters(ParameterInfo[] parameters, Type? valueType)
+			if (IsByRefLike(parameterInfo))
+			{
+				return false;
+			}
+
+			return parameterInfo.IsIn == false && parameterInfo.IsOut &&
+				parameterInfo.ParameterType.IsByRef &&
+				parameterInfo.ParameterType.IsPointer == false &&
+				parameterInfo.ParameterType.IsGenericParameter == false;
+		}
+
+		private ConversionParameterType[] MapParameters(ParameterInfo[] parameters, Type? fromType, Type? resultType = null)
 		{
 			if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
 			var parameterTypes = new ConversionParameterType[parameters.Length];
 			for (var p = 0; p < parameters.Length; p++)
 			{
-				parameterTypes[p] = this.IsFormatParameter(parameters[p]) ? ConversionParameterType.Format :
-					this.IsFormatProviderParameter(parameters[p]) ? ConversionParameterType.FormatProvider :
-					valueType == null || parameters[p].ParameterType == valueType ? ConversionParameterType.Value :
-					throw new InvalidOperationException($"Unexpected parameter '{parameters[p].Name}' in conversion method. Probably method is detected as conversion method by mistake. Shouldn't be happening. Report this case to library developer.");
+				var parameter = parameters[p];
+				if (this.IsFormatParameter(parameter))
+				{
+					parameterTypes[p] = ConversionParameterType.Format;
+				}
+				else if (this.IsFormatProviderParameter(parameter))
+				{
+					parameterTypes[p] = ConversionParameterType.FormatProvider;
+				}
+				else if (parameter.IsOut && parameter.ParameterType.IsByRef && parameter.ParameterType.GetElementType() == resultType)
+				{
+					parameterTypes[p] = ConversionParameterType.ConvertedValue;
+				}
+				else if (fromType == null || parameter.ParameterType == fromType)
+				{
+					parameterTypes[p] = ConversionParameterType.Value;
+				}
+				else
+				{
+					throw new InvalidOperationException(
+						$"Unexpected parameter '{parameters[p].Name}' in conversion method. " +
+						$"Probably method is detected as conversion method by mistake. Shouldn't be happening. Report this case to library developer.");
+				}
 
 			}
 

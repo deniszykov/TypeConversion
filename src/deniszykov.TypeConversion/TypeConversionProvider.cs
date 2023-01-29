@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -241,183 +240,214 @@ namespace deniszykov.TypeConversion
 			var fromType = typeof(FromTypeT);
 			var toType = typeof(ToTypeT);
 
-			var conversionMethods = default(ConversionMethodInfo[]); // from best to worst
-			var conversionFn = default(Func<FromTypeT, string?, IFormatProvider?, ToTypeT>);
-			var safeConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>);
-			var defaultFormat = default(string);
-			var defaultFormatProvider = this.defaultFormatProvider;
-
 			// fallback conversion is used when no conversion method is found on types
-			var fallbackConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, ToTypeT>?);
-			var safeFallbackConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>?);
-			var fallbackConversionMethodInfo = default(ConversionMethodInfo);
+			var fallbackConversionDescriptor = default(ConversionDescriptor);
 
 			switch (this.DetectNativeConversion(fromType, toType))
 			{
 				case KnownNativeConversion.UpCasting:
-					conversionFn = UpCast<FromTypeT, ToTypeT>;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
-					break;
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						UpCast<FromTypeT, ToTypeT>,
+						default
+					);
 				case KnownNativeConversion.DownCasting:
-					fallbackConversionFn = this.DownCast<FromTypeT, ToTypeT>;
-					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
-					safeFallbackConversionFn = this.TryDownCast<FromTypeT, ToTypeT>;
+					fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						this.DownCast<FromTypeT, ToTypeT>,
+						this.TryDownCast<FromTypeT, ToTypeT>
+					);
 					goto default;
 				case KnownNativeConversion.NullableToNullable:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = this.NullableToNullableAot<FromTypeT, ToTypeT>;
-						safeFallbackConversionFn = this.TryNullableToNullableAot<FromTypeT, ToTypeT>;
+						fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+							this.NullableToNullableAot<FromTypeT, ToTypeT>,
+							this.TryNullableToNullableAot<FromTypeT, ToTypeT>
+						);
 					}
 					else
 					{
 						var nullableToNullableMethod = InstantiateGenericMethod<int?, int?>(this.NullableToNullable<int, int>, Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod, throwOnBindFailure: true) ??
-							throw new InvalidOperationException($"Failed to create nullable-to-nullable conversion delegate from '{nullableToNullableMethod}' method.");
-
 						var safeNullableToNullableMethod = InstantiateGenericMethod<int?, int?>(this.TryNullableToNullable<int, int>, Nullable.GetUnderlyingType(fromType)!, Nullable.GetUnderlyingType(toType)!);
-						safeFallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToNullableMethod, throwOnBindFailure: true) ??
-							throw new InvalidOperationException($"Failed to create safe nullable-to-nullable conversion delegate from '{safeNullableToNullableMethod}' method.");
-					}
 
-					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
+						// ReSharper disable once RedundantTypeArgumentsOfMethod
+						fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+							ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToNullableMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create nullable-to-nullable conversion delegate from '{nullableToNullableMethod}' method."),
+							ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToNullableMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create safe nullable-to-nullable conversion delegate from '{safeNullableToNullableMethod}' method.")
+						);
+					}
 					goto default;
 				case KnownNativeConversion.NullableToAny:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = this.NullableToAnyAot<FromTypeT, ToTypeT>;
-						safeFallbackConversionFn = this.TryNullableToAnyAot<FromTypeT, ToTypeT>;
+						fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+							this.NullableToAnyAot<FromTypeT, ToTypeT>,
+							this.TryNullableToAnyAot<FromTypeT, ToTypeT>
+						);
 					}
 					else
 					{
 						var nullableToAnyMethod = InstantiateGenericMethod<int?, int>(this.NullableToAny<int, int>, Nullable.GetUnderlyingType(fromType)!, toType);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToAnyMethod, throwOnBindFailure: true) ??
-							throw new InvalidOperationException($"Failed to create nullable-to-any conversion delegate from '{nullableToAnyMethod}' method.");
-
 						var safeNullableToAnyMethod = InstantiateGenericMethod<int?, int>(this.TryNullableToAny<int, int>, Nullable.GetUnderlyingType(fromType)!, toType);
-						safeFallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToAnyMethod, throwOnBindFailure: true) ??
-							throw new InvalidOperationException($"Failed to create safe nullable-to-any conversion delegate from '{safeNullableToAnyMethod}' method.");
+
+						// ReSharper disable once RedundantTypeArgumentsOfMethod
+						fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+							ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, nullableToAnyMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create nullable-to-any conversion delegate from '{nullableToAnyMethod}' method."),
+							 ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToAnyMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create safe nullable-to-any conversion delegate from '{safeNullableToAnyMethod}' method.")
+						);
 					}
-					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.AnyToNullable:
 					if ((this.converterOptions & ConversionOptions.OptimizeWithGenerics) == 0)
 					{
-						fallbackConversionFn = this.AnyToNullableAot<FromTypeT, ToTypeT>;
-						safeFallbackConversionFn = this.TryAnyToNullableAot<FromTypeT, ToTypeT>;
+						fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+							this.AnyToNullableAot<FromTypeT, ToTypeT>,
+							this.TryAnyToNullableAot<FromTypeT, ToTypeT>
+						);
 					}
 					else
 					{
 						var anyToNullableMethod = InstantiateGenericMethod<int, int?>(this.AnyToNullable<int, int>, fromType, Nullable.GetUnderlyingType(toType)!);
-						fallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, anyToNullableMethod, throwOnBindFailure: true) ??
-							throw new InvalidOperationException($"Failed to create any-to-nullable conversion delegate from '{anyToNullableMethod}' method.");
-
 						var safeNullableToAnyMethod = InstantiateGenericMethod<int, int?>(this.TryAnyToNullable<int, int>, fromType, Nullable.GetUnderlyingType(toType)!);
-						safeFallbackConversionFn = ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToAnyMethod, throwOnBindFailure: true) ??
-							throw new InvalidOperationException($"Failed to create safe any-to-nullable conversion delegate from '{safeNullableToAnyMethod}' method.");
+
+						// ReSharper disable once RedundantTypeArgumentsOfMethod
+						fallbackConversionDescriptor = this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+							ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(this, anyToNullableMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create any-to-nullable conversion delegate from '{anyToNullableMethod}' method."),
+							ReflectionExtensions.CreateDelegate<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(this, safeNullableToAnyMethod, throwOnBindFailure: true) ??
+							throw new InvalidOperationException($"Failed to create safe any-to-nullable conversion delegate from '{safeNullableToAnyMethod}' method.")
+						);
 					}
-					fallbackConversionMethodInfo = ConversionMethodInfo.FromNativeConversion(fallbackConversionFn);
 					goto default;
 				case KnownNativeConversion.EnumToNumber:
-					conversionFn = this.ConvertEnumToNumber<FromTypeT, ToTypeT>;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
-					break;
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						this.ConvertEnumToNumber<FromTypeT, ToTypeT>,
+						default
+					);
 				case KnownNativeConversion.EnumToEnum:
-					conversionFn = this.ConvertEnumToEnum<FromTypeT, ToTypeT>;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
-					break;
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						this.ConvertEnumToEnum<FromTypeT, ToTypeT>,
+						default
+					);
 				case KnownNativeConversion.NumberToEnum:
-					conversionFn = this.ConvertNumberToEnum<FromTypeT, ToTypeT>;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
-					break;
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						this.ConvertNumberToEnum<FromTypeT, ToTypeT>,
+						default
+					);
 				case KnownNativeConversion.EnumToString:
-					conversionFn = this.ConvertEnumToString<FromTypeT, ToTypeT>;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
-					break;
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						this.ConvertEnumToString<FromTypeT, ToTypeT>,
+						default
+					);
 				case KnownNativeConversion.StringToEnum:
-					conversionFn = this.ConvertStringToEnum<FromTypeT, ToTypeT>;
-					safeConversionFn = this.TryConvertStringToEnum<FromTypeT, ToTypeT>;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn) };
-					break;
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+						this.ConvertStringToEnum<FromTypeT, ToTypeT>,
+						this.TryConvertStringToEnum<FromTypeT, ToTypeT>
+					);
 				case KnownNativeConversion.Unknown:
 				default:
-					conversionMethods = this.FindConversionBetweenTypes(fromType, toType);
-					break;
+					return this.FindConversionAndCreateDescriptor<FromTypeT, ToTypeT>(fallbackConversionDescriptor);
 			}
+		}
+
+		private ConversionDescriptor FindConversionAndCreateDescriptor<FromTypeT, ToTypeT>(ConversionDescriptor? fallbackConversionDescriptor)
+		{
+			var fromType = typeof(FromTypeT);
+			var toType = typeof(ToTypeT);
+
+			var conversionMethods = this.FindConversionBetweenTypes(fromType, toType, safeOnly: false);
 
 #if !NETSTANDARD
-			if (conversionMethods.Length == 0 || conversionMethods[0].Quality < ConversionQuality.TypeConverter)
+			if ((this.converterOptions & ConversionOptions.SkipComponentModelTypeConverters) == 0 &&
+				(conversionMethods.Length == 0 ||
+				conversionMethods[0].Quality < ConversionQuality.TypeConverter))
 			{
 				var toTypeConverter = this.metadataProvider.GetTypeConverter(toType);
-				if (toTypeConverter is NullableConverter) // worse than nothing
+				if (toTypeConverter is System.ComponentModel.NullableConverter) // worse than nothing
 				{
-					toTypeConverter = null; 
+					toTypeConverter = null;
 				}
-				
+
 				if (toTypeConverter?.CanConvertFrom(fromType) ?? false)
 				{
 					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(toTypeConverter);
-					conversionFn = adapter.ConvertFrom;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(adapter.ConvertFrom, null, ConversionQuality.TypeConverter);
 				}
 
 				var fromTypeConverter = this.metadataProvider.GetTypeConverter(fromType);
-				if (fromTypeConverter is NullableConverter) // worse than nothing
+				if (fromTypeConverter is System.ComponentModel.NullableConverter) // worse than nothing
 				{
-					toTypeConverter = null; 
+					toTypeConverter = null;
 				}
 
 				if (conversionMethods.Length == 0 && (fromTypeConverter?.CanConvertTo(toType) ?? false))
 				{
 					var adapter = new TypeConverterAdapter<FromTypeT, ToTypeT>(fromTypeConverter);
-					conversionFn = adapter.ConvertTo;
-					conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.TypeConverter) };
+					return this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(adapter.ConvertTo, null, ConversionQuality.TypeConverter);
 				}
 			}
 #endif
-			if (conversionMethods.Length == 0 && fallbackConversionMethodInfo != null)
-			{
-				conversionMethods = new[] { fallbackConversionMethodInfo };
-				conversionFn = fallbackConversionFn;
-				safeConversionFn = safeFallbackConversionFn;
-			}
 
 			if (conversionMethods.Length == 0)
 			{
-				conversionFn = ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>;
-				conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFn, ConversionQuality.None) };
-				safeConversionFn = (_, _, _) => new KeyValuePair<ToTypeT, bool>(default!, false);
+				return fallbackConversionDescriptor ?? this.CreateNativeConversionDescriptor<FromTypeT, ToTypeT>(
+					ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>,
+					(_, _, _) => new KeyValuePair<ToTypeT, bool>(default!, false),
+					ConversionQuality.None
+				);
 			}
-			else if (conversionFn == null)
-			{
-				defaultFormat = this.metadataProvider.GetDefaultFormat(conversionMethods[0]);
-				if ((fromType == typeof(float) || fromType == typeof(double)) && toType == typeof(string))
-				{
-					defaultFormat ??= "R";
-				}
-				else if ((fromType == typeof(DateTime) && toType == typeof(string)) ||
-					(fromType == typeof(string) && toType == typeof(DateTime)) ||
-					(fromType == typeof(DateTimeOffset) && toType == typeof(string)) ||
-					(fromType == typeof(string) && toType == typeof(DateTimeOffset)))
-				{
-					defaultFormat ??= "o";
-				}
-				else if ((fromType == typeof(TimeSpan) && toType == typeof(string)) ||
-					(fromType == typeof(string) && toType == typeof(TimeSpan)))
-				{
-					defaultFormat ??= "c";
-				}
 
+			var conversionFn = default(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>);
+			if ((this.converterOptions & ConversionOptions.OptimizeWithExpressions) == 0)
+			{
+				conversionFn = this.PrepareConvertFunc<FromTypeT, ToTypeT>(conversionMethods);
+			}
+			else
+			{
+				conversionFn = this.PrepareConvertExpression<FromTypeT, ToTypeT>(conversionMethods);
+			}
+
+			var safeConversionFn = default(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>?);
+			var safeConversionMethods = this.FindConversionBetweenTypes(fromType, toType, safeOnly: true);
+			if (safeConversionMethods.Length > 0)
+			{
 				if ((this.converterOptions & ConversionOptions.OptimizeWithExpressions) == 0)
 				{
-					conversionFn = this.PrepareConvertFunc<FromTypeT, ToTypeT>(conversionMethods);
+					safeConversionFn = this.PrepareConvertFunc<FromTypeT, ToTypeT>(safeConversionMethods);
 				}
 				else
 				{
-					conversionFn = this.PrepareConvertExpression<FromTypeT, ToTypeT>(conversionMethods);
+					safeConversionFn = this.PrepareConvertExpression<FromTypeT, ToTypeT>(safeConversionMethods);
 				}
 			}
-			return new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), defaultFormat, defaultFormatProvider, conversionFn, safeConversionFn);
+
+			var defaultFormat = this.GetDefaultFormat(conversionMethods[0]);
+			return new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), defaultFormat, this.defaultFormatProvider, conversionFn, safeConversionFn);
+		}
+
+		private ConversionDescriptor CreateNativeConversionDescriptor<FromTypeT, ToTypeT>
+		(
+			Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFn,
+			Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFn,
+			ConversionQuality? conversionQualityOverride = null
+		)
+		{
+			var conversionMethods = new[] {
+				ConversionMethodInfo.FromNativeConversion(conversionFn, conversionQualityOverride)
+			};
+			var defaultFormat = this.GetDefaultFormat(conversionMethods[0]);
+			var defaultFormatProvider = this.defaultFormatProvider;
+
+			return new ConversionDescriptor(
+				new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods),
+				defaultFormat,
+				defaultFormatProvider,
+				conversionFn,
+				safeConversionFn
+			);
 		}
 
 		private KnownNativeConversion DetectNativeConversion(Type fromType, Type toType)
@@ -477,7 +507,7 @@ namespace deniszykov.TypeConversion
 			}
 		}
 
-		private ConversionMethodInfo[] FindConversionBetweenTypes(Type fromType, Type toType)
+		private ConversionMethodInfo[] FindConversionBetweenTypes(Type fromType, Type toType, bool safeOnly)
 		{
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
 			if (toType == null) throw new ArgumentNullException(nameof(toType));
@@ -486,14 +516,19 @@ namespace deniszykov.TypeConversion
 
 			foreach (var convertFromMethod in this.metadataProvider.GetConvertFromMethods(toType))
 			{
-				if (convertFromMethod.FromType == fromType && convertFromMethod.ToType == toType)
+				if (convertFromMethod.FromType == fromType &&
+					convertFromMethod.ToType == toType &&
+					(!safeOnly || convertFromMethod.IsSafeConversion))
 				{
 					conversionMethods.Add(convertFromMethod);
 				}
 			}
 			foreach (var convertFromMethod in this.metadataProvider.GetConvertToMethods(fromType))
 			{
-				if (convertFromMethod.FromType == fromType && convertFromMethod.ToType == toType)
+				if (
+					convertFromMethod.FromType == fromType &&
+					convertFromMethod.ToType == toType &&
+					(!safeOnly || convertFromMethod.IsSafeConversion))
 				{
 					conversionMethods.Add(convertFromMethod);
 				}
@@ -536,8 +571,34 @@ namespace deniszykov.TypeConversion
 
 			//
 
-
 			return conversionMethods.ToArray();
+		}
+
+		private string? GetDefaultFormat(ConversionMethodInfo conversionMethodInfo)
+		{
+			if (conversionMethodInfo == null) throw new ArgumentNullException(nameof(conversionMethodInfo));
+
+			var fromType = conversionMethodInfo.FromType;
+			var toType = conversionMethodInfo.ToType;
+			var defaultFormat = this.metadataProvider.GetDefaultFormat(conversionMethodInfo);
+			if ((fromType == typeof(float) || fromType == typeof(double)) && toType == typeof(string))
+			{
+				defaultFormat ??= "R";
+			}
+			else if ((fromType == typeof(DateTime) && toType == typeof(string)) ||
+					(fromType == typeof(string) && toType == typeof(DateTime)) ||
+					(fromType == typeof(DateTimeOffset) && toType == typeof(string)) ||
+					(fromType == typeof(string) && toType == typeof(DateTimeOffset)))
+			{
+				defaultFormat ??= "o";
+			}
+			else if ((fromType == typeof(TimeSpan) && toType == typeof(string)) ||
+					(fromType == typeof(string) && toType == typeof(TimeSpan)))
+			{
+				defaultFormat ??= "c";
+			}
+
+			return defaultFormat;
 		}
 
 		private void InitializeCustomConversion()
@@ -563,7 +624,7 @@ namespace deniszykov.TypeConversion
 			}, ConversionQuality.Custom);
 		}
 
-		private Func<FromTypeT, string?, IFormatProvider?, ToTypeT> PrepareConvertExpression<FromTypeT, ToTypeT>(params ConversionMethodInfo[] methods)
+		private Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>> PrepareConvertExpression<FromTypeT, ToTypeT>(params ConversionMethodInfo[] methods)
 		{
 			if (methods == null) throw new ArgumentNullException(nameof(methods));
 			if (methods.Length == 0) throw new ArgumentOutOfRangeException(nameof(methods));
@@ -574,58 +635,55 @@ namespace deniszykov.TypeConversion
 			var formatParameter = Expression.Parameter(typeof(string), "format");
 			var formatProviderParameter = Expression.Parameter(typeof(IFormatProvider), "formatProvider");
 
-			var convertResultVariable = Expression.Parameter(toType, "result");
-			var convertExpression = (Expression)Expression.Assign(
-				convertResultVariable,
-				CreateConvertExpression(methods.Last())
-			);
-			foreach (var method in methods.Reverse())
+			var resultVariable = Expression.Parameter(typeof(ToTypeT), "result");
+			var resultTupleConstructor = typeof(KeyValuePair<ToTypeT, bool>).GetTypeInfo().GetConstructor(new[] { typeof(ToTypeT), typeof(bool) });
+			var successVariable = Expression.Parameter(typeof(bool), "success");
+			var convertExpression = (Expression)Expression.Empty();
+
+			Debug.Assert(resultTupleConstructor != null, "resultTupleConstructor != null");
+
+			for (var i = methods.Length - 1; i >= 0; i--)
 			{
+				var method = methods[i];
+
 				var hasFormatParameter = method.ConversionParameterTypes.IndexOf(ConversionParameterType.Format) >= 0;
 				var hasFormatProviderParameter = method.ConversionParameterTypes.IndexOf(ConversionParameterType.FormatProvider) >= 0;
 
-				var convertViaMethodExpression = CreateConvertExpression(method);
-				if (!hasFormatParameter && !hasFormatProviderParameter)
+				var testExpression = default(Expression);
+				if (hasFormatParameter && hasFormatProviderParameter)
 				{
-					convertExpression = Expression.Assign(
-						convertResultVariable,
-						convertViaMethodExpression
+					testExpression = Expression.AndAlso(
+						Expression.ReferenceNotEqual(formatParameter, Expression.Constant(null, formatParameter.Type)),
+						Expression.ReferenceNotEqual(formatProviderParameter, Expression.Constant(null, formatProviderParameter.Type))
+					);
+				}
+				else if (hasFormatParameter)
+				{
+					testExpression = Expression.ReferenceNotEqual(formatParameter, Expression.Constant(null, formatParameter.Type));
+				}
+				else if (hasFormatProviderParameter)
+				{
+					testExpression = Expression.ReferenceNotEqual(formatProviderParameter, Expression.Constant(null, formatProviderParameter.Type));
+				}
+
+
+				if (testExpression != null && i != methods.Length - 1)
+				{
+					convertExpression = Expression.IfThenElse(
+						test: testExpression,
+						ifTrue: CreateConvertExpression(method),
+						ifFalse: convertExpression
 					);
 				}
 				else
 				{
-					var testExpression = default(Expression);
-					if (hasFormatParameter && hasFormatProviderParameter)
-					{
-						testExpression = Expression.AndAlso(
-							Expression.ReferenceNotEqual(formatParameter, Expression.Constant(null, formatParameter.Type)),
-							Expression.ReferenceNotEqual(formatProviderParameter, Expression.Constant(null, formatProviderParameter.Type))
-						);
-					}
-					else if (hasFormatParameter)
-					{
-						testExpression = Expression.ReferenceNotEqual(formatParameter, Expression.Constant(null, formatParameter.Type));
-					}
-					else
-					{
-						testExpression = Expression.ReferenceNotEqual(formatProviderParameter, Expression.Constant(null, formatProviderParameter.Type));
-					}
-
-					convertExpression = Expression.IfThenElse(
-						test: testExpression,
-						ifTrue: Expression.Assign(
-							convertResultVariable,
-							convertViaMethodExpression
-						),
-						ifFalse: convertExpression
-					);
+					convertExpression = CreateConvertExpression(method);
 				}
 			}
 
-			Debug.Assert(convertExpression != null);
 
-			return Expression.Lambda<Func<FromTypeT, string?, IFormatProvider?, ToTypeT>>(
-				Expression.Block(new[] { convertResultVariable }, convertExpression, convertResultVariable),
+			return Expression.Lambda<Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>>(
+				Expression.Block(new[] { resultVariable, successVariable }, convertExpression, Expression.New(resultTupleConstructor, resultVariable, successVariable)),
 				$"Convert_{fromType.Name}_{toType.Name}_via_{string.Join("_or_", methods.Select(m => $"{m.Method.Name}_{string.Join("_", m.Parameters.Select(p => p.Name))}"))}",
 				new[] {
 						fromValueParameter,
@@ -654,13 +712,21 @@ namespace deniszykov.TypeConversion
 					{
 						arguments[i] = formatProviderParameter;
 					}
-					else if (methodParameters[i].ParameterType != fromValueParameter.Type)
+					else if (methodParameterTypes[i] == ConversionParameterType.Value && methodParameters[i].ParameterType != fromValueParameter.Type)
 					{
 						arguments[i] = Expression.ConvertChecked(fromValueParameter, methodParameters[i].ParameterType);
 					}
-					else
+					else if (methodParameterTypes[i] == ConversionParameterType.Value)
 					{
 						arguments[i] = fromValueParameter;
+					}
+					else if (methodParameterTypes[i] == ConversionParameterType.ConvertedValue)
+					{
+						arguments[i] = resultVariable;
+					}
+					else
+					{
+						throw new InvalidOperationException($"Invalid enum value '{methodParameterTypes[i]}' for '{nameof(ConversionParameterType)}' enum.");
 					}
 				}
 
@@ -701,14 +767,21 @@ namespace deniszykov.TypeConversion
 						$"This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
 				}
 
-				if (convertCallExpression.Type != typeof(ToTypeT))
+				if (conversionMethodInfo.IsSafeConversion)
 				{
-					convertCallExpression = Expression.ConvertChecked(convertCallExpression, typeof(ToTypeT));
+					convertCallExpression = Expression.Assign(successVariable, convertCallExpression);
+				}
+				else
+				{
+					convertCallExpression = Expression.Block(
+						Expression.Assign(successVariable, Expression.Constant(true)),
+						Expression.Assign(resultVariable, Expression.ConvertChecked(convertCallExpression, typeof(ToTypeT)))
+					);
 				}
 				return convertCallExpression;
 			}
 		}
-		private Func<FromTypeT, string?, IFormatProvider?, ToTypeT> PrepareConvertFunc<FromTypeT, ToTypeT>(params ConversionMethodInfo[] methods)
+		private Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>> PrepareConvertFunc<FromTypeT, ToTypeT>(params ConversionMethodInfo[] methods)
 		{
 			if (methods == null) throw new ArgumentNullException(nameof(methods));
 			if (methods.Length == 0) throw new ArgumentOutOfRangeException(nameof(methods));
@@ -716,13 +789,14 @@ namespace deniszykov.TypeConversion
 			const int FORMAT_PARAMETER = 0;
 			const int FORMAT_PROVIDER_PARAMETER = 1;
 			const int FROM_VALUE_PARAMETER = 2;
+			const int RESULT_VALUE_PARAMETER = 3;
 
 			var methodParametersMap = new int[methods.Length][];
 
 			for (var m = 0; m < methods.Length; m++)
 			{
 				var parameterTypes = methods[m].ConversionParameterTypes;
-				methodParametersMap[m] = new[] { -1, -1, -1 };
+				methodParametersMap[m] = new[] { -1, -1, -1, -1 };
 
 				for (var p = 0; p < parameterTypes.Count; p++)
 				{
@@ -734,9 +808,13 @@ namespace deniszykov.TypeConversion
 					{
 						methodParametersMap[m][FORMAT_PROVIDER_PARAMETER] = p;
 					}
-					else
+					else if (parameterTypes[p] == ConversionParameterType.Value)
 					{
 						methodParametersMap[m][FROM_VALUE_PARAMETER] = p;
+					}
+					else if (parameterTypes[p] == ConversionParameterType.ConvertedValue)
+					{
+						methodParametersMap[m][RESULT_VALUE_PARAMETER] = p;
 					}
 				}
 			}
@@ -748,6 +826,7 @@ namespace deniszykov.TypeConversion
 					var method = methods[m];
 					var methodParameters = methods[m].Parameters;
 					var fromValueParameterIndex = methodParametersMap[m][FROM_VALUE_PARAMETER];
+					var resultValueParameterIndex = methodParametersMap[m][RESULT_VALUE_PARAMETER];
 					var formatParameterIndex = methodParametersMap[m][FORMAT_PARAMETER];
 					var formatProviderParameterIndex = methodParametersMap[m][FORMAT_PROVIDER_PARAMETER];
 
@@ -772,33 +851,50 @@ namespace deniszykov.TypeConversion
 					{
 						arguments[formatProviderParameterIndex] = formatProvider;
 					}
+					if (resultValueParameterIndex >= 0)
+					{
+						arguments[resultValueParameterIndex] = default(ToTypeT);
+					}
 
 					// invoke method
 					try
 					{
+						var result = default(ToTypeT);
+						var success = default(bool);
 						if (method.Method is MethodInfo methodInfo)
 						{
-							if (methodInfo.IsStatic)
+							if (method.IsSafeConversion)
 							{
-								return (ToTypeT)methodInfo.Invoke(null, arguments)!;
+								success = (bool)methodInfo.Invoke(null, arguments)!;
+								result = (ToTypeT)arguments[resultValueParameterIndex]!;
+							}
+							else if (methodInfo.IsStatic)
+							{
+								result = (ToTypeT)methodInfo.Invoke(null, arguments)!;
+								success = true;
 							}
 							else if (ReferenceEquals(fromValue, null))
 							{
-								return default!;
+								result = default!;
+								success = true;
 							}
 							else
 							{
-								return (ToTypeT)methodInfo.Invoke(fromValue, arguments)!;
+								result = (ToTypeT)methodInfo.Invoke(fromValue, arguments)!;
+								success = true;
 							}
 						}
 						else if (method.Method is ConstructorInfo constructorInfo)
 						{
-							return (ToTypeT)constructorInfo.Invoke(arguments);
+							result = (ToTypeT)constructorInfo.Invoke(arguments);
+							success = true;
 						}
 						else
 						{
 							throw new InvalidOperationException($"Invalid conversion method: {method.Method}. This should be instance of '{typeof(MethodInfo)}' or '{typeof(ConstructorInfo)}'.");
 						}
+
+						return new KeyValuePair<ToTypeT, bool>(result!, success);
 					}
 					catch (TargetInvocationException invocationException)
 					{

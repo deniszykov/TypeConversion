@@ -65,7 +65,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="result">A converted value.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
-		void Convert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null);
+		void Convert(FromTypeT? value, out ToTypeT? result, string? format = null, IFormatProvider? formatProvider = null);
 
 		/// <summary>
 		/// Tries to covert <paramref name="value"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.
@@ -76,6 +76,6 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		bool TryConvert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null);
+		bool TryConvert(FromTypeT? value, out ToTypeT? result, string? format = null, IFormatProvider? formatProvider = null);
 	}
 }

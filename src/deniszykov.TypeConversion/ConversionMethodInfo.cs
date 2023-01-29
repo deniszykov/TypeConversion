@@ -36,6 +36,11 @@ namespace deniszykov.TypeConversion
 		public readonly ConversionQuality Quality;
 
 		/// <summary>
+		/// Return true if it is <value>bool TryParse(value, out result)</value> conversion method.
+		/// </summary>
+		public bool IsSafeConversion { get; }
+
+		/// <summary>
 		/// Constructor of <see cref="ConversionMethodInfo"/>.
 		/// </summary>
 		/// <param name="methodBase">Value for <see cref="Method"/>.</param>
@@ -55,6 +60,7 @@ namespace deniszykov.TypeConversion
 			this.Parameters = new ReadOnlyCollection<ParameterInfo>(parameters);
 			this.ConversionParameterTypes = new ReadOnlyCollection<ConversionParameterType>(conversionParameterTypes);
 			this.Method = methodBase;
+			this.IsSafeConversion = this.ConversionParameterTypes.Any(parameterType => parameterType == ConversionParameterType.ConvertedValue);
 
 			var fromValueParameterIndex = this.ConversionParameterTypes.IndexOf(ConversionParameterType.Value);
 			if (methodBase.IsStatic)
@@ -79,7 +85,18 @@ namespace deniszykov.TypeConversion
 					this.FromType = this.Parameters[fromValueParameterIndex].ParameterType;
 				}
 			}
-			this.ToType = methodBase is MethodInfo methodInfo ? methodInfo.ReturnType : methodBase.DeclaringType ?? typeof(object);
+
+			var resultValueParameterIndex = this.ConversionParameterTypes.IndexOf(ConversionParameterType.ConvertedValue);
+			if (resultValueParameterIndex >= 0)
+			{
+				// ConvertedValue always 'by-ref out' parameter
+				this.ToType = this.Parameters[resultValueParameterIndex].ParameterType.GetElementType()!;
+			}
+			else
+			{
+				this.ToType = (methodBase is MethodInfo methodInfo ? methodInfo.ReturnType : methodBase.DeclaringType ?? typeof(object));
+			}
+
 			this.Quality = conversionQualityOverride ?? (methodBase.Name == "op_Explicit" ? ConversionQuality.Explicit :
 				methodBase.Name == "op_Implicit" ? ConversionQuality.Implicit :
 				methodBase is ConstructorInfo ? ConversionQuality.Constructor : ConversionQuality.Method);
@@ -94,6 +111,12 @@ namespace deniszykov.TypeConversion
 			}
 
 			var cmp = ((int)this.Quality).CompareTo((int)other.Quality); // better quality conversion
+			if (cmp != 0)
+			{
+				return cmp;
+			}
+
+			cmp = other.IsSafeConversion.CompareTo(this.IsSafeConversion); // non-trying conversion = better
 			if (cmp != 0)
 			{
 				return cmp;

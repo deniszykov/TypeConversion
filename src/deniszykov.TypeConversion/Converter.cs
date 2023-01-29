@@ -67,7 +67,7 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public void Convert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null)
+		public void Convert(FromTypeT? value, out ToTypeT? result, string? format = null, IFormatProvider? formatProvider = null)
 		{
 			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatIfNotSpecified) && format == null)
 			{
@@ -90,16 +90,31 @@ namespace deniszykov.TypeConversion
 				if (actualConverter.Descriptor.HasSomeConversion)
 				{
 					actualConverter.Convert(value, out var resultObj, format, formatProvider);
-					result = (ToTypeT)resultObj;
+					result = (ToTypeT)resultObj!;
 					return;
 				}
 			}
 
-			var convertFn = (Func<FromTypeT, string?, IFormatProvider?, ToTypeT>)this.Descriptor.Conversion;
-			result = convertFn(value!, format, formatProvider);
+			if (this.Descriptor.Conversion is Func<FromTypeT, string?, IFormatProvider?, ToTypeT> convertFn)
+			{
+				result = convertFn(value!, format, formatProvider);
+			}
+			else if (this.Descriptor.Conversion is Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>> safeConvertFn)
+			{
+				var resultAndSuccess = safeConvertFn(value!, format, formatProvider);
+				result = resultAndSuccess.Key;
+				if (!resultAndSuccess.Value)
+				{
+					throw new FormatException();
+				}
+			}
+			else
+			{
+				throw new InvalidOperationException($"Invalid type of '{nameof(this.Descriptor.Conversion)}' delegate. An instance of {typeof(Func<FromTypeT, string?, IFormatProvider?, ToTypeT>).FullName} is expected.");
+			}
 		}
 		/// <inheritdoc />
-		public bool TryConvert([AllowNull] FromTypeT value, [MaybeNull] out ToTypeT result, string? format = null, IFormatProvider? formatProvider = null)
+		public bool TryConvert(FromTypeT? value, out ToTypeT? result, string? format = null, IFormatProvider? formatProvider = null)
 		{
 			if (this.converterOptions.HasFlag(ConversionOptions.UseDefaultFormatIfNotSpecified) && format == null)
 			{
@@ -128,9 +143,7 @@ namespace deniszykov.TypeConversion
 				}
 			}
 
-
-			var safeConvertFn = (Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>?)this.Descriptor.SafeConversion;
-			if (safeConvertFn != null)
+			if (this.Descriptor.SafeConversion is Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>> safeConvertFn)
 			{
 				var resultOrFail = safeConvertFn(value!, format, formatProvider);
 				result = resultOrFail.Key;

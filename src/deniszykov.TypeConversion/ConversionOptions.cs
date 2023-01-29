@@ -43,6 +43,10 @@ namespace deniszykov.TypeConversion
 		/// </summary>
 		PromoteValueToActualType = 0x1 << 5,
 		/// <summary>
+		/// Do not use type converters derived from <see cref="System.ComponentModel.TypeConverter"/>.
+		/// </summary>
+		SkipComponentModelTypeConverters = 0x1 << 6,
+		/// <summary>
 		/// Default option. Set to <see cref="UseDefaultFormatProviderIfNotSpecified"/> because this will lead to predictable
 		/// conversion on different platforms and locales, <see cref="OptimizeWithExpressions"/> and <see cref="OptimizeWithGenerics"/> optimizations.
 		/// </summary>

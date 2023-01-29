@@ -22,6 +22,7 @@ namespace deniszykov.TypeConversion.Tests
 		private static readonly ConversionOptions[] TestConversionOptions = new[]
 		{
 			ConversionOptions.FastCast,
+			ConversionOptions.SkipComponentModelTypeConverters,
 			ConversionOptions.OptimizeWithExpressions,
 			ConversionOptions.OptimizeWithGenerics,
 			ConversionOptions.OptimizeWithGenerics | ConversionOptions.OptimizeWithExpressions,
@@ -1275,7 +1276,7 @@ namespace deniszykov.TypeConversion.Tests
 
 			Assert.Equal(expected, actual);
 		}
-		
+
 		[Theory]
 		[MemberData(nameof(NumbersTestData))]
 		public void ConvertNumberToStringTryTest(object expected, ConversionOptions options)
@@ -1389,7 +1390,6 @@ namespace deniszykov.TypeConversion.Tests
 			}));
 
 			Assert.True(conversionProvider.TryConvert<string, DateTime>(conversionProvider.Convert<DateTime, string>(expected), out var actual));
-
 			Assert.Equal(expected, actual);
 		}
 

@@ -28,10 +28,10 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Conversion function.
 		/// </summary>
-		public readonly Delegate Conversion; // Func<FromType, string, IFormatProvider, ToType>
-											 /// <summary>
-											 /// Safe conversion function. If null then <see cref="Conversion"/> function is used inside try/catch block.
-											 /// </summary>
+		public readonly Delegate Conversion; // Func<FromType, string, IFormatProvider, ToType> or Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>
+		/// <summary>
+		/// Safe conversion function. If null then <see cref="Conversion"/> function is used inside try/catch block.
+		/// </summary>
 		public readonly Delegate? SafeConversion; // Func<FromType, string, IFormatProvider, KeyValuePair<ToType, bool>>
 
 		/// <summary>
@@ -84,21 +84,35 @@ namespace deniszykov.TypeConversion
 		private static void CheckConversionDelegate(ConversionMethodInfo method, Delegate conversion)
 		{
 			var conversionDelegateType = conversion.GetType();
-			var expectedConversionGenericArguments = new[] { method.FromType, typeof(string), typeof(IFormatProvider), method.ToType };
 			if (conversionDelegateType.GetTypeInfo().IsGenericType == false || conversionDelegateType.GetTypeInfo().GetGenericTypeDefinition() != typeof(Func<,,,>))
-				throw new ArgumentException($"Invalid conversion delegate type '{conversionDelegateType.FullName}'. An instantiation of '{typeof(Func<,,,>).FullName}' is expected.");
-			if (conversionDelegateType.GetTypeInfo().GetGenericArguments().SequenceEqual(expectedConversionGenericArguments) == false)
-				throw new ArgumentException(
-					$"Invalid conversion delegate type '{conversionDelegateType.FullName}'. An instance of '{typeof(Func<,,,>).FullName}' with `{string.Join(", ", expectedConversionGenericArguments.Select(t => t.FullName))}` generic parameters  is expected.", nameof(conversion));
+			{
+				throw new ArgumentException($"Invalid conversion delegate type '{conversionDelegateType.FullName}'. " +
+					$"An instantiation of '{typeof(Func<,,,>).FullName}' is expected.");
+			}
+
+			var expectedConversionGenericArguments = new[] { method.FromType, typeof(string), typeof(IFormatProvider), method.ToType };
+			if (conversionDelegateType.GetTypeInfo().GetGenericArguments().Take(3).SequenceEqual(expectedConversionGenericArguments.Take(3)) == false)
+			{
+				throw new ArgumentException($"Invalid conversion delegate type '{conversionDelegateType.FullName}'. " +
+					$"An instance of '{typeof(Func<,,,>).FullName}' with `{string.Join(", ", expectedConversionGenericArguments.Select(t => t.FullName))}` generic parameters  is expected.", nameof(conversion));
+			}
 		}
 		private static void CheckSafeConversionDelegate(ConversionMethodInfo method, Delegate safeConversion)
 		{
 			var safeConversionDelegateType = safeConversion.GetType();
-			var expectedSafeConversionGenericArguments = new[] { method.FromType, typeof(string), typeof(IFormatProvider) };
-			if (safeConversionDelegateType.GetTypeInfo().IsGenericType == false || safeConversionDelegateType.GetTypeInfo().GetGenericTypeDefinition() != typeof(Func<,,,>))
-				throw new ArgumentException($"Invalid safe conversion delegate type '{safeConversionDelegateType.FullName}'. An instantiation of '{typeof(Func<,,,>).FullName}' is expected.");
-			if (safeConversionDelegateType.GetTypeInfo().GetGenericArguments().Take(3).SequenceEqual(expectedSafeConversionGenericArguments) == false)
-				throw new ArgumentException($"Invalid safe conversion delegate type '{safeConversionDelegateType.FullName}'. An instance of '{typeof(Func<,,,>).FullName}' with `{string.Join(", ", expectedSafeConversionGenericArguments.Select(t => t.FullName))}` generic parameters  is expected.", nameof(safeConversion));
+			var expectedSafeConversionGenericArguments = new[] { method.FromType, typeof(string), typeof(IFormatProvider), method.ToType };
+			if (safeConversionDelegateType.GetTypeInfo().IsGenericType == false ||
+				safeConversionDelegateType.GetTypeInfo().GetGenericTypeDefinition() != typeof(Func<,,,>))
+			{
+				throw new ArgumentException($"Invalid safe conversion delegate type '{safeConversionDelegateType.FullName}'. " +
+					$"An instantiation of '{typeof(Func<,,,>).FullName}' is expected.");
+			}
+
+			if (safeConversionDelegateType.GetTypeInfo().GetGenericArguments().Take(3).SequenceEqual(expectedSafeConversionGenericArguments.Take(3)) == false)
+			{
+				throw new ArgumentException($"Invalid safe conversion delegate type '{safeConversionDelegateType.FullName}'. " +
+					$"An instance of '{typeof(Func<,,,>).FullName}' with `{string.Join(", ", expectedSafeConversionGenericArguments.Select(t => t.FullName))}` generic parameters  is expected.", nameof(safeConversion));
+			}
 		}
 
 		/// <inheritdoc />

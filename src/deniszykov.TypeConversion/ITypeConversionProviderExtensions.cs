@@ -187,9 +187,8 @@ namespace deniszykov.TypeConversion
 #if NETCOREAPP3_0 || NETSTANDARD2_1
 		[return: MaybeNull]
 #else
-		[MaybeNull]
 #endif
-		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue)
+		public static ToTypeT? Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -210,9 +209,8 @@ namespace deniszykov.TypeConversion
 #if NETCOREAPP3_0 || NETSTANDARD2_1
 		[return: MaybeNull]
 #else
-		[MaybeNull]
 #endif
-		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format)
+		public static ToTypeT? Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, string? format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -233,9 +231,8 @@ namespace deniszykov.TypeConversion
 #if NETCOREAPP3_0 || NETSTANDARD2_1
 		[return: MaybeNull]
 #else
-		[MaybeNull]
 #endif
-		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, IFormatProvider? formatProvider)
+		public static ToTypeT? Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -257,9 +254,8 @@ namespace deniszykov.TypeConversion
 #if NETCOREAPP3_0 || NETSTANDARD2_1
 		[return: MaybeNull]
 #else
-		[MaybeNull]
 #endif
-		public static ToTypeT Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		public static ToTypeT? Convert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -278,7 +274,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <param name="result">Converted to <typeparamref name="ToTypeT"/> value or null.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, out ToTypeT? result)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -296,7 +292,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="result">Converted to <typeparamref name="ToTypeT"/> value or null.</param>
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result, string? format)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, out ToTypeT? result, string? format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -314,7 +310,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="result">Converted to <typeparamref name="ToTypeT"/> value or null.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result, IFormatProvider? formatProvider)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, out ToTypeT? result, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -333,7 +329,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>True if conversion succeed. False if not.</returns>
-		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, [MaybeNull] out ToTypeT result, string? format, IFormatProvider? formatProvider)
+		public static bool TryConvert<FromTypeT, ToTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, out ToTypeT? result, string? format, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -349,7 +345,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromValue">Value to convert. Value should be assignable from <typeparamref name="FromTypeT"/> type.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -366,7 +362,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="format">Formatting options used for conversion. Value and behaviour is conversion specific.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, string? format)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -383,7 +379,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, IFormatProvider? formatProvider)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
@@ -401,7 +397,7 @@ namespace deniszykov.TypeConversion
 		/// <param name="formatProvider">Localization/regional settings used for conversion. Used from/to <see cref="string"/> conversions. Default to <see cref="CultureInfo.InvariantCulture"/>.</param>
 		/// <returns>Converted <paramref name="fromValue"/> or empty string if null.</returns>
 		[MustUseReturnValue, Pure]
-		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, [AllowNull] FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		public static string ConvertToString<FromTypeT>(this ITypeConversionProvider typeConversionProvider, FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
 
