@@ -145,6 +145,7 @@ namespace deniszykov.TypeConversion
 		private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
 		private readonly HashSet<string> convertFromMethodNames;
 		private readonly HashSet<string> convertToMethodNames;
+		private readonly string[] disallowedMethodNames;
 		private readonly HashSet<string> formatParameterNames;
 		private readonly HashSet<string> formatProviderParameterNames;
 		private readonly MethodInfo[] additionalConversionMethods;
@@ -172,6 +173,7 @@ namespace deniszykov.TypeConversion
 			this.convertFromMethodNames = new HashSet<string>(configuration?.ConvertFromMethodNames ?? new[] { "Parse", "Create" }, StringComparer.OrdinalIgnoreCase);
 			this.convertToMethodNames = new HashSet<string>(configuration?.ConvertToMethodNames ?? new[] { "ToString" }, StringComparer.OrdinalIgnoreCase);
 			this.formatParameterNames = new HashSet<string>(configuration?.FormatParameterNames ?? new[] { "format" });
+			this.disallowedMethodNames = configuration?.DisallowedMethodNames?.ToArray() ?? new[] { "Exact" };
 			this.formatProviderParameterNames = new HashSet<string>(configuration?.FormatProviderParameterNames ?? new string[0]);
 			this.additionalConversionMethods = configuration?.AdditionalConversionMethods ?? new MethodInfo[0];
 			this.forbiddenConversionMethods = new HashSet<MethodBase>(configuration?.ForbiddenConversionMethods ?? new MethodBase[0]);
@@ -243,6 +245,14 @@ namespace deniszykov.TypeConversion
 		private bool IsPossibleConvertMethod(MethodInfo method)
 		{
 			var name = method.Name;
+			for (var i = 0; i < this.disallowedMethodNames.Length; i++)
+			{
+				if (name.IndexOf(this.disallowedMethodNames[i], StringComparison.OrdinalIgnoreCase) >= 0)
+				{
+					return false;
+				}
+			}
+
 			return string.Equals(name, "op_Explicit", StringComparison.Ordinal) ||
 				string.Equals(name, "op_Implicit", StringComparison.Ordinal) ||
 				name.StartsWith("Create", StringComparison.OrdinalIgnoreCase) ||

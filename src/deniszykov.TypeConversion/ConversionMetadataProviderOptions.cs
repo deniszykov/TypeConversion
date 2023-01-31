@@ -23,6 +23,11 @@ namespace deniszykov.TypeConversion
 		[DataMember]
 		public string[]? ConvertToMethodNames;
 		/// <summary>
+		/// List of words that are not allowed in conversion method names. If not set then default list of names used. Example: 'Exact'.
+		/// </summary>
+		[DataMember]
+		public string[]? DisallowedMethodNames;
+		/// <summary>
 		/// List of possible names for '<see cref="string"/> format' parameter. Default value is 'format'.
 		/// </summary>
 		[DataMember]
