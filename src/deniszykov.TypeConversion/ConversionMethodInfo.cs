@@ -122,27 +122,46 @@ namespace deniszykov.TypeConversion
 				return cmp;
 			}
 
+			var thisFormatParameterCount = this.CountFormatParameters();
+			var otherFormatParameterCount = other.CountFormatParameters();
+			cmp = thisFormatParameterCount.CompareTo(otherFormatParameterCount); // more parameters (format, formatProvider) = better
+			if (cmp != 0)
+			{
+				return cmp;
+			}
+
 			cmp = (this.Method.Name.IndexOf(this.ToType.Name, StringComparison.OrdinalIgnoreCase) >= 0)
-				.CompareTo(this.Method.Name.IndexOf(this.ToType.Name, StringComparison.OrdinalIgnoreCase) >= 0); // has target type in name = better
+				.CompareTo(other.Method.Name.IndexOf(this.ToType.Name, StringComparison.OrdinalIgnoreCase) >= 0); // has target type in name = better
 			if (cmp != 0)
 			{
 				return cmp;
 			}
 
 			cmp = (this.Method.Name.IndexOf(this.FromType.Name, StringComparison.OrdinalIgnoreCase) >= 0)
-				.CompareTo(this.Method.Name.IndexOf(this.FromType.Name, StringComparison.OrdinalIgnoreCase) >= 0); // has source type in name = better
-			if (cmp != 0)
-			{
-				return cmp;
-			}
-
-			cmp = this.Parameters.Count.CompareTo(other.Parameters.Count); // more parameters (format, formatProvider) = better
+				.CompareTo(other.Method.Name.IndexOf(this.FromType.Name, StringComparison.OrdinalIgnoreCase) >= 0); // has source type in name = better
 			if (cmp != 0)
 			{
 				return cmp;
 			}
 
 			return other.Method.Name.Length.CompareTo(this.Method.Name.Length); // shorter name = better 
+		}
+
+		private int CountFormatParameters()
+		{
+			var count = 0;
+			foreach (var conversion in this.ConversionParameterTypes)
+			{
+				if (conversion == ConversionParameterType.Format)
+				{
+					count++;
+				}
+				else if (conversion == ConversionParameterType.FormatProvider)
+				{
+					count++;
+				}
+			}
+			return count;
 		}
 
 		internal static ConversionMethodInfo FromNativeConversion(Delegate conversionFn, ConversionQuality? conversionQualityOverride = null)

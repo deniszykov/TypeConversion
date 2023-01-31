@@ -561,11 +561,21 @@ namespace deniszykov.TypeConversion
 				var conversionMethod = conversionMethods[m];
 				var methodQualityClass = (conversionMethods[m].ConversionParameterTypes.IndexOf(ConversionParameterType.Format) >= 0 ? FORMAT_PARAM : 0) |
 					(conversionMethods[m].ConversionParameterTypes.IndexOf(ConversionParameterType.FormatProvider) >= 0 ? FORMAT_PROVIDER_PARAM : 0);
-				if (lastMethodQualityClass != methodQualityClass)
+
+				if (lastMethodQualityClass == -1 || lastMethodQualityClass > methodQualityClass)
 				{
 					conversionMethods[lastReplaceIndex++] = conversionMethod;
 					lastMethodQualityClass = methodQualityClass;
 				}
+				else if (lastMethodQualityClass == methodQualityClass)
+				{
+					continue;
+				}
+				else
+				{
+					break;
+				}
+
 			}
 			conversionMethods.RemoveRange(lastReplaceIndex, conversionMethods.Count - lastReplaceIndex);
 

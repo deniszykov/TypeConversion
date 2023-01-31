@@ -1485,5 +1485,39 @@ namespace deniszykov.TypeConversion.Tests
 
 			Assert.Equal(expected, actual);
 		}
+		
+		[Theory]
+		[MemberData(nameof(ConversionOptionsTestData))]
+		public void TimeSpanToStringTryTest(ConversionOptions options)
+		{
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions
+			{
+				Options = options | ConversionOptions.PromoteValueToActualType
+			}));
+
+			var value = TimeSpan.FromSeconds(1);
+			var expected = value.ToString("g");
+
+			Assert.True(conversionProvider.TryConvert<object, string>(value, out var actual, "g"));
+
+			Assert.Equal(expected, actual);
+		}
+
+		[Theory]
+		[MemberData(nameof(ConversionOptionsTestData))]
+		public void StringToTimeSpanTryTest(ConversionOptions options)
+		{
+			var conversionProvider = new TypeConversionProvider(Options.Create(new TypeConversionProviderOptions
+			{
+				Options = options | ConversionOptions.PromoteValueToActualType
+			}));
+
+			var value = "00:00:01";
+			var expected = TimeSpan.Parse(value);
+
+			Assert.True(conversionProvider.TryConvert<string, TimeSpan>(value, out var actual));
+
+			Assert.Equal(expected, actual);
+		}
 	}
 }
