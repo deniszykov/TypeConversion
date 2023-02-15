@@ -1292,21 +1292,21 @@ namespace deniszykov.TypeConversion
 			switch (underlyingTypeCode)
 			{
 				case TypeCode.SByte:
-					return new Func<EnumT, sbyte>(value => Convert.ToSByte(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, sbyte>(value => (sbyte)(object)value);
 				case TypeCode.Byte:
-					return new Func<EnumT, byte>(value => Convert.ToByte(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, byte>(value => (byte)(object)value);
 				case TypeCode.Int16:
-					return new Func<EnumT, short>(value => Convert.ToInt16(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, short>(value => (short)(object)value);
 				case TypeCode.UInt16:
-					return new Func<EnumT, ushort>(value => Convert.ToUInt16(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, ushort>(value => (ushort)(object)value);
 				case TypeCode.Int32:
-					return new Func<EnumT, int>(value => Convert.ToInt32(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, int>(value => (int)(object)value);
 				case TypeCode.UInt32:
-					return new Func<EnumT, uint>(value => Convert.ToUInt32(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, uint>(value => (uint)(object)value);
 				case TypeCode.Int64:
-					return new Func<EnumT, long>(value => Convert.ToInt64(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, long>(value => (long)(object)value);
 				case TypeCode.UInt64:
-					return new Func<EnumT, ulong>(value => Convert.ToUInt64(value, CultureInfo.InvariantCulture));
+					return new Func<EnumT, ulong>(value => (ulong)(object)value);
 				case TypeCode.Object:
 				case TypeCode.Empty:
 				case TypeCode.Boolean:
@@ -1328,21 +1328,21 @@ namespace deniszykov.TypeConversion
 			switch (underlyingTypeCode)
 			{
 				case TypeCode.SByte:
-					return new Func<sbyte, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<sbyte, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.Byte:
-					return new Func<byte, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<byte, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.Int16:
-					return new Func<short, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<short, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.UInt16:
-					return new Func<ushort, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<ushort, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.Int32:
-					return new Func<int, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<int, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.UInt32:
-					return new Func<uint, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<uint, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.Int64:
-					return new Func<long, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<long, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.UInt64:
-					return new Func<ulong, EnumT>(value => (EnumT)Enum.ToObject(typeof(EnumT), value));
+					return new Func<ulong, EnumT>(value => (EnumT)(object)value);
 				case TypeCode.Object:
 				case TypeCode.Empty:
 				case TypeCode.Boolean:
