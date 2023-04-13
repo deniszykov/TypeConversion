@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 namespace deniszykov.TypeConversion
 {
 	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+	[PublicAPI]
 	internal interface IEnumConversionInfo
 	{
 		Delegate ToNumber { get; }

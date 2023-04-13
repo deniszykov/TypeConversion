@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
@@ -53,11 +54,17 @@ namespace deniszykov.TypeConversion
 
 		/// <inheritdoc />
 		[Obsolete("Please pass instance of 'CustomConversion<FromTypeT, ToTypeT>' in TypeConversionProvider's constructor for registering custom conversions.")]
-		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string, IFormatProvider, ToTypeT> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)
+		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)
+		{
+			this.RegisterConversion(conversionFunc, safeConversionFunc: default, quality);
+		}
+		/// <inheritdoc />
+		[Obsolete("Please pass instance of 'CustomConversion<FromTypeT, ToTypeT>' in TypeConversionProvider's constructor for registering custom conversions.")]
+		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFunc, ConversionQuality quality)
 		{
 			var registration = new Action<ICustomConversionRegistry>(provider =>
 			{
-				provider.RegisterConversion(conversionFunc, quality);
+				provider.RegisterConversion(conversionFunc, safeConversionFunc, quality);
 			});
 			if (this.CustomConversionRegistrationCallback == null)
 			{

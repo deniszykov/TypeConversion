@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
@@ -144,6 +145,30 @@ namespace deniszykov.TypeConversion.Tests
 			Assert.True(customRegistration.IsRegisterCalled, "conversion registration method should be called.");
 			Assert.True(customRegistration.IsConversionCalled, "conversion method should be called.");
 			Assert.Equal(customRegistration.ExpectedColor, actualColor);
+		}
+
+		[Fact]
+		public void CustomConversionTest()
+		{
+			var serviceCollection = new ServiceCollection();
+			var expectedConvertString = "EXPECTED_CONVERT";
+			var expectedTryConvertString = "EXPECTED_TRY_CONVERT";
+
+			serviceCollection.AddSingleton<ICustomConversionRegistration>(new CustomConversion<Uri, string>(
+				conversionFunc: (_, _, _) => expectedConvertString,
+				safeConversionFunc: (_, _, _) => new KeyValuePair<string, bool>(expectedTryConvertString, true),
+				quality: ConversionQuality.Native));
+			serviceCollection.AddSingleton<ITypeConversionProvider, TypeConversionProvider>();
+			var serviceProvider = serviceCollection.BuildServiceProvider();
+
+			var conversionProvider = serviceProvider.GetRequiredService<ITypeConversionProvider>();
+			var url = new Uri("http://example.com");
+			var actualConvertString = conversionProvider.Convert<Uri, string>(url, default, default);
+			var tryConvertSucceed = conversionProvider.TryConvert<Uri, string>(url, out var actualTryConvertString);
+
+			Assert.Equal(expectedConvertString, actualConvertString);
+			Assert.True(tryConvertSucceed, "should succeed");
+			Assert.Equal(expectedTryConvertString, actualTryConvertString);
 		}
 #endif
 
@@ -354,7 +379,7 @@ namespace deniszykov.TypeConversion.Tests
 		{
 			var metadataProvider = new ConversionMetadataProvider();
 			var typeConversionProvider = new TypeConversionProvider(null, metadataProvider);
-			
+
 			Assert.NotNull(typeConversionProvider.DebugPrintConversions());
 		}
 	}

@@ -6,6 +6,7 @@ namespace deniszykov.TypeConversion
 	/// <summary>
 	/// Class providing <see cref="IConverter"/> and <see cref="IConverter{FromType,ToType}"/> instances on demand.
 	/// </summary>
+	[PublicAPI]
 	public interface ITypeConversionProvider
 	{
 		/// <summary>

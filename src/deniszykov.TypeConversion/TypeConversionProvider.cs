@@ -200,14 +200,19 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string, IFormatProvider, ToTypeT> conversionFunc, ConversionQuality quality)
+		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality)
+		{
+			this.RegisterConversion(conversionFunc, safeConversionFunc: default, quality);
+		}
+		/// <inheritdoc />
+		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFunc, ConversionQuality quality)
 		{
 			var conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFunc, quality) };
 			var fromTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.FromIndex;
 			var toTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.ToType<ToTypeT>.ToIndex;
 			var toConverters = this.GetToConverters(fromTypeIndex, toTypeIndex);
 
-			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, default);
+			var conversionDescriptor = new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), null, this.defaultFormatProvider, conversionFunc, safeConversionFunc);
 			var converter = new Converter<FromTypeT, ToTypeT>(this, conversionDescriptor, this.converterOptions);
 			toConverters[toTypeIndex] = converter;
 		}

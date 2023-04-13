@@ -2,12 +2,14 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
 {
 	/// <summary>
 	/// Information about .NET Method used to perform conversion.
 	/// </summary>
+	[PublicAPI]
 	public class ConversionMethodInfo : IComparable<ConversionMethodInfo>
 	{
 		/// <summary>

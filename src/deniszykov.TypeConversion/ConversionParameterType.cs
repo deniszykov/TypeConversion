@@ -1,8 +1,11 @@
-﻿namespace deniszykov.TypeConversion
+﻿using JetBrains.Annotations;
+
+namespace deniszykov.TypeConversion
 {
 	/// <summary>
 	/// Type of parameter in conversion method.
 	/// </summary>
+	[PublicAPI]
 	public enum ConversionParameterType
 	{
 		/// <summary>
