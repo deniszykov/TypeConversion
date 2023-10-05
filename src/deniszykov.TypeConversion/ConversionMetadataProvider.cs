@@ -141,6 +141,8 @@ namespace deniszykov.TypeConversion
 			public override string ToString() => this.type.ToString();
 		}
 
+		private static Type? IsByRefLikeAttributeType = typeof(Type).GetTypeInfo().Assembly.GetType("System.Runtime.CompilerServices.IsByRefLikeAttribute", throwOnError: false);
+
 		private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
 		private readonly Func<Type, ConversionTypeInfo> createConversionTypeInfo;
 		private readonly HashSet<string> convertFromMethodNames;
@@ -151,6 +153,7 @@ namespace deniszykov.TypeConversion
 		private readonly MethodInfo[] additionalConversionMethods;
 		private readonly HashSet<MethodBase> forbiddenConversionMethods;
 		private readonly Func<MethodBase, bool>? methodFilter;
+
 		/// <summary>
 		/// Constructor of <see cref="ConversionMetadataProvider"/>.
 		/// </summary>
@@ -481,16 +484,11 @@ namespace deniszykov.TypeConversion
 			}
 #endif
 
-			foreach (var customAttribute in parameterInfo.GetCustomAttributes(inherit: true))
-			{
-				var customAttributeType = customAttribute.GetType();
-				if (string.Equals(customAttributeType.Name, "IsByRefLikeAttribute", StringComparison.Ordinal) &&
-					string.Equals(customAttributeType.Namespace, "System.Runtime.CompilerServices", StringComparison.Ordinal))
-				{
-					return true;
-				}
-			}
 
+			if (IsByRefLikeAttributeType != null)
+			{
+				return parameterInfo.IsDefined(IsByRefLikeAttributeType, inherit: true);
+			}
 			return false;
 		}
 

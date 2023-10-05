@@ -103,7 +103,7 @@ namespace deniszykov.TypeConversion
 			this.Type = enumType;
 			this.UnderlyingType = underlyingType;
 			this.UnderlyingTypeCode = Convert.GetTypeCode(Activator.CreateInstance(enumType));
-			this.IsFlags = enumTypeInfo.GetCustomAttributes(typeof(FlagsAttribute), false).Any();
+			this.IsFlags = enumTypeInfo.IsDefined(typeof(FlagsAttribute), inherit: false);
 			this.IsSigned = this.UnderlyingTypeCode == TypeCode.SByte || this.UnderlyingTypeCode == TypeCode.Int16 || this.UnderlyingTypeCode == TypeCode.Int32 || this.UnderlyingTypeCode == TypeCode.Int64;
 
 			if (!useDynamicMethods)
