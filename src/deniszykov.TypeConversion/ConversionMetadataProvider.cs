@@ -484,6 +484,10 @@ namespace deniszykov.TypeConversion
 			}
 #endif
 
+			if (parameterInfo.Member.Name == nameof(ToString) && parameterInfo.Position == -1 /* return value */)
+			{
+				return false; // fix for https://github.com/mono/mono/issues/17192
+			}
 
 			if (IsByRefLikeAttributeType != null)
 			{
