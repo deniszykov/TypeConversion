@@ -4,8 +4,8 @@
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
 		<PackageReleaseNotes>
-# 3.2.2
- fix: fixed ParameterInfo.GetCustomAttributes throws IndexOutOfRangeException for Linux
+# 3.2.2 - 3.2.3
+ fix: fixed ParameterInfo.GetCustomAttributes throws IndexOutOfRangeException for Linux https://github.com/mono/mono/issues/17192
  
 # 3.2.1
 fix: changed AOT implementation of EnumConversion to use direct unboxing of numeric values into/from Enum values. This is kinda hacky, but gives better perfomance.
