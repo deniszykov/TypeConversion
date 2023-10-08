@@ -489,9 +489,10 @@ namespace deniszykov.TypeConversion
 				return false; // fix for https://github.com/mono/mono/issues/17192
 			}
 
-			if (IsByRefLikeAttributeType != null)
+			if (IsByRefLikeAttributeType != null &&
+				parameterInfo.ParameterType.GetTypeInfo().IsDefined(IsByRefLikeAttributeType, inherit: true))
 			{
-				return parameterInfo.IsDefined(IsByRefLikeAttributeType, inherit: true);
+				return true;
 			}
 			return false;
 		}
