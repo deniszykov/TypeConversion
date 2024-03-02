@@ -12,6 +12,7 @@
 *.swp
 *.user
 *.log
+.idea
 _ReSharper*
 *.userprefs
 *.exe
