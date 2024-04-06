@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
 namespace deniszykov.TypeConversion
@@ -14,13 +15,23 @@ namespace deniszykov.TypeConversion
 		/// </summary>
 		/// <returns>Instance of <see cref="IConverter{FromType,ToType}"/>. Same instance is returned for same generic parameters.</returns>
 		[MustUseReturnValue]
-		IConverter<FromTypeT, ToTypeT> GetConverter<FromTypeT, ToTypeT>();
+		IConverter<FromTypeT, ToTypeT> GetConverter<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT, 
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>();
 
 		/// <summary>
 		/// Get converter instance which could convert values from <paramref name="fromType"/> to <paramref name="toType"/>.
 		/// </summary>
 		/// <returns>Instance of <see cref="IConverter"/>. Same instance is returned for same parameters.</returns>
 		[MustUseReturnValue]
-		IConverter GetConverter(Type fromType, Type toType);
+		IConverter GetConverter(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type fromType, 
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type toType
+		);
 	}
 }

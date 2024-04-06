@@ -1,14 +1,7 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using JetBrains.Annotations;
-
-#if NETCOREAPP3_0 || NETSTANDARD2_1
-using AllowNull = System.Diagnostics.CodeAnalysis.AllowNullAttribute;
-using MaybeNull = System.Diagnostics.CodeAnalysis.MaybeNullAttribute;
-#else
-using AllowNull = JetBrains.Annotations.CanBeNullAttribute;
-using MaybeNull = JetBrains.Annotations.CanBeNullAttribute;
-#endif
 
 namespace deniszykov.TypeConversion
 {
@@ -56,7 +49,12 @@ namespace deniszykov.TypeConversion
 	/// Provides type conversion methods from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/>.
 	/// </summary>
 	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-	public interface IConverter<in FromTypeT, ToTypeT> : IConverter
+	public interface IConverter<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+		in FromTypeT, 
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+		ToTypeT
+	> : IConverter
 	{
 		/// <summary>
 		/// Covert <paramref name="value"/> from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/> using specified <paramref name="format"/> and <paramref name="formatProvider"/>.

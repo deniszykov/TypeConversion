@@ -1,16 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
-
-#if NETCOREAPP3_0 || NETSTANDARD2_1
-using AllowNull = System.Diagnostics.CodeAnalysis.AllowNullAttribute;
-using MaybeNull = System.Diagnostics.CodeAnalysis.MaybeNullAttribute;
-#else
-using AllowNull = JetBrains.Annotations.CanBeNullAttribute;
-using MaybeNull = JetBrains.Annotations.CanBeNullAttribute;
-// ReSharper disable AnnotationRedundancyInHierarchy
-#endif
 
 namespace deniszykov.TypeConversion
 {
@@ -18,7 +10,12 @@ namespace deniszykov.TypeConversion
 	/// Provides type conversion methods from <typeparamref name="FromTypeT"/> to <typeparamref name="ToTypeT"/>.
 	/// </summary>
 	[PublicAPI]
-	public sealed class Converter<FromTypeT, ToTypeT> : IConverter<FromTypeT, ToTypeT>
+	public sealed class Converter<
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+		FromTypeT, 
+		[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+		ToTypeT
+	> : IConverter<FromTypeT, ToTypeT>
 	{
 		private readonly ITypeConversionProvider typeConversionProvider;
 		private readonly ConversionOptions converterOptions;

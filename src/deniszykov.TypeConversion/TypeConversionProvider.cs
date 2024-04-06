@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -151,7 +152,13 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public IConverter<FromTypeT, ToTypeT> GetConverter<FromTypeT, ToTypeT>()
+		public IConverter<FromTypeT, ToTypeT> GetConverter
+		<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT, 
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>()
 		{
 			var fromTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.FromIndex;
 			var toTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.ToType<ToTypeT>.ToIndex;
@@ -159,10 +166,10 @@ namespace deniszykov.TypeConversion
 
 			if (this.GetType().Name == string.Empty)
 			{
-				// AOT static compilation hack
+				// AOT static compilation tricks
 				PrepareTypesForAotRuntime<FromTypeT, ToTypeT>();
 			}
-
+			
 			if (toConverters[toTypeIndex] is IConverter<FromTypeT, ToTypeT> converter)
 			{
 				return converter;
@@ -177,28 +184,55 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
-		public IConverter GetConverter(Type fromType, Type toType)
+		public IConverter GetConverter(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type fromType, 
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type toType
+		)
 		{
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
 			if (toType == null) throw new ArgumentNullException(nameof(toType));
 
-			var fromHash = fromType.GetHashCode(); // it's not hashcode, it's an unique sync-lock of type-object
-			var toHash = toType.GetHashCode();
-			var typePairIndex = unchecked(((long)fromHash << 32) | (uint)toHash);
+			var typePairIndex = GetTypePairIndex(fromType, toType);
 			if (this.getConverterByTypes.TryGetValue(typePairIndex, out var getConverterFunc))
 			{
 				return getConverterFunc();
 			}
 
-			var getConverterMethod = this.getConverterDefinition.MakeGenericMethod(fromType, toType);
-			getConverterFunc = ReflectionExtensions.CreateDelegate<Func<IConverter>>(this, getConverterMethod, throwOnBindFailure: true) ??
-				throw new InvalidOperationException($"Failed to create conversion delegate from '{getConverterMethod}' method.");
+			try
+			{
+				var getConverterMethod = this.getConverterDefinition.MakeGenericMethod(fromType, toType);
+				getConverterFunc = ReflectionExtensions.CreateDelegate<Func<IConverter>>(this, getConverterMethod, throwOnBindFailure: true) ??
+					throw new InvalidOperationException($"Failed to create conversion delegate from '{getConverterMethod}' method.");
 
-			this.getConverterByTypes[typePairIndex] = getConverterFunc;
+				this.getConverterByTypes[typePairIndex] = getConverterFunc;
 
-			return getConverterFunc();
+				return getConverterFunc();
+			}
+			catch (NotSupportedException exception)
+			{
+				throw new InvalidOperationException("Unable to dynamically create generic method instantiation " +
+					$"for '{nameof(TypeConversionProvider)}.{this.getConverterDefinition.Name}' with generic arguments FromType='{fromType}' and ToType='{toType}'." +
+					$"For AOT runtime you could pre-register this call by using once {nameof(TypeConversionProvider)}.{nameof(PrepareGetConverter)}<{fromType.Name},{toType.Name}>() somewhere at application startup.", exception);
+			}
 		}
 
+		public void PrepareGetConverter
+		<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT, 
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>()
+		{
+			var typePairIndex = GetTypePairIndex(typeof(FromTypeT), typeof(ToTypeT));
+			if (!this.getConverterByTypes.ContainsKey(typePairIndex))
+			{
+				this.getConverterByTypes[typePairIndex] = this.GetConverter<FromTypeT, ToTypeT>;
+			}
+		}
+		
 		/// <inheritdoc />
 		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality)
 		{
@@ -1358,6 +1392,14 @@ namespace deniszykov.TypeConversion
 		private static ToTypeT ThrowNoConversionBetweenTypes<FromTypeT, ToTypeT>(FromTypeT _, string? __, IFormatProvider? ___)
 		{
 			throw new FormatException($"Unable to convert value of type '{typeof(FromTypeT).FullName}' to '{typeof(ToTypeT).FullName}' because there is no conversion method found.");
+		}
+		
+		private static long GetTypePairIndex(Type fromType, Type toType)
+		{
+			var fromHash = fromType.GetHashCode(); // it's not hashcode, it's an unique sync-lock of type-object
+			var toHash = toType.GetHashCode();
+			var typePairIndex = unchecked(((long)fromHash << 32) | (uint)toHash);
+			return typePairIndex;
 		}
 		//
 
