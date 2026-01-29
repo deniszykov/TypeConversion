@@ -4,8 +4,11 @@
 		<TargetFrameworks>$(NetTargetPlatforms);</TargetFrameworks>
 		<Description>Type conversion provider.</Description>
 		<PackageReleaseNotes>
+# 3.2.4
+chore: bumped depencies to support .net 10
+ 
 # 3.2.2 - 3.2.3
- fix: fixed ParameterInfo.GetCustomAttributes throws IndexOutOfRangeException for Linux https://github.com/mono/mono/issues/17192
+fix: fixed ParameterInfo.GetCustomAttributes throws IndexOutOfRangeException for Linux https://github.com/mono/mono/issues/17192
  
 # 3.2.1
 fix: changed AOT implementation of EnumConversion to use direct unboxing of numeric values into/from Enum values. This is kinda hacky, but gives better perfomance.
@@ -54,10 +57,11 @@ renamed `EnumHelper` to EnumConversionInfo and made it instantiable class instea
 		</PackageReleaseNotes>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" Condition=" '$(TargetFramework)' == '$(NetStandardBottomTarget)' " />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="1.1.2" Condition=" '$(TargetFramework)' == '$(NetStandardBottomTarget)' " />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" Condition=" '$(TargetFramework)' == '$(NetFrameworkTopTarget)' " />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="3.1.10" Condition=" '$(TargetFramework)' == '$(NetStandardTopTarget)' or '$(TargetFramework)' == '$(NetCoreAppBottomTarget)'  or '$(TargetFramework)' == '$(NetCoreAppTopTarget)'" />
+		<PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" Condition=" '$(TargetFramework)' == 'netstandard1.6' " />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="1.1.2" Condition=" '$(TargetFramework)' == 'netstandard1.6' " />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="3.1.10" Condition=" '$(TargetFramework)' == 'netstandard2.1' or '$(TargetFramework)' == 'netcoreapp3.1'" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" Condition=" '$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net48' or '$(TargetFramework)' == 'net461' " />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" Condition=" '$(TargetFramework)' == 'net10.0' " />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="NativeConversions.tt">
