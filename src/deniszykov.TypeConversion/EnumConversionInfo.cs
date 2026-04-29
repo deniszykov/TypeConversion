@@ -13,6 +13,7 @@ using System;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -87,6 +88,15 @@ namespace deniszykov.TypeConversion
 		public ReadOnlyCollection<EnumT> Values { get; }
 		// ReSharper restore StaticMemberInGenericType
 
+		/// <summary>
+		/// Constructor of <see cref="EnumConversionInfo{EnumT}"/>.
+		/// </summary>
+		/// <param name="useDynamicMethods">If <see langword="true"/>, conversion delegates and the comparer are built with <see cref="System.Linq.Expressions.Expression"/> tree compilation for best performance. Set to <see langword="false"/> for AOT runtimes which forbid runtime code generation.</param>
+		/// <exception cref="InvalidOperationException">Thrown when <typeparamref name="EnumT"/> is not an enum type.</exception>
+		[UnconditionalSuppressMessage("Trimming", "IL2026",
+			Justification = "Expression-tree compilation is opt-in via 'useDynamicMethods'. Pass false on trim/AOT runtimes to use the precompiled GetFromNumberAot/GetToNumberAot delegates.")]
+		[UnconditionalSuppressMessage("AOT", "IL3050",
+			Justification = "Expression.Lambda/Compile and Enum.GetValues(Type) are gated by 'useDynamicMethods'. AOT consumers should pass false; in that case the code below uses precompiled delegates and Comparer<EnumT>.Default.")]
 		public EnumConversionInfo(bool useDynamicMethods)
 		{
 			var enumType = typeof(EnumT);
@@ -102,7 +112,7 @@ namespace deniszykov.TypeConversion
 
 			this.Type = enumType;
 			this.UnderlyingType = underlyingType;
-			this.UnderlyingTypeCode = Convert.GetTypeCode(Activator.CreateInstance(enumType));
+			this.UnderlyingTypeCode = Convert.GetTypeCode(default(EnumT));
 			this.IsFlags = enumTypeInfo.IsDefined(typeof(FlagsAttribute), inherit: false);
 			this.IsSigned = this.UnderlyingTypeCode == TypeCode.SByte || this.UnderlyingTypeCode == TypeCode.Int16 || this.UnderlyingTypeCode == TypeCode.Int32 || this.UnderlyingTypeCode == TypeCode.Int64;
 
@@ -586,7 +596,6 @@ namespace deniszykov.TypeConversion
 		/// Convert passed enumeration value to <see cref="Single"/>.
 		/// </summary>
 		/// <param name="value">Enumeration value.</param>
-		/// <param name="checkedConversion">Use checked conversion and allow/disallow overflow.</param>
 		/// <returns><see cref="Single"/> value of passed enumeration value.</returns>
 		public float ToSingle(EnumT value)
 		{
@@ -606,10 +615,9 @@ namespace deniszykov.TypeConversion
 			}
 		}
 		/// <summary>
-		/// Convert passed enumeration value to <see cref="Double"/>. Throws <see cref="OverflowException"/> if value can't fit into <see cref="Double"/>.
+		/// Convert passed enumeration value to <see cref="Double"/>.
 		/// </summary>
 		/// <param name="value">Enumeration value.</param>
-		/// <param name="checkedConversion">Use checked conversion and allow/disallow overflow.</param>
 		/// <returns><see cref="Double"/> value of passed enumeration value.</returns>
 		public double ToDouble(EnumT value)
 		{

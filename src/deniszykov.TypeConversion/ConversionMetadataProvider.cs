@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
@@ -25,7 +26,12 @@ namespace deniszykov.TypeConversion
 			public readonly System.ComponentModel.TypeConverter? TypeConverter;
 #endif
 
-			public ConversionTypeInfo(ConversionMetadataProvider provider, Type type)
+			[UnconditionalSuppressMessage("Trimming", "IL2026",
+				Justification = "TypeDescriptor.GetConverter is invoked for a type whose members are preserved via DynamicallyAccessedMemberTypes.All on the constructor parameter. Generic TypeConverters (e.g. NullableConverter) require their underlying types to be similarly preserved by the caller.")]
+			public ConversionTypeInfo(
+				ConversionMetadataProvider provider,
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+				Type type)
 			{
 				if (provider == null) throw new ArgumentNullException(nameof(provider));
 				if (type == null) throw new ArgumentNullException(nameof(type));
@@ -125,7 +131,9 @@ namespace deniszykov.TypeConversion
 #endif
 			}
 
-			public bool IsAssignableFrom(Type type)
+			public bool IsAssignableFrom(
+				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+				Type type)
 			{
 				if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -141,6 +149,7 @@ namespace deniszykov.TypeConversion
 			public override string ToString() => this.type.ToString();
 		}
 
+		[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "IsByRefLikeAttribute is a well-known framework type which is preserved by the runtime when ref-struct types are used.")]
 		private static Type? IsByRefLikeAttributeType = typeof(Type).GetTypeInfo().Assembly.GetType("System.Runtime.CompilerServices.IsByRefLikeAttribute", throwOnError: false);
 
 		private readonly ConcurrentDictionary<Type, ConversionTypeInfo> cachedConversionTypeInfos;
@@ -172,7 +181,7 @@ namespace deniszykov.TypeConversion
 
 
 			this.cachedConversionTypeInfos = new ConcurrentDictionary<Type, ConversionTypeInfo>();
-			this.createConversionTypeInfo = type => new ConversionTypeInfo(this, type);
+			this.createConversionTypeInfo = CreateConversionTypeInfo;
 			this.convertFromMethodNames = new HashSet<string>(configuration?.ConvertFromMethodNames ?? new[] { "Parse", "Create" }, StringComparer.OrdinalIgnoreCase);
 			this.convertToMethodNames = new HashSet<string>(configuration?.ConvertToMethodNames ?? new[] { "ToString" }, StringComparer.OrdinalIgnoreCase);
 			this.formatParameterNames = new HashSet<string>(configuration?.FormatParameterNames ?? new[] { "format" });
@@ -182,28 +191,43 @@ namespace deniszykov.TypeConversion
 			this.forbiddenConversionMethods = new HashSet<MethodBase>(configuration?.ForbiddenConversionMethods ?? new MethodBase[0]);
 			this.methodFilter = configuration?.MethodFilter;
 		}
+
+		[UnconditionalSuppressMessage("Trimming", "IL2067",
+			Justification = "ConcurrentDictionary key 'Type' has no DAM annotation, but every caller of GetConvertFromMethods/GetConvertToMethods/IsAssignableFrom/GetTypeConverter annotates 'type' with DynamicallyAccessedMemberTypes.All, so the value flowing into this factory is preserved.")]
+		private ConversionTypeInfo CreateConversionTypeInfo(Type type) => new ConversionTypeInfo(this, type);
 		/// <inheritdoc />
-		public IReadOnlyCollection<ConversionMethodInfo> GetConvertFromMethods(Type type)
+		public IReadOnlyCollection<ConversionMethodInfo> GetConvertFromMethods(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type)
 		{
 			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
 			return conversionTypeInfo.ConvertFromMethods;
 		}
 		/// <inheritdoc />
-		public IReadOnlyCollection<ConversionMethodInfo> GetConvertToMethods(Type type)
+		public IReadOnlyCollection<ConversionMethodInfo> GetConvertToMethods(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type)
 		{
 			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
 			return conversionTypeInfo.ConvertToMethods;
 		}
 #if !NETSTANDARD
 		/// <inheritdoc />
-		public System.ComponentModel.TypeConverter? GetTypeConverter(Type type)
+		[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Type passed in is annotated with DynamicallyAccessedMembers.All, the dynamic-code-required path is reached only when caller already preserved members.")]
+		public System.ComponentModel.TypeConverter? GetTypeConverter(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type)
 		{
 			var conversionTypeInfo = this.cachedConversionTypeInfos.GetOrAdd(type, this.createConversionTypeInfo);
 			return conversionTypeInfo.TypeConverter;
 		}
 #endif
 		/// <inheritdoc />
-		public bool IsAssignableFrom(Type type, Type fromType)
+		public bool IsAssignableFrom(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type fromType)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));

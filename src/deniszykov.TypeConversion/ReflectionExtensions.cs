@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace deniszykov.TypeConversion
@@ -29,7 +30,10 @@ namespace deniszykov.TypeConversion
 
 
 #if !NETSTANDARD
-		public static IEnumerable<MethodInfo> GetPublicMethods(Type type, bool declaredOnly)
+		public static IEnumerable<MethodInfo> GetPublicMethods(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type,
+			bool declaredOnly)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -37,14 +41,19 @@ namespace deniszykov.TypeConversion
 
 			return methods;
 		}
-		public static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
+		public static IEnumerable<ConstructorInfo> GetPublicConstructors(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 
 			return type.GetConstructors(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 		}
 #else
-		public static IEnumerable<MethodInfo> GetPublicMethods(Type type, bool declaredOnly)
+		public static IEnumerable<MethodInfo> GetPublicMethods(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type,
+			bool declaredOnly)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -64,7 +73,9 @@ namespace deniszykov.TypeConversion
 				baseType = baseType.BaseType == null || baseType.BaseType == typeof(object) ? null : baseType.BaseType.GetTypeInfo();
 			} while (baseType != null);
 		}
-		public static IEnumerable<ConstructorInfo> GetPublicConstructors(Type type)
+		public static IEnumerable<ConstructorInfo> GetPublicConstructors(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 
@@ -78,7 +89,9 @@ namespace deniszykov.TypeConversion
 		}
 #endif
 
-		public static IEnumerable<Type> EnumerateBaseTypesAndInterfaces(Type type)
+		public static IEnumerable<Type> EnumerateBaseTypesAndInterfaces(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+			Type type)
 		{
 			if (type == null) throw new ArgumentNullException(nameof(type));
 

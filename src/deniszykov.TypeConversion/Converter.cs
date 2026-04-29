@@ -52,6 +52,12 @@ namespace deniszykov.TypeConversion
 			return success;
 		}
 
+		/// <summary>
+		/// Constructor of <see cref="Converter{FromTypeT,ToTypeT}"/>.
+		/// </summary>
+		/// <param name="typeConversionProvider">Owning <see cref="ITypeConversionProvider"/>. Used to look up converters for actual value types when <see cref="ConversionOptions.PromoteValueToActualType"/> is enabled.</param>
+		/// <param name="conversion">Conversion descriptor which describes how the value will be converted.</param>
+		/// <param name="converterOptions">Conversion options applied when invoking this converter.</param>
 		public Converter(ITypeConversionProvider typeConversionProvider, ConversionDescriptor conversion, ConversionOptions converterOptions)
 		{
 			if (typeConversionProvider == null) throw new ArgumentNullException(nameof(typeConversionProvider));
@@ -83,7 +89,7 @@ namespace deniszykov.TypeConversion
 				ReferenceEquals(value, null) == false &&
 				value.GetType() != typeof(FromTypeT))
 			{
-				var actualConverter = this.typeConversionProvider.GetConverter(value.GetType(), typeof(ToTypeT));
+				var actualConverter = this.typeConversionProvider.GetConverter(GetTypeForRuntimeConversion(value), typeof(ToTypeT));
 				if (actualConverter.Descriptor.HasSomeConversion)
 				{
 					actualConverter.Convert(value, out var resultObj, format, formatProvider);
@@ -131,7 +137,7 @@ namespace deniszykov.TypeConversion
 				ReferenceEquals(value, null) == false &&
 				value.GetType() != typeof(FromTypeT))
 			{
-				var actualConverter = this.typeConversionProvider.GetConverter(value.GetType(), typeof(ToTypeT));
+				var actualConverter = this.typeConversionProvider.GetConverter(GetTypeForRuntimeConversion(value), typeof(ToTypeT));
 				if (actualConverter.Descriptor.HasSomeConversion)
 				{
 					var converted = actualConverter.TryConvert(value, out var resultObj, format, formatProvider);
@@ -163,6 +169,12 @@ namespace deniszykov.TypeConversion
 				}
 			}
 		}
+
+		[UnconditionalSuppressMessage("Trimming", "IL2073",
+			Justification = "Promotion to actual runtime type is opt-in via ConversionOptions.PromoteValueToActualType. " +
+				"When enabled, the runtime type used for the lookup must already be preserved by the caller (e.g. via PrepareGetConverter or by referencing it elsewhere).")]
+		[return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+		private static Type GetTypeForRuntimeConversion(object value) => value.GetType();
 
 		private bool IsValueFormatException(Exception e)  // TODO make exception list configurable
 		{

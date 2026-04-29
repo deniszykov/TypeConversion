@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using JetBrains.Annotations;
 
@@ -16,14 +17,18 @@ namespace deniszykov.TypeConversion
 		/// </summary>
 		/// <returns>List of conversion methods.</returns>
 		[MustUseReturnValue]
-		IReadOnlyCollection<ConversionMethodInfo> GetConvertFromMethods(Type type);
+		IReadOnlyCollection<ConversionMethodInfo> GetConvertFromMethods(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type);
 
 		/// <summary>
 		/// Get a list of conversion methods to <paramref name="type"/> type. These method will return instance of <paramref name="type"/> or are constructors.
 		/// </summary>
 		/// <returns>List of conversion methods.</returns>
 		[MustUseReturnValue]
-		IReadOnlyCollection<ConversionMethodInfo> GetConvertToMethods(Type type);
+		IReadOnlyCollection<ConversionMethodInfo> GetConvertToMethods(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type);
 #if !NETSTANDARD
 		/// <summary>
 		/// Get <see cref="System.ComponentModel.TypeConverter"/> instance associated with type.
@@ -31,7 +36,9 @@ namespace deniszykov.TypeConversion
 		/// <param name="type">Type to look <see cref="System.ComponentModel.TypeConverter"/> on.</param>
 		/// <returns>Instance of <see cref="System.ComponentModel.TypeConverter"/> or null if no <see cref="System.ComponentModel.TypeConverter"/> defined on type.</returns>
 		[MustUseReturnValue]
-		System.ComponentModel.TypeConverter? GetTypeConverter(Type type);
+		System.ComponentModel.TypeConverter? GetTypeConverter(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type);
 #endif
 		/// <summary>
 		/// Checks if <paramref name="type"/> is <paramref name="fromType"/> or has <paramref name="fromType"/> in base types or in interfaces.
@@ -40,7 +47,11 @@ namespace deniszykov.TypeConversion
 		/// <param name="fromType">Base type or interface to find.</param>
 		/// <returns>True if found.</returns>
 		[MustUseReturnValue]
-		bool IsAssignableFrom(Type type, Type fromType);
+		bool IsAssignableFrom(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type type,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type fromType);
 
 		/// <summary>
 		/// Check if passed parameter is 'format' parameter and has <see cref="string"/> type.

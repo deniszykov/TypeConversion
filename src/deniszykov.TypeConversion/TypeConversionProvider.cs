@@ -22,6 +22,9 @@ namespace deniszykov.TypeConversion
 	{
 		private static readonly int ConverterArrayIncrementCount = 5;
 
+		/// <summary>
+		/// Format string requesting case-insensitive parsing where supported (e.g. <see cref="string"/>-to-<see cref="Enum"/> conversion).
+		/// </summary>
 		public const string IgnoreCaseFormat = "ignoreCase";
 
 		private static class ConversionLookupIndex
@@ -63,7 +66,12 @@ namespace deniszykov.TypeConversion
 			DownCasting,
 		}
 #if !NETSTANDARD
-		private class TypeConverterAdapter<FromTypeT, ToTypeT>
+		private class TypeConverterAdapter<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>
 		{
 			private readonly System.ComponentModel.TypeConverter typeConverter;
 
@@ -184,9 +192,13 @@ namespace deniszykov.TypeConversion
 		}
 
 		/// <inheritdoc />
+		[UnconditionalSuppressMessage("Trimming", "IL2060",
+			Justification = "Both type arguments are annotated with DynamicallyAccessedMemberTypes.All; the catch block also surfaces a clear AOT diagnostic if generic instantiation is unavailable.")]
+		[UnconditionalSuppressMessage("AOT", "IL3050",
+			Justification = "MakeGenericMethod is intentional for the dynamic Type-based GetConverter overload. AOT consumers should use the generic GetConverter<FromTypeT,ToTypeT>() overload or PrepareGetConverter to root the instantiations.")]
 		public IConverter GetConverter(
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			Type fromType, 
+			Type fromType,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			Type toType
 		)
@@ -218,10 +230,16 @@ namespace deniszykov.TypeConversion
 			}
 		}
 
+		/// <summary>
+		/// Pre-register the non-generic <see cref="GetConverter(Type,Type)"/> path for the specified <typeparamref name="FromTypeT"/> and <typeparamref name="ToTypeT"/>.
+		/// Call this on application startup to make non-generic conversion lookups work on AOT runtimes which cannot construct generic methods at runtime.
+		/// </summary>
+		/// <typeparam name="FromTypeT">Conversion source type to pre-register.</typeparam>
+		/// <typeparam name="ToTypeT">Conversion destination type to pre-register.</typeparam>
 		public void PrepareGetConverter
 		<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			FromTypeT, 
+			FromTypeT,
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 			ToTypeT
 		>()
@@ -234,12 +252,22 @@ namespace deniszykov.TypeConversion
 		}
 		
 		/// <inheritdoc />
-		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality)
+		public void RegisterConversion<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality)
 		{
 			this.RegisterConversion(conversionFunc, safeConversionFunc: default, quality);
 		}
 		/// <inheritdoc />
-		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFunc, ConversionQuality quality)
+		public void RegisterConversion<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFunc, ConversionQuality quality)
 		{
 			var conversionMethods = new[] { ConversionMethodInfo.FromNativeConversion(conversionFunc, quality) };
 			var fromTypeIndex = ConversionLookupIndex.FromType<FromTypeT>.FromIndex;
@@ -274,7 +302,12 @@ namespace deniszykov.TypeConversion
 			return toConverters!;
 		}
 
-		private ConversionDescriptor CreateConversionDescriptor<FromTypeT, ToTypeT>()
+		private ConversionDescriptor CreateConversionDescriptor<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>()
 		{
 			var fromType = typeof(FromTypeT);
 			var toType = typeof(ToTypeT);
@@ -392,7 +425,12 @@ namespace deniszykov.TypeConversion
 			}
 		}
 
-		private ConversionDescriptor FindConversionAndCreateDescriptor<FromTypeT, ToTypeT>(ConversionDescriptor? fallbackConversionDescriptor)
+		private ConversionDescriptor FindConversionAndCreateDescriptor<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(ConversionDescriptor? fallbackConversionDescriptor)
 		{
 			var fromType = typeof(FromTypeT);
 			var toType = typeof(ToTypeT);
@@ -467,7 +505,12 @@ namespace deniszykov.TypeConversion
 			return new ConversionDescriptor(new ReadOnlyCollection<ConversionMethodInfo>(conversionMethods), defaultFormat, this.defaultFormatProvider, conversionFn, safeConversionFn);
 		}
 
-		private ConversionDescriptor CreateNativeConversionDescriptor<FromTypeT, ToTypeT>
+		private ConversionDescriptor CreateNativeConversionDescriptor<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>
 		(
 			Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFn,
 			Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFn,
@@ -489,7 +532,11 @@ namespace deniszykov.TypeConversion
 			);
 		}
 
-		private KnownNativeConversion DetectNativeConversion(Type fromType, Type toType)
+		private KnownNativeConversion DetectNativeConversion(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type fromType,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type toType)
 		{
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
 			if (toType == null) throw new ArgumentNullException(nameof(toType));
@@ -546,7 +593,12 @@ namespace deniszykov.TypeConversion
 			}
 		}
 
-		private ConversionMethodInfo[] FindConversionBetweenTypes(Type fromType, Type toType, bool safeOnly)
+		private ConversionMethodInfo[] FindConversionBetweenTypes(
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type fromType,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			Type toType,
+			bool safeOnly)
 		{
 			if (fromType == null) throw new ArgumentNullException(nameof(fromType));
 			if (toType == null) throw new ArgumentNullException(nameof(toType));
@@ -977,7 +1029,14 @@ namespace deniszykov.TypeConversion
 		}
 
 		// predefined types transitions between nullable/enum/base-types/interfaces
-		private ToTypeT NullableToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "Nullable.GetUnderlyingType returns the type argument of Nullable<T> which is reachable through the method's own DAM-annotated generic parameter.")]
+		private ToTypeT NullableToNullableAot<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
 			{
@@ -991,7 +1050,14 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue, out var resultObj, format, formatProvider);
 			return (ToTypeT)resultObj!;
 		}
-		private KeyValuePair<ToTypeT, bool> TryNullableToNullableAot<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "Nullable.GetUnderlyingType returns the type argument of Nullable<T> which is reachable through the method's own DAM-annotated generic parameter.")]
+		private KeyValuePair<ToTypeT, bool> TryNullableToNullableAot<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
 			{
@@ -1011,7 +1077,14 @@ namespace deniszykov.TypeConversion
 				return new KeyValuePair<ToTypeT, bool>(default!, false); // conversion failed
 			}
 		}
-		private ToTypeT NullableToAnyAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "Nullable.GetUnderlyingType returns the type argument of Nullable<T> which is reachable through the method's own DAM-annotated generic parameter.")]
+		private ToTypeT NullableToAnyAot<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var result = default(ToTypeT);
 			if (ReferenceEquals(fromValue, null))
@@ -1031,7 +1104,14 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue, out var resultObj, format, formatProvider);
 			return (ToTypeT)resultObj!;
 		}
-		private KeyValuePair<ToTypeT, bool> TryNullableToAnyAot<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "Nullable.GetUnderlyingType returns the type argument of Nullable<T> which is reachable through the method's own DAM-annotated generic parameter.")]
+		private KeyValuePair<ToTypeT, bool> TryNullableToAnyAot<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var result = default(ToTypeT);
 			if (ReferenceEquals(fromValue, null))
@@ -1058,7 +1138,14 @@ namespace deniszykov.TypeConversion
 				return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
 			}
 		}
-		private ToTypeT AnyToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "Nullable.GetUnderlyingType returns the type argument of Nullable<T> which is reachable through the method's own DAM-annotated generic parameter.")]
+		private ToTypeT AnyToNullableAot<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
 			{
@@ -1070,7 +1157,14 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue, out var result, format, formatProvider);
 			return (ToTypeT)result!;
 		}
-		private KeyValuePair<ToTypeT, bool> TryAnyToNullableAot<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "Nullable.GetUnderlyingType returns the type argument of Nullable<T> which is reachable through the method's own DAM-annotated generic parameter.")]
+		private KeyValuePair<ToTypeT, bool> TryAnyToNullableAot<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (ReferenceEquals(fromValue, null))
 			{
@@ -1088,7 +1182,12 @@ namespace deniszykov.TypeConversion
 				return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
 			}
 		}
-		private ToTypeT? NullableToNullable<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT? NullableToNullable<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 			where ToTypeT : struct where FromTypeT : struct
 		{
 			if (fromValue.HasValue == false)
@@ -1100,7 +1199,12 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue.Value, out var result, format, formatProvider);
 			return result;
 		}
-		private KeyValuePair<ToTypeT?, bool> TryNullableToNullable<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		private KeyValuePair<ToTypeT?, bool> TryNullableToNullable<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 			where FromTypeT : struct where ToTypeT : struct
 		{
 			if (fromValue.HasValue == false)
@@ -1118,7 +1222,12 @@ namespace deniszykov.TypeConversion
 				return new KeyValuePair<ToTypeT?, bool>(default!, false);  // conversion failed
 			}
 		}
-		private ToTypeT NullableToAny<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider) where FromTypeT : struct
+		private ToTypeT NullableToAny<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider) where FromTypeT : struct
 		{
 			var result = default(ToTypeT);
 			if (fromValue.HasValue == false)
@@ -1137,7 +1246,12 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue.GetValueOrDefault(), out result, format, formatProvider);
 			return result!;
 		}
-		private KeyValuePair<ToTypeT, bool> TryNullableToAny<FromTypeT, ToTypeT>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
+		private KeyValuePair<ToTypeT, bool> TryNullableToAny<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT? fromValue, string? format, IFormatProvider? formatProvider)
 			where FromTypeT : struct
 		{
 			var result = default(ToTypeT);
@@ -1164,7 +1278,12 @@ namespace deniszykov.TypeConversion
 				return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
 			}
 		}
-		private ToTypeT? AnyToNullable<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider) where ToTypeT : struct
+		private ToTypeT? AnyToNullable<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider) where ToTypeT : struct
 		{
 			if (ReferenceEquals(fromValue, null))
 			{
@@ -1175,7 +1294,12 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue, out var result, format, formatProvider);
 			return result;
 		}
-		private KeyValuePair<ToTypeT?, bool> TryAnyToNullable<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private KeyValuePair<ToTypeT?, bool> TryAnyToNullable<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 			where ToTypeT : struct
 		{
 			if (ReferenceEquals(fromValue, null))
@@ -1193,7 +1317,16 @@ namespace deniszykov.TypeConversion
 				return new KeyValuePair<ToTypeT?, bool>(default!, false);  // conversion failed
 			}
 		}
-		private ToTypeT DownCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2072",
+			Justification = "DownCast is opt-in promotion to runtime type. Caller must keep that type rooted (e.g. via PrepareGetConverter) when AOT-trimmed.")]
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "DownCast is opt-in promotion to runtime type. Caller must keep that type rooted (e.g. via PrepareGetConverter) when AOT-trimmed.")]
+		private ToTypeT DownCast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (fromValue is ToTypeT toValue)
 			{
@@ -1223,7 +1356,16 @@ namespace deniszykov.TypeConversion
 			converter.Convert(fromValue, out var result, format, formatProvider);
 			return (ToTypeT)result!;
 		}
-		private KeyValuePair<ToTypeT, bool> TryDownCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		[UnconditionalSuppressMessage("Trimming", "IL2072",
+			Justification = "TryDownCast is opt-in promotion to runtime type. Caller must keep that type rooted (e.g. via PrepareGetConverter) when AOT-trimmed.")]
+		[UnconditionalSuppressMessage("Trimming", "IL2087",
+			Justification = "TryDownCast is opt-in promotion to runtime type. Caller must keep that type rooted (e.g. via PrepareGetConverter) when AOT-trimmed.")]
+		private KeyValuePair<ToTypeT, bool> TryDownCast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			if (fromValue is ToTypeT toValue)
 			{
@@ -1256,12 +1398,22 @@ namespace deniszykov.TypeConversion
 			return new KeyValuePair<ToTypeT, bool>(default!, false);  // conversion failed
 
 		}
-		private static ToTypeT UpCast<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private static ToTypeT UpCast<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			return (ToTypeT)(object)fromValue!;
 		}
 
-		private ToTypeT ConvertEnumToNumber<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertEnumToNumber<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var checkedConversion = format != UncheckedConversionFormat;
 			var enumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
@@ -1308,7 +1460,12 @@ namespace deniszykov.TypeConversion
 
 			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToTypeT)}' while build-in number types are expected.");
 		}
-		private ToTypeT ConvertNumberToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertNumberToEnum<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var checkedConversion = format != UncheckedConversionFormat;
 			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
@@ -1355,7 +1512,12 @@ namespace deniszykov.TypeConversion
 
 			throw new InvalidOperationException($"Unknown number type specified '{typeof(ToTypeT)}' while build-in number types are expected.");
 		}
-		private ToTypeT ConvertEnumToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertEnumToEnum<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var fromEnumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
 			var toEnumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
@@ -1370,18 +1532,33 @@ namespace deniszykov.TypeConversion
 				return toEnumConversionInfo.FromUInt64(fromEnumConversionInfo.ToUInt64(fromValue, checkedConversion), checkedConversion);
 			}
 		}
-		private ToTypeT ConvertEnumToString<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertEnumToString<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var enumConversionInfo = this.GetEnumConversionInfo<FromTypeT>();
 			return (ToTypeT)(object)enumConversionInfo.ToName(fromValue);
 		}
-		private ToTypeT ConvertStringToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private ToTypeT ConvertStringToEnum<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 			var ignoreCase = string.Equals(format, IgnoreCaseFormat, StringComparison.OrdinalIgnoreCase);
 			return enumConversionInfo.Parse((string)(object)fromValue!, ignoreCase);
 		}
-		private KeyValuePair<ToTypeT, bool> TryConvertStringToEnum<FromTypeT, ToTypeT>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
+		private KeyValuePair<ToTypeT, bool> TryConvertStringToEnum<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(FromTypeT fromValue, string? format, IFormatProvider? formatProvider)
 		{
 			var enumConversionInfo = this.GetEnumConversionInfo<ToTypeT>();
 			var ignoreCase = string.Equals(format, IgnoreCaseFormat, StringComparison.OrdinalIgnoreCase);
@@ -1432,7 +1609,12 @@ namespace deniszykov.TypeConversion
 		/// <summary>
 		/// Prepare conversion between <typeparamref name="FromTypeT"/> and <typeparamref name="ToTypeT"/> for AOT runtime and expose all internal generic method to static analyzer.
 		/// </summary>
-		public static void PrepareTypesForAotRuntime<FromTypeT, ToTypeT>()
+		public static void PrepareTypesForAotRuntime<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>()
 		{
 			// this block of code is never executed but visible to static analyzer
 			// ReSharper disable All
@@ -1474,6 +1656,10 @@ namespace deniszykov.TypeConversion
 			// ReSharper enable All
 		}
 
+		[UnconditionalSuppressMessage("Trimming", "IL2060",
+			Justification = "Generic method instantiation by Type. Used by the dynamic Type-based registration paths; AOT consumers should preserve the instantiation via PrepareTypesForAotRuntime or by referencing the generic method elsewhere.")]
+		[UnconditionalSuppressMessage("AOT", "IL3050",
+			Justification = "MakeGenericMethod is required to build delegates for caller-supplied generic methods. AOT consumers should pre-root needed instantiations (see PrepareTypesForAotRuntime).")]
 		private static MethodInfo InstantiateGenericMethod<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> methodDelegate, params Type[] typeArguments)
 		{
 			if (methodDelegate == null) throw new ArgumentNullException(nameof(methodDelegate));
@@ -1484,6 +1670,10 @@ namespace deniszykov.TypeConversion
 			if (methodDefinition == null) throw new InvalidOperationException($"Method '{method}' is not generic and can't be used for generic construction.");
 			return methodDefinition.MakeGenericMethod(typeArguments);
 		}
+		[UnconditionalSuppressMessage("Trimming", "IL2060",
+			Justification = "Generic method instantiation by Type. Used by the dynamic Type-based registration paths; AOT consumers should preserve the instantiation via PrepareTypesForAotRuntime or by referencing the generic method elsewhere.")]
+		[UnconditionalSuppressMessage("AOT", "IL3050",
+			Justification = "MakeGenericMethod is required to build delegates for caller-supplied generic methods. AOT consumers should pre-root needed instantiations (see PrepareTypesForAotRuntime).")]
 		private static MethodInfo InstantiateGenericMethod<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>> methodDelegate, params Type[] typeArguments)
 		{
 			if (methodDelegate == null) throw new ArgumentNullException(nameof(methodDelegate));

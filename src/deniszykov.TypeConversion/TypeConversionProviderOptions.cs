@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
@@ -39,6 +40,10 @@ namespace deniszykov.TypeConversion
 		[IgnoreDataMember]
 		public IFormatProvider? DefaultFormatProvider;
 
+		/// <summary>
+		/// Constructor of <see cref="TypeConversionProviderOptions"/>. Initializes <see cref="Options"/> to <see cref="ConversionOptions.Default"/>
+		/// and <see cref="ConversionMethodSelectionStrategy"/> to <see cref="TypeConversion.ConversionMethodSelectionStrategy.Default"/>.
+		/// </summary>
 		public TypeConversionProviderOptions()
 		{
 			this.Options = ConversionOptions.Default;
@@ -54,13 +59,23 @@ namespace deniszykov.TypeConversion
 
 		/// <inheritdoc />
 		[Obsolete("Please pass instance of 'CustomConversion<FromTypeT, ToTypeT>' in TypeConversionProvider's constructor for registering custom conversions.")]
-		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)
+		public void RegisterConversion<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, ConversionQuality quality = ConversionQuality.Custom)
 		{
 			this.RegisterConversion(conversionFunc, safeConversionFunc: default, quality);
 		}
 		/// <inheritdoc />
 		[Obsolete("Please pass instance of 'CustomConversion<FromTypeT, ToTypeT>' in TypeConversionProvider's constructor for registering custom conversions.")]
-		public void RegisterConversion<FromTypeT, ToTypeT>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFunc, ConversionQuality quality)
+		public void RegisterConversion<
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			FromTypeT,
+			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+			ToTypeT
+		>(Func<FromTypeT, string?, IFormatProvider?, ToTypeT> conversionFunc, Func<FromTypeT, string?, IFormatProvider?, KeyValuePair<ToTypeT, bool>>? safeConversionFunc, ConversionQuality quality)
 		{
 			var registration = new Action<ICustomConversionRegistry>(provider =>
 			{
